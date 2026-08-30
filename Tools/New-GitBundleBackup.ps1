@@ -1,10 +1,14 @@
 [CmdletBinding()]
 param(
-    [string]$DestinationRoot = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent) '_Backups')
+    [string]$DestinationRoot
 )
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if (-not $DestinationRoot) {
+    $projectContainer = Split-Path $repositoryRoot -Parent
+    $DestinationRoot = Join-Path $projectContainer '_Backups'
+}
 
 Push-Location $repositoryRoot
 try {
