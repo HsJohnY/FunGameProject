@@ -7,7 +7,7 @@
 ## 阅读顺序
 
 1. [GAME_BRIEF.md](GAME_BRIEF.md)：一页产品摘要与关键开放问题。
-2. [CORE_CONCEPT.md](CORE_CONCEPT.md)：已确认的移动巨构维修队核心概念。
+2. [CORE_CONCEPT.md](CORE_CONCEPT.md)：已确认的移动基地维修队核心概念。
 3. [WORLD_THEME.md](WORLD_THEME.md)：已确认的风暴荒原主背景与未来主题边界。
 4. [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md)：产品目标、玩家、体验支柱、范围与成功标准。
 5. [GAMEPLAY_REQUIREMENTS.md](GAMEPLAY_REQUIREMENTS.md)：游戏模式、单局循环、协作、谜题、失败与成长。
