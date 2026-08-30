@@ -13,11 +13,12 @@
 5. [GAMEPLAY_REQUIREMENTS.md](GAMEPLAY_REQUIREMENTS.md)：游戏模式、单局循环、协作、谜题、失败与成长。
 6. [RUN_AND_CAMPAIGN_STRUCTURE.md](RUN_AND_CAMPAIGN_STRUCTURE.md)：单局阶段、节奏、主线寿命和剧情驱动。
 7. [NARRATIVE_REQUIREMENTS.md](NARRATIVE_REQUIREMENTS.md)：已确认的使命、核心谜团和叙事表现边界。
-8. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
-9. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
-10. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
-11. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
-12. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
+8. [COMBAT_REQUIREMENTS.md](COMBAT_REQUIREMENTS.md)：维修工具防卫、小型敌人、章节精英和最终 Boss 边界。
+9. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
+10. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
+11. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
+12. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
+13. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
 
 ## 状态词
 
