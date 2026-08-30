@@ -7,13 +7,14 @@
 ## 阅读顺序
 
 1. [GAME_BRIEF.md](GAME_BRIEF.md)：一页产品摘要与关键开放问题。
-2. [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md)：产品目标、玩家、体验支柱、范围与成功标准。
-3. [GAMEPLAY_REQUIREMENTS.md](GAMEPLAY_REQUIREMENTS.md)：游戏模式、单局循环、协作、谜题、失败与成长。
-4. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
-5. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
-6. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
-7. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
-8. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
+2. [CORE_CONCEPT.md](CORE_CONCEPT.md)：已确认的移动巨构维修队核心概念。
+3. [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md)：产品目标、玩家、体验支柱、范围与成功标准。
+4. [GAMEPLAY_REQUIREMENTS.md](GAMEPLAY_REQUIREMENTS.md)：游戏模式、单局循环、协作、谜题、失败与成长。
+5. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
+6. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
+7. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
+8. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
+9. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
 
 ## 状态词
 
@@ -38,4 +39,3 @@
 - 影响玩法方向、网络拓扑、存档兼容或范围的决定需要 ADR。
 - 文档通过评审后才进入原型实现；实现不应悄悄改变需求。
 - 测试、任务和提交应尽量引用需求编号。
-
