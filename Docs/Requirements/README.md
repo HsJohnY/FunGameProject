@@ -16,11 +16,12 @@
 8. [COMBAT_REQUIREMENTS.md](COMBAT_REQUIREMENTS.md)：维修工具防卫、小型敌人、章节精英和最终 Boss 边界。
 9. [PLAYER_INTERACTION_REQUIREMENTS.md](PLAYER_INTERACTION_REQUIREMENTS.md)：第一人称、简化输入、移动与搬运规则。
 10. [TOOLS_AND_ITEMS_REQUIREMENTS.md](TOOLS_AND_ITEMS_REQUIREMENTS.md)：三类核心工具、人数适配、携带与反馈边界。
-11. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
-12. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
-13. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
-14. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
-15. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
+11. [COOP_AND_SYSTEM_PUZZLES.md](COOP_AND_SYSTEM_PUZZLES.md)：系统故障链、事故教学、协作层次与人数适配。
+12. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
+13. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
+14. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
+15. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
+16. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
 
 ## 状态词
 
