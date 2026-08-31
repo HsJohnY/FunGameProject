@@ -19,11 +19,12 @@
 11. [COOP_AND_SYSTEM_PUZZLES.md](COOP_AND_SYSTEM_PUZZLES.md)：系统故障链、事故教学、协作层次与人数适配。
 12. [PLAYER_STATE_AND_RESCUE.md](PLAYER_STATE_AND_RESCUE.md)：受伤、倒地、救援、恢复与退出规则。
 13. [PROGRESSION_REQUIREMENTS.md](PROGRESSION_REQUIREMENTS.md)：局内、局外成长最小用例与个人成长后续边界。
-14. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
-15. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
-16. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
-17. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
-18. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
+14. [LEVEL_CONTENT_REQUIREMENTS.md](LEVEL_CONTENT_REQUIREMENTS.md)：手工骨架、语义插槽、数据模块与受控变化。
+15. [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md)：功能系统清单、数据关系和阶段优先级。
+16. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
+17. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
+18. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
+19. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
 
 ## 状态词
 
