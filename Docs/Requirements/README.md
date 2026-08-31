@@ -27,7 +27,8 @@
 19. [TECHNICAL_REQUIREMENTS.md](TECHNICAL_REQUIREMENTS.md)：联机、性能、可维护性、存档和构建等非功能需求。
 20. [CONTENT_AND_ART.md](CONTENT_AND_ART.md)：3D 表现、资产预算、可读性和内容生产规则。
 21. [MVP_AND_ACCEPTANCE.md](MVP_AND_ACCEPTANCE.md)：原型、MVP 边界、验收和完成定义。
-22. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：需要项目推动者明确选择的问题与决策顺序。
+22. [GRAYBOX_SCOPE.md](GRAYBOX_SCOPE.md)：首个 8–12 分钟单机灰盒的冻结范围和退出条件。
+23. [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：已解决问题、明确延期和技术验证项。
 
 ## 状态词
 
