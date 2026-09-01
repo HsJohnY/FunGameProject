@@ -52,14 +52,14 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M1-4] 冷却舱固定事故链灰盒场景生成成功。");
+            Debug.Log("[M1-5] 冷却舱事故结果闭环灰盒场景生成成功。");
         }
 
         private static void CreateCheckpoint()
         {
-            var checkpointObject = new GameObject("M1-4 Development Checkpoint");
+            var checkpointObject = new GameObject("M1-5 Development Checkpoint");
             checkpointObject.AddComponent<DevelopmentCheckpoint>()
-                .Configure("m1-4-fixed-incident", "--m1-4-smoke");
+                .Configure("m1-5-incident-outcomes", "--m1-5-smoke");
         }
 
         private static void CreateLighting()
@@ -116,18 +116,19 @@ namespace FunGame.Editor
             GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.7f), new Vector3(0.35f, 1.1f, 1.1f), machineryMaterial);
             sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
 
+            var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
+            recoveryPointObject.transform.SetParent(environment);
+            recoveryPointObject.transform.position = new Vector3(-4.8f, 0.75f, -4.5f);
             GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(0f, 1.1f, 4.25f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
             fastener.AddComponent<MechanicalFastenerTarget>().Configure(incident);
             var pipeAnchor = new GameObject("Replacement Pipe Install Anchor");
             pipeAnchor.transform.SetParent(fastener.transform, false);
             pipeAnchor.transform.localPosition = new Vector3(0f, 0f, -1.2f);
-            fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform);
+            // 安装座同时保留恢复点引用，重置事故时可以把已安装的任务物送回架上。
+            fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform, recoveryPointObject.transform);
             GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
             leak.AddComponent<SealantTarget>().Configure(incident);
 
-            var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
-            recoveryPointObject.transform.SetParent(environment);
-            recoveryPointObject.transform.position = new Vector3(-4.8f, 0.75f, -4.5f);
             GameObject carryable = CreateBlock(environment, "Replacement Pipe", recoveryPointObject.transform.position, new Vector3(0.6f, 0.6f, 1.5f), warningMaterial);
             var itemBody = carryable.AddComponent<Rigidbody>();
             itemBody.mass = 3f;

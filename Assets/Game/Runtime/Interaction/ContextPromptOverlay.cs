@@ -37,10 +37,25 @@ namespace FunGame.Interaction
 
             if (_incident != null)
             {
-                string objective = _incident.Phase == CoolingIncidentPhase.ContainLeak
-                    ? $"当前目标：{_incident.CurrentInstruction} ({_incident.SealProgress:P0})"
-                    : $"当前目标：{_incident.CurrentInstruction}";
-                DrawPrompt(objective, true, 22f);
+                string objective;
+                bool available = _incident.RunState == CoolingIncidentRunState.Active;
+                if (_incident.RunState == CoolingIncidentRunState.Failed)
+                {
+                    objective = $"事故失败：温度达到 {_incident.Temperature:F0}°C · 前往控制台重新开始";
+                }
+                else if (_incident.RunState == CoolingIncidentRunState.Succeeded)
+                {
+                    objective = "冷却系统已恢复稳定 · 前往控制台重新开始";
+                }
+                else
+                {
+                    objective = _incident.Phase == CoolingIncidentPhase.ContainLeak
+                        ? $"当前目标：{_incident.CurrentInstruction} ({_incident.SealProgress:P0})"
+                        : $"当前目标：{_incident.CurrentInstruction}";
+                }
+
+                DrawPrompt(objective, available, 22f);
+                DrawPrompt($"舱内温度：{_incident.Temperature:F1}°C / {_incident.FailureTemperature:F0}°C", available, 48f);
             }
 
             if (_interactor.CurrentOption.HasValue)

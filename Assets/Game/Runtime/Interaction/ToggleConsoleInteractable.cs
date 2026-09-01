@@ -6,7 +6,7 @@ namespace FunGame.Interaction
     /// <summary>
     /// M1-2 代表性设备动作：使用同一个上下文键切换控制台状态。
     /// </summary>
-    public sealed class ToggleConsoleInteractable : MonoBehaviour, IContextInteractable
+    public sealed class ToggleConsoleInteractable : MonoBehaviour, IContextInteractable, IIncidentResettable
     {
         [SerializeField] private string targetId = "cooling-console";
         [SerializeField] private string targetName = "冷却控制台";
@@ -22,6 +22,13 @@ namespace FunGame.Interaction
         public void Configure(CoolingIncidentController incidentController)
         {
             incident = incidentController;
+            incident?.RegisterResettable(this);
+        }
+
+        public void ResetIncidentState()
+        {
+            IsOn = false;
+            ApplyVisualState();
         }
 
         private void Awake()
@@ -41,6 +48,16 @@ namespace FunGame.Interaction
         {
             if (incident != null)
             {
+                if (incident.RunState != CoolingIncidentRunState.Active)
+                {
+                    return new InteractionOption(
+                        targetId,
+                        targetName,
+                        "重新开始事故",
+                        InteractionPriority.Device,
+                        true);
+                }
+
                 bool canReset = incident.Phase == CoolingIncidentPhase.ResetPump;
                 bool complete = incident.Phase == CoolingIncidentPhase.Stabilized;
                 return new InteractionOption(
@@ -63,6 +80,11 @@ namespace FunGame.Interaction
         {
             if (incident != null)
             {
+                if (incident.RunState != CoolingIncidentRunState.Active)
+                {
+                    return incident.ResetIncident();
+                }
+
                 if (!incident.TryResetPump())
                 {
                     return false;

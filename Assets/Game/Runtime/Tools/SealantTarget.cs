@@ -7,7 +7,7 @@ namespace FunGame.Tools
     /// 密封喷枪语义样例，只验证工具匹配、动作词和完成反馈。
     /// 正式连续覆盖与泄漏状态推进在 M1-4 实现。
     /// </summary>
-    public sealed class SealantTarget : MonoBehaviour, IToolTarget
+    public sealed class SealantTarget : MonoBehaviour, IToolTarget, IIncidentResettable
     {
         [SerializeField] private string targetId = "sealant-demo-leak";
         [SerializeField] private string targetName = "泄漏点演示";
@@ -21,6 +21,13 @@ namespace FunGame.Tools
         public void Configure(CoolingIncidentController incidentController)
         {
             incident = incidentController;
+            incident?.RegisterResettable(this);
+        }
+
+        public void ResetIncidentState()
+        {
+            IsSealed = false;
+            RefreshVisual();
         }
 
         private void Awake()

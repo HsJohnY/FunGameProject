@@ -1,5 +1,6 @@
 using System.Collections;
 using FunGame.Interaction;
+using FunGame.Incident;
 using FunGame.Tools;
 using NUnit.Framework;
 using UnityEngine;
@@ -9,6 +10,45 @@ namespace FunGame.Tests.PlayMode
 {
     public sealed class ToolAndCarryPlayModeTests
     {
+        [UnityTest]
+        public IEnumerator CoolingIncident_温度超限后失败并可重置()
+        {
+            var incidentObject = new GameObject("Test Cooling Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureTemperature(1f, 1.01f, 100f);
+
+            yield return null;
+
+            Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Failed));
+            Assert.That(incident.ResetIncident(), Is.True);
+            Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Active));
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.ContainLeak));
+            Assert.That(incident.ResetCount, Is.EqualTo(1));
+
+            Object.Destroy(incidentObject);
+        }
+
+        [UnityTest]
+        public IEnumerator CoolingIncident_完成固定阶段后标记成功()
+        {
+            var incidentObject = new GameObject("Test Cooling Incident Success");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureTemperature(65f, 100f, 0f);
+
+            yield return null;
+
+            incident.AddSealProgress(1f);
+            incident.TryLoosen();
+            incident.TryInstallPipe();
+            incident.TryTighten();
+            incident.TryResetPump();
+
+            Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Succeeded));
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.Stabilized));
+
+            Object.Destroy(incidentObject);
+        }
+
         [UnityTest]
         public IEnumerator ToolRack_重复取用同类工具会恢复空手()
         {

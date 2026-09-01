@@ -6,7 +6,7 @@ namespace FunGame.Tools
     /// <summary>
     /// 冲击扳手语义样例，在“松开”和“紧固”之间切换机械连接状态。
     /// </summary>
-    public sealed class MechanicalFastenerTarget : MonoBehaviour, IToolTarget
+    public sealed class MechanicalFastenerTarget : MonoBehaviour, IToolTarget, IIncidentResettable
     {
         [SerializeField] private string targetId = "mechanical-fastener";
         [SerializeField] private string targetName = "管件机械连接";
@@ -21,6 +21,13 @@ namespace FunGame.Tools
         public void Configure(CoolingIncidentController incidentController)
         {
             incident = incidentController;
+            incident?.RegisterResettable(this);
+        }
+
+        public void ResetIncidentState()
+        {
+            isTightened = true;
+            RefreshVisual();
         }
 
         private void Awake()

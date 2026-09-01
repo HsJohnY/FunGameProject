@@ -47,6 +47,12 @@ namespace FunGame.Incident
         public bool TryTighten() => TryAdvance(CoolingIncidentPhase.TightenConnection, CoolingIncidentPhase.ResetPump);
         public bool TryResetPump() => TryAdvance(CoolingIncidentPhase.ResetPump, CoolingIncidentPhase.Stabilized);
 
+        public void Reset()
+        {
+            Phase = CoolingIncidentPhase.ContainLeak;
+            SealProgress = 0f;
+        }
+
         private bool TryAdvance(CoolingIncidentPhase expected, CoolingIncidentPhase next)
         {
             if (Phase != expected)
