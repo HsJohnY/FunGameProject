@@ -24,15 +24,22 @@ namespace FunGame.Tools
             return new InteractionOption(
                 targetId,
                 offeredTool.GetDisplayName() + "工具位",
-                "装备" + offeredTool.GetDisplayName(),
+                alreadyEquipped ? "放回" + offeredTool.GetDisplayName() : "装备" + offeredTool.GetDisplayName(),
                 InteractionPriority.Device,
-                hasToolbelt && !alreadyEquipped,
-                !hasToolbelt ? "玩家缺少主工具位" : "已经装备");
+                hasToolbelt,
+                hasToolbelt ? string.Empty : "玩家缺少主工具位");
         }
 
         public bool ExecuteInteraction(ContextInteractor actor)
         {
-            return actor.Toolbelt != null && actor.Toolbelt.Equip(offeredTool);
+            if (actor.Toolbelt == null)
+            {
+                return false;
+            }
+
+            return actor.Toolbelt.EquippedTool == offeredTool
+                ? actor.Toolbelt.Unequip()
+                : actor.Toolbelt.Equip(offeredTool);
         }
     }
 }

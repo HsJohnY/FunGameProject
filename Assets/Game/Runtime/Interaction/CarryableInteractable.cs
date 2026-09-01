@@ -11,6 +11,9 @@ namespace FunGame.Interaction
         [SerializeField] private string targetName = "测试管件";
         [SerializeField] private Collider interactionCollider;
         [SerializeField] private Rigidbody itemBody;
+        [SerializeField, Range(0.1f, 1f)] private float heldScaleMultiplier = 0.45f;
+
+        private Vector3 _worldScaleBeforePickup;
 
         public string TargetId => targetId;
         public bool IsHeld { get; private set; }
@@ -57,6 +60,7 @@ namespace FunGame.Interaction
         public void SetHeld(Transform anchor)
         {
             IsHeld = true;
+            _worldScaleBeforePickup = transform.lossyScale;
             if (itemBody != null)
             {
                 itemBody.isKinematic = true;
@@ -67,7 +71,9 @@ namespace FunGame.Interaction
             interactionCollider.enabled = false;
             transform.SetParent(anchor, false);
             transform.localPosition = Vector3.zero;
-            transform.localRotation = Quaternion.identity;
+            transform.localRotation = Quaternion.Euler(12f, -18f, 0f);
+            // 携带物使用缩小后的第一人称表现，避免与左侧主工具模型穿插并遮挡视野。
+            transform.localScale = _worldScaleBeforePickup * heldScaleMultiplier;
         }
 
         /// <summary>
@@ -78,6 +84,9 @@ namespace FunGame.Interaction
             IsHeld = false;
             transform.SetParent(null, true);
             transform.position = worldPosition;
+            transform.localScale = _worldScaleBeforePickup == Vector3.zero
+                ? transform.localScale
+                : _worldScaleBeforePickup;
             interactionCollider.enabled = true;
             if (itemBody != null)
             {

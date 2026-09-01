@@ -10,6 +10,25 @@ namespace FunGame.Tests.PlayMode
     public sealed class ToolAndCarryPlayModeTests
     {
         [UnityTest]
+        public IEnumerator ToolRack_重复取用同类工具会恢复空手()
+        {
+            CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            var rackObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var rack = rackObject.AddComponent<ToolRackInteractable>();
+            rack.Configure("test-rack", ToolKind.ImpactWrench);
+
+            yield return null;
+            Assert.That(rack.ExecuteInteraction(actor.GetComponent<ContextInteractor>()), Is.True);
+            Assert.That(toolbelt.EquippedTool, Is.EqualTo(ToolKind.ImpactWrench));
+            Assert.That(rack.GetInteractionOption(actor.GetComponent<ContextInteractor>()).ActionLabel, Is.EqualTo("放回冲击扳手"));
+            Assert.That(rack.ExecuteInteraction(actor.GetComponent<ContextInteractor>()), Is.True);
+            Assert.That(toolbelt.EquippedTool, Is.EqualTo(ToolKind.None));
+
+            Object.Destroy(actor);
+            Object.Destroy(rackObject);
+        }
+
+        [UnityTest]
         public IEnumerator ToolController_正确扳手切换机械连接状态()
         {
             CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
@@ -74,6 +93,26 @@ namespace FunGame.Tests.PlayMode
 
             Assert.That(body.linearVelocity.z, Is.GreaterThan(0f));
             Assert.That(body.linearVelocity.y, Is.GreaterThan(0f));
+
+            Object.Destroy(actor);
+            Object.Destroy(itemObject);
+        }
+
+        [UnityTest]
+        public IEnumerator Carryable_手持时缩小且抛出后恢复原尺寸()
+        {
+            ContextInteractor interactor = CreateCarryActor(out GameObject actor);
+            var itemObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            itemObject.transform.localScale = new Vector3(0.6f, 0.6f, 1.5f);
+            itemObject.AddComponent<Rigidbody>();
+            var item = itemObject.AddComponent<CarryableInteractable>();
+            Vector3 originalScale = itemObject.transform.lossyScale;
+
+            yield return null;
+            Assert.That(interactor.TryPickup(item), Is.True);
+            Assert.That(itemObject.transform.lossyScale.magnitude, Is.LessThan(originalScale.magnitude));
+            Assert.That(interactor.DropHeldItem(), Is.True);
+            Assert.That(Vector3.Distance(itemObject.transform.lossyScale, originalScale), Is.LessThan(0.001f));
 
             Object.Destroy(actor);
             Object.Destroy(itemObject);

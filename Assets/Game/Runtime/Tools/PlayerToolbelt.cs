@@ -38,6 +38,23 @@ namespace FunGame.Tools
             return true;
         }
 
+        /// <summary>
+        /// 清空主工具位。空手时重复调用不会产生副作用。
+        /// </summary>
+        public bool Unequip()
+        {
+            if (EquippedTool == ToolKind.None)
+            {
+                return false;
+            }
+
+            ToolKind returnedTool = EquippedTool;
+            EquippedTool = ToolKind.None;
+            RefreshVisuals();
+            Debug.Log($"[Tool] returned={returnedTool} equipped=None", this);
+            return true;
+        }
+
         private void RefreshVisuals()
         {
             if (impactWrenchVisual != null)
