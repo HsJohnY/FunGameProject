@@ -4,15 +4,15 @@ using UnityEngine;
 namespace FunGame
 {
     /// <summary>
-    /// Identifies the generated M0 validation scene without owning gameplay state.
+    /// 标识自动生成的 M0 验证场景，本组件不持有任何玩法状态。
     /// </summary>
     public sealed class ProjectBootstrapMarker : MonoBehaviour
     {
         public const string BaselineId = "m0-technical-baseline";
 
         /// <summary>
-        /// Returns whether a built player was launched for the automated M0 smoke check.
-        /// Normal editor and player launches do not include this flag and remain open.
+        /// 判断构建后的玩家程序是否由 M0 自动冒烟检查启动。
+        /// 编辑器和玩家的正常启动不包含此标记，因此不会自动退出。
         /// </summary>
         public static bool ContainsSmokeRunFlag(string[] arguments)
         {

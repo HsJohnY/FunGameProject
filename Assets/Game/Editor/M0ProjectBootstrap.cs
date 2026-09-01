@@ -10,8 +10,8 @@ using UnityEngine.SceneManagement;
 namespace FunGame.Editor
 {
     /// <summary>
-    /// Creates the deterministic project settings, validation scene and build used by the M0 gate.
-    /// Keeping this setup in code lets a fresh clone reproduce the same Unity assets.
+    /// 创建 M0 门禁所需的确定性项目设置、验证场景和构建。
+    /// 将初始化过程保存在代码中，可让全新克隆复现相同的 Unity 资产。
     /// </summary>
     public static class M0ProjectBootstrap
     {
@@ -22,8 +22,8 @@ namespace FunGame.Editor
         private const string ScenePath = ScenesFolder + "/M0_Bootstrap.unity";
 
         /// <summary>
-        /// Applies the M0 project baseline and regenerates the validation scene.
-        /// This method is the command-line entry used by Initialize-M0.ps1.
+        /// 应用 M0 项目基线并重新生成验证场景。
+        /// 此方法是 Initialize-M0.ps1 使用的命令行入口。
         /// </summary>
         public static void Configure()
         {
@@ -51,7 +51,7 @@ namespace FunGame.Editor
         }
 
         /// <summary>
-        /// Produces the Windows development player used by the M0 runtime smoke check.
+        /// 生成供 M0 运行时冒烟检查使用的 Windows 开发版本。
         /// </summary>
         public static void BuildWindowsDevelopment()
         {
@@ -97,8 +97,8 @@ namespace FunGame.Editor
 
         private static void SetActiveInputHandlerToInputSystem()
         {
-            // Unity 6 does not expose this project-wide selector through a stable public
-            // PlayerSettings property, so update the serialized setting by its Unity key.
+            // Unity 6 没有通过稳定的公共 PlayerSettings 属性开放这个项目级选项，
+            // 因此需要使用 Unity 自身的序列化键修改该设置。
             Object[] settingsAssets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset");
             if (settingsAssets.Length == 0)
             {
@@ -167,8 +167,8 @@ namespace FunGame.Editor
 
         private static void MoveGeneratedAssetIfNeeded(string sourcePath, string destinationPath)
         {
-            // URP creates these assets at the Assets root on first activation. Moving them
-            // through AssetDatabase preserves GUID references and keeps project content tidy.
+            // URP 首次启用时会在 Assets 根目录生成这些资产。通过 AssetDatabase 移动
+            // 可以保留 GUID 引用，同时维持项目目录整洁。
             if (AssetDatabase.LoadMainAssetAtPath(sourcePath) == null ||
                 AssetDatabase.LoadMainAssetAtPath(destinationPath) != null)
             {
