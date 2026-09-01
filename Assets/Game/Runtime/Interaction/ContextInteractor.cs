@@ -14,6 +14,8 @@ namespace FunGame.Interaction
         [SerializeField] private Transform holdAnchor;
         [SerializeField] private FirstPersonController playerController;
         [SerializeField, Min(0.5f)] private float interactionRange = 3f;
+        [SerializeField, Range(0f, 0.3f)] private float aimAssistRadius = 0.16f;
+        [SerializeField, Range(0f, 0.5f)] private float targetRetentionSeconds = 0.12f;
         [SerializeField] private LayerMask interactionMask = ~0;
 
         private readonly List<MonoBehaviour> _componentBuffer = new List<MonoBehaviour>(8);
@@ -22,6 +24,7 @@ namespace FunGame.Interaction
         private IContextInteractable _currentInteractable;
         private InteractionOption? _currentOption;
         private CarryableInteractable _heldItem;
+        private float _lastTargetSeenAt = float.NegativeInfinity;
 
         public InteractionOption? CurrentOption => _currentOption;
         public bool IsHoldingItem => _heldItem != null;
@@ -79,8 +82,7 @@ namespace FunGame.Interaction
         {
             if (playerController != null && !playerController.IsCursorLocked)
             {
-                _currentInteractable = null;
-                _currentOption = null;
+                ClearTarget();
                 return;
             }
 
@@ -102,18 +104,31 @@ namespace FunGame.Interaction
         /// </summary>
         public void RefreshTarget()
         {
-            _currentInteractable = null;
-            _currentOption = null;
-
             Ray ray = new Ray(viewCamera.transform.position, viewCamera.transform.forward);
-            if (!Physics.Raycast(ray, out RaycastHit hit, interactionRange, interactionMask, QueryTriggerInteraction.Ignore))
+            bool hasHit = Physics.SphereCast(
+                ray,
+                aimAssistRadius,
+                out RaycastHit hit,
+                interactionRange,
+                interactionMask,
+                QueryTriggerInteraction.Ignore);
+
+            if (!hasHit)
             {
+                // 只在准星短暂落空时保持目标；若命中墙壁等其他表面，会在下方立即清除。
+                if (_currentInteractable == null || Time.unscaledTime - _lastTargetSeenAt > targetRetentionSeconds)
+                {
+                    ClearTarget();
+                }
+
                 return;
             }
 
             // 只读取最先命中表面上的组件，防止跨越遮挡物选择远处目标。
             _componentBuffer.Clear();
             hit.collider.GetComponentsInParent(true, _componentBuffer);
+            IContextInteractable bestInteractable = null;
+            InteractionOption? bestOption = null;
             foreach (MonoBehaviour component in _componentBuffer)
             {
                 if (!(component is IContextInteractable interactable))
@@ -122,12 +137,23 @@ namespace FunGame.Interaction
                 }
 
                 InteractionOption option = interactable.GetInteractionOption(this);
-                if (!_currentOption.HasValue || InteractionSelection.IsBetter(option, _currentOption.Value))
+                if (!bestOption.HasValue || InteractionSelection.IsBetter(option, bestOption.Value))
                 {
-                    _currentInteractable = interactable;
-                    _currentOption = option;
+                    bestInteractable = interactable;
+                    bestOption = option;
                 }
             }
+
+            if (bestInteractable == null)
+            {
+                // 已明确命中非交互表面时不使用保持时间，防止隔着遮挡物误操作。
+                ClearTarget();
+                return;
+            }
+
+            _currentInteractable = bestInteractable;
+            _currentOption = bestOption;
+            _lastTargetSeenAt = Time.unscaledTime;
         }
 
         /// <summary>
@@ -184,6 +210,13 @@ namespace FunGame.Interaction
             item.SetDropped(dropPosition);
             Debug.Log($"[Interaction] target={item.TargetId} action=drop success=True", this);
             return true;
+        }
+
+        private void ClearTarget()
+        {
+            _currentInteractable = null;
+            _currentOption = null;
+            _lastTargetSeenAt = float.NegativeInfinity;
         }
     }
 }

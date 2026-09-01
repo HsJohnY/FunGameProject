@@ -50,6 +50,50 @@ namespace FunGame.Tests.PlayMode
             Object.Destroy(itemObject);
         }
 
+        [UnityTest]
+        public IEnumerator ContextInteractor_轻微偏离中心仍能选中小目标()
+        {
+            ContextInteractor interactor = CreateInteractor();
+            var target = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            target.name = "Small Assisted Target";
+            target.transform.position = new Vector3(0.12f, 0f, 2f);
+            target.transform.localScale = Vector3.one * 0.08f;
+            target.AddComponent<ToggleConsoleInteractable>();
+            Physics.SyncTransforms();
+
+            yield return null;
+            interactor.RefreshTarget();
+
+            Assert.That(interactor.CurrentOption.HasValue, Is.True);
+            Assert.That(interactor.CurrentOption.Value.TargetId, Is.EqualTo("cooling-console"));
+
+            Object.Destroy(interactor.gameObject);
+            Object.Destroy(target);
+        }
+
+        [UnityTest]
+        public IEnumerator ContextInteractor_非交互遮挡物阻止选择后方目标()
+        {
+            ContextInteractor interactor = CreateInteractor();
+            var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            blocker.name = "Blocking Surface";
+            blocker.transform.position = new Vector3(0f, 0f, 1f);
+
+            var target = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            target.transform.position = new Vector3(0f, 0f, 2f);
+            target.AddComponent<ToggleConsoleInteractable>();
+            Physics.SyncTransforms();
+
+            yield return null;
+            interactor.RefreshTarget();
+
+            Assert.That(interactor.CurrentOption.HasValue, Is.False);
+
+            Object.Destroy(interactor.gameObject);
+            Object.Destroy(blocker);
+            Object.Destroy(target);
+        }
+
         private static ContextInteractor CreateInteractor()
         {
             var actor = new GameObject("Test Interaction Actor");
