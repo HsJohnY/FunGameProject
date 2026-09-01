@@ -41,11 +41,11 @@ namespace FunGame.Interaction
                 bool available = incident.RunState == CoolingIncidentRunState.Active;
                 if (incident.RunState == CoolingIncidentRunState.Failed)
                 {
-                    objective = $"事故失败：温度达到 {incident.Temperature:F0}°C · 前往控制台重新开始";
+                    objective = $"事故失败 · 未完成：{incident.CurrentInstruction} · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 前往控制台重新开始";
                 }
                 else if (incident.RunState == CoolingIncidentRunState.Succeeded)
                 {
-                    objective = "冷却系统已恢复稳定 · 前往控制台重新开始";
+                    objective = $"冷却系统已恢复 · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 前往控制台重新开始";
                 }
                 else
                 {
@@ -55,7 +55,10 @@ namespace FunGame.Interaction
                 }
 
                 DrawPrompt(objective, available, 22f);
-                DrawPrompt($"舱内温度：{incident.Temperature:F1}°C / {incident.FailureTemperature:F0}°C", available, 48f);
+                DrawPrompt(
+                    $"用时：{CoolingIncidentController.FormatDuration(incident.ElapsedSeconds)} · 舱内温度：{incident.Temperature:F1}°C / {incident.FailureTemperature:F0}°C",
+                    available,
+                    48f);
             }
 
             if (_interactor.CurrentOption.HasValue)

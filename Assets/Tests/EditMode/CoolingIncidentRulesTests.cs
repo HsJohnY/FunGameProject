@@ -43,5 +43,13 @@ namespace FunGame.Tests.EditMode
             rules.TryLoosen();
             Assert.That(rules.CurrentInstruction, Does.Contain("安装"));
         }
+
+        [TestCase(0f, "00:00")]
+        [TestCase(65.9f, "01:05")]
+        [TestCase(605f, "10:05")]
+        public void 运行时长使用稳定的分秒格式(float seconds, string expected)
+        {
+            Assert.That(CoolingIncidentController.FormatDuration(seconds), Is.EqualTo(expected));
+        }
     }
 }

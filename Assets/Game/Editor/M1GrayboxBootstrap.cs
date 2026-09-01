@@ -5,6 +5,8 @@ using FunGame.Player;
 using FunGame.Tools;
 using FunGame.Incident;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -52,14 +54,39 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M1-5] 冷却舱事故结果闭环灰盒场景生成成功。");
+            Debug.Log("[M1-6] 冷却舱完整灰盒候选场景生成成功。");
+        }
+
+        /// <summary>
+        /// 生成 M1 完整灰盒的 Windows x64 开发构建。
+        /// </summary>
+        public static void BuildWindowsDevelopment()
+        {
+            ConfigureCurrent();
+            Directory.CreateDirectory("Builds/M1-Windows");
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = "Builds/M1-Windows/FunGame-M1.exe",
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.Development
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new BuildFailedException($"M1 构建失败：{report.summary.result}");
+            }
+
+            Debug.Log($"[M1-6] Windows 开发构建成功：{report.summary.totalSize} bytes。");
         }
 
         private static void CreateCheckpoint()
         {
-            var checkpointObject = new GameObject("M1-5 Development Checkpoint");
+            var checkpointObject = new GameObject("M1-6 Development Checkpoint");
             checkpointObject.AddComponent<DevelopmentCheckpoint>()
-                .Configure("m1-5-incident-outcomes", "--m1-5-smoke");
+                .Configure("m1-6-graybox-candidate", "--m1-6-smoke");
         }
 
         private static void CreateLighting()

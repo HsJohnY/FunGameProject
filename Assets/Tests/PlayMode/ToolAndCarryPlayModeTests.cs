@@ -12,7 +12,7 @@ namespace FunGame.Tests.PlayMode
     public sealed class ToolAndCarryPlayModeTests
     {
         [UnityTest]
-        public IEnumerator MechanicalFastener_场景加载后会登记并响应事故重置()
+        public IEnumerator MechanicalFastener_场景加载后连续三次重置无残留()
         {
             var incidentObject = new GameObject("Test Runtime Registration Incident");
             var incident = incidentObject.AddComponent<CoolingIncidentController>();
@@ -28,12 +28,17 @@ namespace FunGame.Tests.PlayMode
             // 等待 Start，模拟由 Unity 场景反序列化引用、而不是由 Configure 注入的真实加载路径。
             yield return null;
 
-            incident.AddSealProgress(1f);
-            Assert.That(target.ApplyTool(toolbelt), Is.True);
-            Assert.That(target.IsTightened, Is.False);
+            for (int resetIndex = 1; resetIndex <= 3; resetIndex++)
+            {
+                incident.AddSealProgress(1f);
+                Assert.That(target.ApplyTool(toolbelt), Is.True);
+                Assert.That(target.IsTightened, Is.False);
 
-            incident.ResetIncident();
-            Assert.That(target.IsTightened, Is.True);
+                incident.ResetIncident();
+                Assert.That(target.IsTightened, Is.True);
+                Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.ContainLeak));
+                Assert.That(incident.ResetCount, Is.EqualTo(resetIndex));
+            }
 
             Object.Destroy(actor);
             Object.Destroy(targetObject);

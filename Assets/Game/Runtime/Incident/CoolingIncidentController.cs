@@ -13,8 +13,10 @@ namespace FunGame.Incident
         private readonly List<IIncidentResettable> _resettableObjects = new List<IIncidentResettable>();
         [SerializeField, Min(0f)] private float startingTemperature = 65f;
         [SerializeField, Min(1f)] private float failureTemperature = 100f;
-        [SerializeField, Min(0f)] private float temperatureRisePerSecond = 0.75f;
+        [SerializeField, Min(0f)] private float temperatureRisePerSecond = 0.07f;
         private float _temperature;
+        private float _elapsedSeconds;
+        private float _lastRunDurationSeconds;
         private CoolingIncidentRunState _runState = CoolingIncidentRunState.Active;
 
         public event Action StateChanged;
@@ -25,6 +27,8 @@ namespace FunGame.Incident
         public CoolingIncidentRunState RunState => _runState;
         public float Temperature => _temperature;
         public float FailureTemperature => failureTemperature;
+        public float ElapsedSeconds => _elapsedSeconds;
+        public float LastRunDurationSeconds => _lastRunDurationSeconds;
         public int ResetCount { get; private set; }
         private CoolingIncidentRules Rules => _rules ?? (_rules = new CoolingIncidentRules());
 
@@ -40,6 +44,7 @@ namespace FunGame.Incident
                 return;
             }
 
+            _elapsedSeconds += Time.deltaTime;
             _temperature += temperatureRisePerSecond * Time.deltaTime;
             if (_temperature < failureTemperature)
             {
@@ -47,7 +52,8 @@ namespace FunGame.Incident
             }
 
             _runState = CoolingIncidentRunState.Failed;
-            Debug.Log($"[Incident] result=failed phase={Phase} temperature={_temperature:F1}", this);
+            _lastRunDurationSeconds = _elapsedSeconds;
+            Debug.Log($"[Incident] result=failed phase={Phase} temperature={_temperature:F1} duration={FormatDuration(_lastRunDurationSeconds)}", this);
             RunStateChanged?.Invoke();
         }
 
@@ -71,6 +77,7 @@ namespace FunGame.Incident
         {
             Rules.Reset();
             _temperature = startingTemperature;
+            _elapsedSeconds = 0f;
             _runState = CoolingIncidentRunState.Active;
             foreach (IIncidentResettable resettable in _resettableObjects)
             {
@@ -110,12 +117,19 @@ namespace FunGame.Incident
                 if (Rules.Phase == CoolingIncidentPhase.Stabilized)
                 {
                     _runState = CoolingIncidentRunState.Succeeded;
-                    Debug.Log($"[Incident] result=succeeded temperature={_temperature:F1}", this);
+                    _lastRunDurationSeconds = _elapsedSeconds;
+                    Debug.Log($"[Incident] result=succeeded temperature={_temperature:F1} duration={FormatDuration(_lastRunDurationSeconds)}", this);
                     RunStateChanged?.Invoke();
                 }
             }
 
             return accepted;
+        }
+
+        public static string FormatDuration(float seconds)
+        {
+            int totalSeconds = Mathf.Max(0, Mathf.FloorToInt(seconds));
+            return $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
         }
     }
 }
