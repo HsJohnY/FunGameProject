@@ -3,6 +3,7 @@
   "rootNamespace": "FunGame.Editor",
   "references": [
     "FunGame.Runtime",
+    "Unity.InputSystem",
     "Unity.RenderPipelines.Universal.Runtime"
   ],
   "includePlatforms": [

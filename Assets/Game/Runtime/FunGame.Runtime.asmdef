@@ -1,7 +1,9 @@
 {
   "name": "FunGame.Runtime",
   "rootNamespace": "FunGame",
-  "references": [],
+  "references": [
+    "Unity.InputSystem"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

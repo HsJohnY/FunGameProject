@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Game/Scenes/M0_Bootstrap.unity
-    guid: 54c7e1a720a47ad40a688c07eec28502
+    path: Assets/Game/Scenes/M1_CoolingBay.unity
+    guid: d2b85407833b7244887563b95c208fa9
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0
