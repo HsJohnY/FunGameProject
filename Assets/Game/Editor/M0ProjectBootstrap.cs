@@ -9,6 +9,10 @@ using UnityEngine.SceneManagement;
 
 namespace FunGame.Editor
 {
+    /// <summary>
+    /// Creates the deterministic project settings, validation scene and build used by the M0 gate.
+    /// Keeping this setup in code lets a fresh clone reproduce the same Unity assets.
+    /// </summary>
     public static class M0ProjectBootstrap
     {
         private const string SettingsFolder = "Assets/Game/Settings";
@@ -17,6 +21,10 @@ namespace FunGame.Editor
         private const string PipelinePath = SettingsFolder + "/FunGameUniversalRenderPipeline.asset";
         private const string ScenePath = ScenesFolder + "/M0_Bootstrap.unity";
 
+        /// <summary>
+        /// Applies the M0 project baseline and regenerates the validation scene.
+        /// This method is the command-line entry used by Initialize-M0.ps1.
+        /// </summary>
         public static void Configure()
         {
             EnsureFolder(SettingsFolder);
@@ -42,6 +50,9 @@ namespace FunGame.Editor
             Debug.Log("[M0] Technical baseline configured successfully.");
         }
 
+        /// <summary>
+        /// Produces the Windows development player used by the M0 runtime smoke check.
+        /// </summary>
         public static void BuildWindowsDevelopment()
         {
             Configure();
@@ -86,6 +97,8 @@ namespace FunGame.Editor
 
         private static void SetActiveInputHandlerToInputSystem()
         {
+            // Unity 6 does not expose this project-wide selector through a stable public
+            // PlayerSettings property, so update the serialized setting by its Unity key.
             Object[] settingsAssets = AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset");
             if (settingsAssets.Length == 0)
             {
@@ -154,6 +167,8 @@ namespace FunGame.Editor
 
         private static void MoveGeneratedAssetIfNeeded(string sourcePath, string destinationPath)
         {
+            // URP creates these assets at the Assets root on first activation. Moving them
+            // through AssetDatabase preserves GUID references and keeps project content tidy.
             if (AssetDatabase.LoadMainAssetAtPath(sourcePath) == null ||
                 AssetDatabase.LoadMainAssetAtPath(destinationPath) != null)
             {
