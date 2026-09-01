@@ -1,4 +1,8 @@
 # Tests
 
-自动化测试将按 `EditMode` 和 `PlayMode` 分开。测试程序集定义文件会在第一段可测试代码出现时一起创建，避免空壳工程复杂化。
+自动化测试按 `EditMode` 和 `PlayMode` 分开：
 
+- `EditMode/`：普通 C# 规则、状态转换和无需运行场景的快速测试；
+- `PlayMode/`：Unity 生命周期、场景、物理和输入适配测试。
+
+两组测试使用独立程序集，不进入玩家构建。统一入口是 `Tools/Run-UnityTests.ps1`。

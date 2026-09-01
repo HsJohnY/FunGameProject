@@ -1,6 +1,6 @@
 # Fun Game Project
 
-这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线 `requirements-v1.0.0` 已完成，进入 **阶段 1：技术准备与单机核心灰盒**。
+这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线 `requirements-v1.0.0` 和 M0 技术准备已完成，进入 **M1：单机核心灰盒**。
 
 ## 从哪里开始
 
@@ -19,9 +19,24 @@
 ## 环境基线
 
 - Unity：`6000.0.38f1`（与本机已有项目一致）
+- 渲染：URP `17.0.3`，Linear 色彩空间
+- 输入：Input System `1.13.0`
 - 版本管理：Git
 - 默认分支：`main`
 - 大型二进制资源：正式引入前评估 Git LFS；当前不提前启用
+
+## 本地验证入口
+
+在 PowerShell 中从仓库根目录运行：
+
+```powershell
+.\Tools\Initialize-M0.ps1
+.\Tools\Run-UnityTests.ps1 -Mode All
+.\Tools\Build-M0.ps1
+.\Tools\Test-M0Build.ps1
+```
+
+脚本默认使用本机已确认的 Unity 路径，也接受 `-UnityEditorPath` 覆盖。生成包、日志和测试结果均被 Git 忽略。
 
 ## 工作流
 
