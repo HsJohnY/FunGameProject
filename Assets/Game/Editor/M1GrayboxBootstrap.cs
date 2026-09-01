@@ -1,24 +1,25 @@
 using System.IO;
 using FunGame.Diagnostics;
+using FunGame.Interaction;
 using FunGame.Player;
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace FunGame.Editor
 {
     /// <summary>
-    /// 生成 M1-1 第一人称移动验证所需的冷却舱灰盒场景和开发构建。
+    /// 生成当前 M1 灰盒检查点所需的冷却舱场景。
     /// </summary>
     public static class M1GrayboxBootstrap
     {
         private const string ScenePath = "Assets/Game/Scenes/M1_CoolingBay.unity";
         private const string MaterialFolder = "Assets/Game/Content/Graybox";
 
-        [MenuItem("FunGame/M1/生成 M1-1 冷却舱场景")]
-        public static void ConfigureM1_1()
+        [MenuItem("FunGame/M1/生成当前冷却舱场景")]
+        public static void ConfigureCurrent()
         {
             EnsureFolder(MaterialFolder);
 
@@ -47,45 +48,21 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M1-1] 冷却舱灰盒场景生成成功。");
-        }
-
-        /// <summary>
-        /// 生成 M1-1 Windows x64 开发版本。
-        /// </summary>
-        public static void BuildWindowsDevelopment()
-        {
-            ConfigureM1_1();
-            Directory.CreateDirectory("Builds/M1-1-Windows");
-
-            BuildPlayerOptions options = new BuildPlayerOptions
-            {
-                scenes = new[] { ScenePath },
-                locationPathName = "Builds/M1-1-Windows/FunGame-M1-1.exe",
-                target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development
-            };
-
-            var report = BuildPipeline.BuildPlayer(options);
-            if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
-            {
-                throw new BuildFailedException($"M1-1 构建失败：{report.summary.result}");
-            }
-
-            Debug.Log($"[M1-1] Windows 开发构建成功：{report.summary.totalSize} 字节。");
+            Debug.Log("[M1-2] 冷却舱交互灰盒场景生成成功。");
         }
 
         private static void CreateCheckpoint()
         {
-            var checkpointObject = new GameObject("M1-1 Development Checkpoint");
+            var checkpointObject = new GameObject("M1-2 Development Checkpoint");
             checkpointObject.AddComponent<DevelopmentCheckpoint>()
-                .Configure("m1-1-first-person", "--m1-1-smoke");
+                .Configure("m1-2-context-interaction", "--m1-2-smoke");
         }
 
         private static void CreateLighting()
         {
             var directionalObject = new GameObject("Directional Light");
             var directional = directionalObject.AddComponent<Light>();
+            directionalObject.AddComponent<UniversalAdditionalLightData>();
             directional.type = LightType.Directional;
             directional.intensity = 0.45f;
             directional.color = new Color(0.58f, 0.7f, 0.85f);
@@ -100,6 +77,7 @@ namespace FunGame.Editor
             var lightObject = new GameObject(name);
             lightObject.transform.position = position;
             var light = lightObject.AddComponent<Light>();
+            lightObject.AddComponent<UniversalAdditionalLightData>();
             light.type = LightType.Point;
             light.range = 12f;
             light.intensity = 5f;
@@ -121,11 +99,17 @@ namespace FunGame.Editor
             CreateBlock(environment, "Rear Wall", new Vector3(0f, 2.5f, 10f), new Vector3(14f, 5f, 0.5f), structureMaterial);
             CreateBlock(environment, "Entry Wall", new Vector3(0f, 2.5f, -10f), new Vector3(14f, 5f, 0.5f), structureMaterial);
 
-            // 这些色块只承担空间识别功能，后续交互对象会在 M1-2 起逐步替换。
+            // 这些色块只承担空间识别功能，后续维修阶段会逐步替换。
             CreateBlock(environment, "Cooling Pump Placeholder", new Vector3(0f, 1f, 5.8f), new Vector3(4f, 2f, 2.5f), machineryMaterial);
-            CreateBlock(environment, "Control Console Placeholder", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
+            GameObject console = CreateBlock(environment, "Interactive Control Console", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
+            console.AddComponent<ToggleConsoleInteractable>();
             CreateBlock(environment, "Tool Rack Placeholder", new Vector3(5.5f, 1.1f, -2.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
+
+            GameObject carryable = CreateBlock(environment, "Carryable Test Pipe", new Vector3(1.8f, 0.4f, -3.8f), new Vector3(0.7f, 0.7f, 0.7f), warningMaterial);
+            var itemBody = carryable.AddComponent<Rigidbody>();
+            itemBody.mass = 3f;
+            carryable.AddComponent<CarryableInteractable>();
 
             CreateBlock(environment, "Walkway A", new Vector3(-3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
             CreateBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
@@ -147,9 +131,12 @@ namespace FunGame.Editor
             cameraObject.transform.SetParent(player.transform, false);
             cameraObject.transform.localPosition = new Vector3(0f, 1.65f, 0f);
             cameraObject.AddComponent<Camera>();
+            cameraObject.AddComponent<UniversalAdditionalCameraData>();
             cameraObject.AddComponent<AudioListener>();
 
             player.AddComponent<FirstPersonController>();
+            player.AddComponent<ContextInteractor>();
+            player.AddComponent<ContextPromptOverlay>();
         }
 
         private static GameObject CreateBlock(

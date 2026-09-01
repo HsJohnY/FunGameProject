@@ -42,6 +42,11 @@ namespace FunGame.Player
         /// </summary>
         public bool IsInputEnabled => _moveAction != null && _moveAction.enabled;
 
+        /// <summary>
+        /// 鼠标是否正被第一人称视角锁定；菜单和交互适配器可据此暂停输入。
+        /// </summary>
+        public bool IsCursorLocked => _cursorLocked;
+
         private void Awake()
         {
             _characterController = GetComponent<CharacterController>();
