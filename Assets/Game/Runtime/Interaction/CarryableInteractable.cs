@@ -15,6 +15,12 @@ namespace FunGame.Interaction
         public string TargetId => targetId;
         public bool IsHeld { get; private set; }
 
+        public void ConfigureIdentity(string id, string displayName)
+        {
+            targetId = id;
+            targetName = displayName;
+        }
+
         private void Awake()
         {
             if (interactionCollider == null)
@@ -67,7 +73,7 @@ namespace FunGame.Interaction
         /// <summary>
         /// 恢复为场景物体并重新启用物理与交互碰撞。
         /// </summary>
-        public void SetDropped(Vector3 worldPosition)
+        public void SetDropped(Vector3 worldPosition, Vector3 impulse = default)
         {
             IsHeld = false;
             transform.SetParent(null, true);
@@ -76,6 +82,20 @@ namespace FunGame.Interaction
             if (itemBody != null)
             {
                 itemBody.isKinematic = false;
+                itemBody.AddForce(impulse, ForceMode.Impulse);
+            }
+        }
+
+        /// <summary>
+        /// 将任务物安全恢复到指定位置，并清除掉落前的速度。
+        /// </summary>
+        public void RecoverTo(Vector3 worldPosition)
+        {
+            SetDropped(worldPosition);
+            if (itemBody != null)
+            {
+                itemBody.linearVelocity = Vector3.zero;
+                itemBody.angularVelocity = Vector3.zero;
             }
         }
     }

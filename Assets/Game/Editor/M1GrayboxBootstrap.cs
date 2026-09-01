@@ -2,6 +2,7 @@ using System.IO;
 using FunGame.Diagnostics;
 using FunGame.Interaction;
 using FunGame.Player;
+using FunGame.Tools;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -38,7 +39,7 @@ namespace FunGame.Editor
             CreateCheckpoint();
             CreateLighting();
             CreateCoolingBay(structureMaterial, floorMaterial, machineryMaterial, warningMaterial);
-            CreatePlayer();
+            CreatePlayer(warningMaterial, machineryMaterial);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
@@ -48,14 +49,14 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M1-2] 冷却舱交互灰盒场景生成成功。");
+            Debug.Log("[M1-3] 冷却舱工具与物品灰盒场景生成成功。");
         }
 
         private static void CreateCheckpoint()
         {
-            var checkpointObject = new GameObject("M1-2 Development Checkpoint");
+            var checkpointObject = new GameObject("M1-3 Development Checkpoint");
             checkpointObject.AddComponent<DevelopmentCheckpoint>()
-                .Configure("m1-2-context-interaction", "--m1-2-smoke");
+                .Configure("m1-3-tools-and-items", "--m1-3-smoke");
         }
 
         private static void CreateLighting()
@@ -103,19 +104,34 @@ namespace FunGame.Editor
             CreateBlock(environment, "Cooling Pump Placeholder", new Vector3(0f, 1f, 5.8f), new Vector3(4f, 2f, 2.5f), machineryMaterial);
             GameObject console = CreateBlock(environment, "Interactive Control Console", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
             console.AddComponent<ToggleConsoleInteractable>();
-            CreateBlock(environment, "Tool Rack Placeholder", new Vector3(5.5f, 1.1f, -2.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
+            CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 4f), structureMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
 
-            GameObject carryable = CreateBlock(environment, "Carryable Test Pipe", new Vector3(1.8f, 0.4f, -3.8f), new Vector3(0.7f, 0.7f, 0.7f), warningMaterial);
+            GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -3.3f), new Vector3(0.35f, 1.1f, 1.1f), warningMaterial);
+            wrenchRack.AddComponent<ToolRackInteractable>().Configure("impact-wrench-rack", ToolKind.ImpactWrench);
+            GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.7f), new Vector3(0.35f, 1.1f, 1.1f), machineryMaterial);
+            sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
+
+            GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(0f, 1.1f, 4.25f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
+            fastener.AddComponent<MechanicalFastenerTarget>();
+            GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
+            leak.AddComponent<SealantTarget>();
+
+            var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
+            recoveryPointObject.transform.SetParent(environment);
+            recoveryPointObject.transform.position = new Vector3(-4.8f, 0.75f, -4.5f);
+            GameObject carryable = CreateBlock(environment, "Replacement Pipe", recoveryPointObject.transform.position, new Vector3(0.6f, 0.6f, 1.5f), warningMaterial);
             var itemBody = carryable.AddComponent<Rigidbody>();
             itemBody.mass = 3f;
-            carryable.AddComponent<CarryableInteractable>();
+            var carryableItem = carryable.AddComponent<CarryableInteractable>();
+            carryableItem.ConfigureIdentity("replacement-pipe", "替换管件");
+            carryable.AddComponent<TaskItemRecovery>().Configure(recoveryPointObject.transform, -3f);
 
             CreateBlock(environment, "Walkway A", new Vector3(-3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
             CreateBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
         }
 
-        private static void CreatePlayer()
+        private static void CreatePlayer(Material warningMaterial, Material machineryMaterial)
         {
             var player = new GameObject("Local First Person Player");
             player.transform.position = new Vector3(0f, 0.05f, -7f);
@@ -134,9 +150,47 @@ namespace FunGame.Editor
             cameraObject.AddComponent<UniversalAdditionalCameraData>();
             cameraObject.AddComponent<AudioListener>();
 
+            var toolAnchorObject = new GameObject("Main Tool Visual Anchor");
+            toolAnchorObject.transform.SetParent(cameraObject.transform, false);
+            toolAnchorObject.transform.localPosition = new Vector3(-0.38f, -0.3f, 0.78f);
+
+            GameObject wrenchVisual = CreateVisualCube(
+                toolAnchorObject.transform,
+                "Impact Wrench Visual",
+                new Vector3(0f, 0f, 0.15f),
+                new Vector3(0.12f, 0.12f, 0.65f),
+                warningMaterial);
+            GameObject sealantVisual = CreateVisualCube(
+                toolAnchorObject.transform,
+                "Sealant Gun Visual",
+                new Vector3(0f, -0.03f, 0.12f),
+                new Vector3(0.22f, 0.18f, 0.5f),
+                machineryMaterial);
+
+            var toolbelt = player.AddComponent<PlayerToolbelt>();
+            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
             player.AddComponent<FirstPersonController>();
             player.AddComponent<ContextInteractor>();
+            player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>();
+        }
+
+        private static GameObject CreateVisualCube(
+            Transform parent,
+            string name,
+            Vector3 localPosition,
+            Vector3 localScale,
+            Material material)
+        {
+            GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            visual.name = name;
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = localPosition;
+            visual.transform.localRotation = Quaternion.identity;
+            visual.transform.localScale = localScale;
+            visual.GetComponent<MeshRenderer>().sharedMaterial = material;
+            Object.DestroyImmediate(visual.GetComponent<Collider>());
+            return visual;
         }
 
         private static GameObject CreateBlock(

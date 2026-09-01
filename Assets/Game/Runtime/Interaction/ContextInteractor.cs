@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FunGame.Player;
+using FunGame.Tools;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,6 +17,8 @@ namespace FunGame.Interaction
         [SerializeField, Min(0.5f)] private float interactionRange = 3f;
         [SerializeField, Range(0f, 0.3f)] private float aimAssistRadius = 0.16f;
         [SerializeField, Range(0f, 0.5f)] private float targetRetentionSeconds = 0.12f;
+        [SerializeField, Min(0f)] private float throwForwardImpulse = 4.5f;
+        [SerializeField, Min(0f)] private float throwUpwardImpulse = 1f;
         [SerializeField] private LayerMask interactionMask = ~0;
 
         private readonly List<MonoBehaviour> _componentBuffer = new List<MonoBehaviour>(8);
@@ -24,10 +27,12 @@ namespace FunGame.Interaction
         private IContextInteractable _currentInteractable;
         private InteractionOption? _currentOption;
         private CarryableInteractable _heldItem;
+        private PlayerToolbelt _toolbelt;
         private float _lastTargetSeenAt = float.NegativeInfinity;
 
         public InteractionOption? CurrentOption => _currentOption;
         public bool IsHoldingItem => _heldItem != null;
+        public PlayerToolbelt Toolbelt => _toolbelt;
 
         private void Awake()
         {
@@ -47,6 +52,8 @@ namespace FunGame.Interaction
             {
                 playerController = GetComponent<FirstPersonController>();
             }
+
+            _toolbelt = GetComponent<PlayerToolbelt>();
 
             if (holdAnchor == null)
             {
@@ -104,16 +111,7 @@ namespace FunGame.Interaction
         /// </summary>
         public void RefreshTarget()
         {
-            Ray ray = new Ray(viewCamera.transform.position, viewCamera.transform.forward);
-            bool hasHit = Physics.SphereCast(
-                ray,
-                aimAssistRadius,
-                out RaycastHit hit,
-                interactionRange,
-                interactionMask,
-                QueryTriggerInteraction.Ignore);
-
-            if (!hasHit)
+            if (!TryGetAimHit(out RaycastHit hit))
             {
                 // 只在准星短暂落空时保持目标；若命中墙壁等其他表面，会在下方立即清除。
                 if (_currentInteractable == null || Time.unscaledTime - _lastTargetSeenAt > targetRetentionSeconds)
@@ -154,6 +152,22 @@ namespace FunGame.Interaction
             _currentInteractable = bestInteractable;
             _currentOption = bestOption;
             _lastTargetSeenAt = Time.unscaledTime;
+        }
+
+        /// <summary>
+        /// 使用统一的范围、辅助半径和遮挡规则返回准星最先命中的表面。
+        /// 工具系统复用此入口，避免交互提示与工具命中产生不同判断。
+        /// </summary>
+        public bool TryGetAimHit(out RaycastHit hit)
+        {
+            Ray ray = new Ray(viewCamera.transform.position, viewCamera.transform.forward);
+            return Physics.SphereCast(
+                ray,
+                aimAssistRadius,
+                out hit,
+                interactionRange,
+                interactionMask,
+                QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>
@@ -207,8 +221,12 @@ namespace FunGame.Interaction
             CarryableInteractable item = _heldItem;
             _heldItem = null;
             Vector3 dropPosition = viewCamera.transform.position + viewCamera.transform.forward * 1.2f;
-            item.SetDropped(dropPosition);
-            Debug.Log($"[Interaction] target={item.TargetId} action=drop success=True", this);
+            Vector3 impulse = CarryThrowMath.CalculateImpulse(
+                viewCamera.transform.forward,
+                throwForwardImpulse,
+                throwUpwardImpulse);
+            item.SetDropped(dropPosition, impulse);
+            Debug.Log($"[Interaction] target={item.TargetId} action=throw impulse={impulse} success=True", this);
             return true;
         }
 
