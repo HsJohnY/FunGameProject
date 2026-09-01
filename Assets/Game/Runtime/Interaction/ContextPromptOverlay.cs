@@ -13,7 +13,7 @@ namespace FunGame.Interaction
     {
         private ContextInteractor _interactor;
         private ToolController _toolController;
-        private CoolingIncidentController _incident;
+        [SerializeField] private CoolingIncidentController incident;
         private GUIStyle _crosshairStyle;
         private GUIStyle _promptStyle;
 
@@ -25,7 +25,7 @@ namespace FunGame.Interaction
 
         public void Configure(CoolingIncidentController incidentController)
         {
-            _incident = incidentController;
+            incident = incidentController;
         }
 
         private void OnGUI()
@@ -35,27 +35,27 @@ namespace FunGame.Interaction
             var crosshairRect = new Rect(Screen.width * 0.5f - 15f, Screen.height * 0.5f - 18f, 30f, 36f);
             GUI.Label(crosshairRect, "+", _crosshairStyle);
 
-            if (_incident != null)
+            if (incident != null)
             {
                 string objective;
-                bool available = _incident.RunState == CoolingIncidentRunState.Active;
-                if (_incident.RunState == CoolingIncidentRunState.Failed)
+                bool available = incident.RunState == CoolingIncidentRunState.Active;
+                if (incident.RunState == CoolingIncidentRunState.Failed)
                 {
-                    objective = $"事故失败：温度达到 {_incident.Temperature:F0}°C · 前往控制台重新开始";
+                    objective = $"事故失败：温度达到 {incident.Temperature:F0}°C · 前往控制台重新开始";
                 }
-                else if (_incident.RunState == CoolingIncidentRunState.Succeeded)
+                else if (incident.RunState == CoolingIncidentRunState.Succeeded)
                 {
                     objective = "冷却系统已恢复稳定 · 前往控制台重新开始";
                 }
                 else
                 {
-                    objective = _incident.Phase == CoolingIncidentPhase.ContainLeak
-                        ? $"当前目标：{_incident.CurrentInstruction} ({_incident.SealProgress:P0})"
-                        : $"当前目标：{_incident.CurrentInstruction}";
+                    objective = incident.Phase == CoolingIncidentPhase.ContainLeak
+                        ? $"当前目标：{incident.CurrentInstruction} ({incident.SealProgress:P0})"
+                        : $"当前目标：{incident.CurrentInstruction}";
                 }
 
                 DrawPrompt(objective, available, 22f);
-                DrawPrompt($"舱内温度：{_incident.Temperature:F1}°C / {_incident.FailureTemperature:F0}°C", available, 48f);
+                DrawPrompt($"舱内温度：{incident.Temperature:F1}°C / {incident.FailureTemperature:F0}°C", available, 48f);
             }
 
             if (_interactor.CurrentOption.HasValue)
