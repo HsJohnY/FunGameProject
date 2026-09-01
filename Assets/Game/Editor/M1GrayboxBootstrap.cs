@@ -3,6 +3,7 @@ using FunGame.Diagnostics;
 using FunGame.Interaction;
 using FunGame.Player;
 using FunGame.Tools;
+using FunGame.Incident;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -38,8 +39,10 @@ namespace FunGame.Editor
 
             CreateCheckpoint();
             CreateLighting();
-            CreateCoolingBay(structureMaterial, floorMaterial, machineryMaterial, warningMaterial);
-            CreatePlayer(warningMaterial, machineryMaterial);
+            var incidentObject = new GameObject("Cooling Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            CreateCoolingBay(structureMaterial, floorMaterial, machineryMaterial, warningMaterial, incident);
+            CreatePlayer(warningMaterial, machineryMaterial, incident);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
@@ -49,14 +52,14 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M1-3] 冷却舱工具与物品灰盒场景生成成功。");
+            Debug.Log("[M1-4] 冷却舱固定事故链灰盒场景生成成功。");
         }
 
         private static void CreateCheckpoint()
         {
-            var checkpointObject = new GameObject("M1-3 Development Checkpoint");
+            var checkpointObject = new GameObject("M1-4 Development Checkpoint");
             checkpointObject.AddComponent<DevelopmentCheckpoint>()
-                .Configure("m1-3-tools-and-items", "--m1-3-smoke");
+                .Configure("m1-4-fixed-incident", "--m1-4-smoke");
         }
 
         private static void CreateLighting()
@@ -89,7 +92,8 @@ namespace FunGame.Editor
             Material structureMaterial,
             Material floorMaterial,
             Material machineryMaterial,
-            Material warningMaterial)
+            Material warningMaterial,
+            CoolingIncidentController incident)
         {
             var environment = new GameObject("Cooling Bay Graybox").transform;
 
@@ -103,7 +107,7 @@ namespace FunGame.Editor
             // 这些色块只承担空间识别功能，后续维修阶段会逐步替换。
             CreateBlock(environment, "Cooling Pump Placeholder", new Vector3(0f, 1f, 5.8f), new Vector3(4f, 2f, 2.5f), machineryMaterial);
             GameObject console = CreateBlock(environment, "Interactive Control Console", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
-            console.AddComponent<ToggleConsoleInteractable>();
+            console.AddComponent<ToggleConsoleInteractable>().Configure(incident);
             CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 4f), structureMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
 
@@ -113,9 +117,13 @@ namespace FunGame.Editor
             sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
 
             GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(0f, 1.1f, 4.25f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
-            fastener.AddComponent<MechanicalFastenerTarget>();
+            fastener.AddComponent<MechanicalFastenerTarget>().Configure(incident);
+            var pipeAnchor = new GameObject("Replacement Pipe Install Anchor");
+            pipeAnchor.transform.SetParent(fastener.transform, false);
+            pipeAnchor.transform.localPosition = new Vector3(0f, 0f, -1.2f);
+            fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform);
             GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
-            leak.AddComponent<SealantTarget>();
+            leak.AddComponent<SealantTarget>().Configure(incident);
 
             var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
             recoveryPointObject.transform.SetParent(environment);
@@ -131,7 +139,10 @@ namespace FunGame.Editor
             CreateBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
         }
 
-        private static void CreatePlayer(Material warningMaterial, Material machineryMaterial)
+        private static void CreatePlayer(
+            Material warningMaterial,
+            Material machineryMaterial,
+            CoolingIncidentController incident)
         {
             var player = new GameObject("Local First Person Player");
             player.transform.position = new Vector3(0f, 0.05f, -7f);
@@ -172,7 +183,7 @@ namespace FunGame.Editor
             player.AddComponent<FirstPersonController>();
             player.AddComponent<ContextInteractor>();
             player.AddComponent<ToolController>();
-            player.AddComponent<ContextPromptOverlay>();
+            player.AddComponent<ContextPromptOverlay>().Configure(incident);
         }
 
         private static GameObject CreateVisualCube(

@@ -230,6 +230,22 @@ namespace FunGame.Interaction
             return true;
         }
 
+        /// <summary>
+        /// 仅在手持指定任务物时将其交给安装座，避免通过场景名称猜测物品类型。
+        /// </summary>
+        public bool TryInstallHeldItem(string requiredTargetId, Transform socket)
+        {
+            if (_heldItem == null || _heldItem.TargetId != requiredTargetId || socket == null)
+            {
+                return false;
+            }
+
+            CarryableInteractable item = _heldItem;
+            _heldItem = null;
+            item.SetInstalled(socket);
+            return true;
+        }
+
         private void ClearTarget()
         {
             _currentInteractable = null;

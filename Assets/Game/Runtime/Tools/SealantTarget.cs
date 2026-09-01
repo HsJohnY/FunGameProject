@@ -1,4 +1,5 @@
 using UnityEngine;
+using FunGame.Incident;
 
 namespace FunGame.Tools
 {
@@ -11,9 +12,16 @@ namespace FunGame.Tools
         [SerializeField] private string targetId = "sealant-demo-leak";
         [SerializeField] private string targetName = "泄漏点演示";
         [SerializeField] private Renderer statusRenderer;
+        [SerializeField] private CoolingIncidentController incident;
+        [SerializeField, Min(0.1f)] private float sealDurationSeconds = 1.5f;
 
         private MaterialPropertyBlock _propertyBlock;
         public bool IsSealed { get; private set; }
+
+        public void Configure(CoolingIncidentController incidentController)
+        {
+            incident = incidentController;
+        }
 
         private void Awake()
         {
@@ -28,14 +36,18 @@ namespace FunGame.Tools
 
         public ToolActionOption GetToolAction(PlayerToolbelt toolbelt)
         {
+            bool phaseAvailable = incident == null || incident.Phase == CoolingIncidentPhase.ContainLeak;
+            bool complete = incident != null
+                ? incident.Phase != CoolingIncidentPhase.ContainLeak
+                : IsSealed;
             return new ToolActionOption(
                 targetId,
                 targetName,
                 "密封",
                 ToolKind.SealantGun,
                 toolbelt.EquippedTool,
-                !IsSealed,
-                "已完成演示密封");
+                phaseAvailable && !complete,
+                complete ? "泄漏已受到控制" : incident?.CurrentInstruction ?? "已完成密封");
         }
 
         public bool ApplyTool(PlayerToolbelt toolbelt)
@@ -45,7 +57,19 @@ namespace FunGame.Tools
                 return false;
             }
 
-            IsSealed = true;
+            if (incident != null)
+            {
+                if (!incident.AddSealProgress(Time.deltaTime / sealDurationSeconds))
+                {
+                    return false;
+                }
+
+                IsSealed = incident.Phase != CoolingIncidentPhase.ContainLeak;
+            }
+            else
+            {
+                IsSealed = true;
+            }
             RefreshVisual();
             return true;
         }

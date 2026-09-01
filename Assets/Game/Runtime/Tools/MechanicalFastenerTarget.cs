@@ -1,4 +1,5 @@
 using UnityEngine;
+using FunGame.Incident;
 
 namespace FunGame.Tools
 {
@@ -11,10 +12,16 @@ namespace FunGame.Tools
         [SerializeField] private string targetName = "管件机械连接";
         [SerializeField] private Renderer statusRenderer;
         [SerializeField] private bool isTightened = true;
+        [SerializeField] private CoolingIncidentController incident;
 
         private MaterialPropertyBlock _propertyBlock;
 
         public bool IsTightened => isTightened;
+
+        public void Configure(CoolingIncidentController incidentController)
+        {
+            incident = incidentController;
+        }
 
         private void Awake()
         {
@@ -29,12 +36,26 @@ namespace FunGame.Tools
 
         public ToolActionOption GetToolAction(PlayerToolbelt toolbelt)
         {
+            string blockedReason = string.Empty;
+            bool phaseAvailable = true;
+            string action = isTightened ? "松开" : "紧固";
+            if (incident != null)
+            {
+                bool expectsLoosen = incident.Phase == CoolingIncidentPhase.LoosenConnection;
+                bool expectsTighten = incident.Phase == CoolingIncidentPhase.TightenConnection;
+                phaseAvailable = expectsLoosen || expectsTighten;
+                action = expectsTighten ? "紧固" : "松开";
+                blockedReason = phaseAvailable ? string.Empty : incident.CurrentInstruction;
+            }
+
             return new ToolActionOption(
                 targetId,
                 targetName,
-                isTightened ? "松开" : "紧固",
+                action,
                 ToolKind.ImpactWrench,
-                toolbelt.EquippedTool);
+                toolbelt.EquippedTool,
+                phaseAvailable,
+                blockedReason);
         }
 
         public bool ApplyTool(PlayerToolbelt toolbelt)
@@ -42,6 +63,17 @@ namespace FunGame.Tools
             if (toolbelt.EquippedTool != ToolKind.ImpactWrench)
             {
                 return false;
+            }
+
+            if (incident != null)
+            {
+                bool succeeded = incident.Phase == CoolingIncidentPhase.LoosenConnection
+                    ? incident.TryLoosen()
+                    : incident.TryTighten();
+                if (!succeeded)
+                {
+                    return false;
+                }
             }
 
             isTightened = !isTightened;

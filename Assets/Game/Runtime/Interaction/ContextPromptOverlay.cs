@@ -1,5 +1,6 @@
 using UnityEngine;
 using FunGame.Tools;
+using FunGame.Incident;
 
 namespace FunGame.Interaction
 {
@@ -12,6 +13,7 @@ namespace FunGame.Interaction
     {
         private ContextInteractor _interactor;
         private ToolController _toolController;
+        private CoolingIncidentController _incident;
         private GUIStyle _crosshairStyle;
         private GUIStyle _promptStyle;
 
@@ -21,12 +23,25 @@ namespace FunGame.Interaction
             _toolController = GetComponent<ToolController>();
         }
 
+        public void Configure(CoolingIncidentController incidentController)
+        {
+            _incident = incidentController;
+        }
+
         private void OnGUI()
         {
             EnsureStyles();
 
             var crosshairRect = new Rect(Screen.width * 0.5f - 15f, Screen.height * 0.5f - 18f, 30f, 36f);
             GUI.Label(crosshairRect, "+", _crosshairStyle);
+
+            if (_incident != null)
+            {
+                string objective = _incident.Phase == CoolingIncidentPhase.ContainLeak
+                    ? $"当前目标：{_incident.CurrentInstruction} ({_incident.SealProgress:P0})"
+                    : $"当前目标：{_incident.CurrentInstruction}";
+                DrawPrompt(objective, true, 22f);
+            }
 
             if (_interactor.CurrentOption.HasValue)
             {

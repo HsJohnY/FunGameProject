@@ -44,7 +44,9 @@ namespace FunGame.Tools
         private void Update()
         {
             RefreshTarget();
-            if (_primaryAction.WasPressedThisFrame())
+            // 密封喷枪需要持续按住形成覆盖；其他工具仍保持单次点击语义。
+            bool continuousSeal = _toolbelt.EquippedTool == ToolKind.SealantGun && _primaryAction.IsPressed();
+            if (_primaryAction.WasPressedThisFrame() || continuousSeal)
             {
                 ExecuteCurrentToolAction();
             }

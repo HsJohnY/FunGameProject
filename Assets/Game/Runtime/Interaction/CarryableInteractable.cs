@@ -107,5 +107,26 @@ namespace FunGame.Interaction
                 itemBody.angularVelocity = Vector3.zero;
             }
         }
+
+        /// <summary>
+        /// 将任务物固定到安装座；安装后不再参与拾取和物理模拟。
+        /// </summary>
+        public void SetInstalled(Transform socket)
+        {
+            IsHeld = false;
+            transform.SetParent(socket, false);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+            transform.localScale = _worldScaleBeforePickup == Vector3.zero
+                ? transform.localScale
+                : _worldScaleBeforePickup;
+            interactionCollider.enabled = false;
+            if (itemBody != null)
+            {
+                itemBody.isKinematic = true;
+                itemBody.linearVelocity = Vector3.zero;
+                itemBody.angularVelocity = Vector3.zero;
+            }
+        }
     }
 }

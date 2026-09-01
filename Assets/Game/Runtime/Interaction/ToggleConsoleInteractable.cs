@@ -1,4 +1,5 @@
 using UnityEngine;
+using FunGame.Incident;
 
 namespace FunGame.Interaction
 {
@@ -12,10 +13,16 @@ namespace FunGame.Interaction
         [SerializeField] private Renderer statusRenderer;
         [SerializeField] private Color offColor = new Color(0.45f, 0.14f, 0.06f);
         [SerializeField] private Color onColor = new Color(0.1f, 0.8f, 0.45f);
+        [SerializeField] private CoolingIncidentController incident;
 
         private MaterialPropertyBlock _propertyBlock;
 
         public bool IsOn { get; private set; }
+
+        public void Configure(CoolingIncidentController incidentController)
+        {
+            incident = incidentController;
+        }
 
         private void Awake()
         {
@@ -32,6 +39,19 @@ namespace FunGame.Interaction
 
         public InteractionOption GetInteractionOption(ContextInteractor actor)
         {
+            if (incident != null)
+            {
+                bool canReset = incident.Phase == CoolingIncidentPhase.ResetPump;
+                bool complete = incident.Phase == CoolingIncidentPhase.Stabilized;
+                return new InteractionOption(
+                    targetId,
+                    targetName,
+                    "复位冷却泵",
+                    InteractionPriority.Device,
+                    canReset,
+                    complete ? "冷却系统已恢复" : incident.CurrentInstruction);
+            }
+
             return new InteractionOption(
                 targetId,
                 targetName,
@@ -41,6 +61,18 @@ namespace FunGame.Interaction
 
         public bool ExecuteInteraction(ContextInteractor actor)
         {
+            if (incident != null)
+            {
+                if (!incident.TryResetPump())
+                {
+                    return false;
+                }
+
+                IsOn = true;
+                ApplyVisualState();
+                return true;
+            }
+
             IsOn = !IsOn;
             ApplyVisualState();
             return true;
