@@ -24,6 +24,12 @@ namespace FunGame.Tools
             incident?.RegisterResettable(this);
         }
 
+        private void Start()
+        {
+            // 场景重新加载后 Configure 不会再次执行，因此必须在运行时重新登记。
+            incident?.RegisterResettable(this);
+        }
+
         public void ResetIncidentState()
         {
             isTightened = true;

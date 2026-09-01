@@ -22,6 +22,11 @@ namespace FunGame.Incident
             incident?.RegisterResettable(this);
         }
 
+        private void Start()
+        {
+            incident?.RegisterResettable(this);
+        }
+
         public void ResetIncidentState()
         {
             if (_installedItem != null)

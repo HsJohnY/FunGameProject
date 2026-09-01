@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Reflection;
 using FunGame.Interaction;
 using FunGame.Incident;
 using FunGame.Tools;
@@ -10,6 +11,35 @@ namespace FunGame.Tests.PlayMode
 {
     public sealed class ToolAndCarryPlayModeTests
     {
+        [UnityTest]
+        public IEnumerator MechanicalFastener_场景加载后会登记并响应事故重置()
+        {
+            var incidentObject = new GameObject("Test Runtime Registration Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureTemperature(65f, 100f, 0f);
+
+            var targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var target = targetObject.AddComponent<MechanicalFastenerTarget>();
+            SetPrivateField(target, "incident", incident);
+
+            CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            toolbelt.Equip(ToolKind.ImpactWrench);
+
+            // 等待 Start，模拟由 Unity 场景反序列化引用、而不是由 Configure 注入的真实加载路径。
+            yield return null;
+
+            incident.AddSealProgress(1f);
+            Assert.That(target.ApplyTool(toolbelt), Is.True);
+            Assert.That(target.IsTightened, Is.False);
+
+            incident.ResetIncident();
+            Assert.That(target.IsTightened, Is.True);
+
+            Object.Destroy(actor);
+            Object.Destroy(targetObject);
+            Object.Destroy(incidentObject);
+        }
+
         [UnityTest]
         public IEnumerator CoolingIncident_温度超限后失败并可重置()
         {
@@ -201,6 +231,13 @@ namespace FunGame.Tests.PlayMode
             cameraObject.transform.SetParent(actor.transform, false);
             cameraObject.AddComponent<Camera>();
             return actor.AddComponent<ContextInteractor>();
+        }
+
+        private static void SetPrivateField(object target, string fieldName, object value)
+        {
+            FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"找不到测试字段：{fieldName}");
+            field.SetValue(target, value);
         }
     }
 }

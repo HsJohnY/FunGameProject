@@ -24,6 +24,12 @@ namespace FunGame.Tools
             incident?.RegisterResettable(this);
         }
 
+        private void Start()
+        {
+            // 序列化只保存控制器引用，不保存控制器内部的运行时登记列表。
+            incident?.RegisterResettable(this);
+        }
+
         public void ResetIncidentState()
         {
             IsSealed = false;

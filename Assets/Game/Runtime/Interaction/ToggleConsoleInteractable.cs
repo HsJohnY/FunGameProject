@@ -25,6 +25,11 @@ namespace FunGame.Interaction
             incident?.RegisterResettable(this);
         }
 
+        private void Start()
+        {
+            incident?.RegisterResettable(this);
+        }
+
         public void ResetIncidentState()
         {
             IsOn = false;
