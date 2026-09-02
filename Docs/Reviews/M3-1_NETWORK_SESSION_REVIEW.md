@@ -27,7 +27,7 @@
 
 ## 场景与操作
 
-1. 使用 Unity `6000.0.38f1` 打开项目；
+1. 使用 Unity `6000.0.82f1` 打开项目；
 2. 双击 `Assets/Game/Scenes/M3_NetworkSlice.unity`；
 3. 准备两个可同时运行的实例（Multiplayer Play Mode 的 Player 2，或后续生成的开发构建）；
 4. 两个实例都保留地址 `127.0.0.1`、端口 `7777`；
