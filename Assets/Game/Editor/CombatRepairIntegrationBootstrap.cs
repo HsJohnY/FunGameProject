@@ -1,4 +1,5 @@
 using System.IO;
+using FunGame.Audio;
 using FunGame.Combat;
 using FunGame.Diagnostics;
 using FunGame.Incident;
@@ -89,6 +90,8 @@ namespace FunGame.Editor
             encounter.Configure(defenseTarget, new[] { directEnemy, flankingEnemy }, false);
             var integration = root.gameObject.AddComponent<CoolingCombatIntegrationController>();
             integration.Configure(incident, encounter, defenseTarget, 2.5f);
+            CoolingBayBgmController bgm = Object.FindFirstObjectByType<CoolingBayBgmController>();
+            bgm?.Configure(incident, integration);
 
             CreateRouteMarkers(root, warningMaterial);
             ConfigurePlayerFeedback(integration);
