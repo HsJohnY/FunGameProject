@@ -79,6 +79,58 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator InterferenceEnemy_被推向设备时不会穿入且仍可连续命中()
+        {
+            CreateEncounter(
+                new Vector3(0f, 115f, 4f),
+                new Vector3(0f, 115f, 2f),
+                out GameObject encounterObject,
+                out CombatEncounterController encounter,
+                out GameObject targetObject,
+                out _,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                knockbackDistance: 2f);
+            CreateToolActor(new Vector3(0f, 115f, 0f), out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            Physics.SyncTransforms();
+
+            yield return null;
+
+            Collider targetCollider = targetObject.GetComponent<Collider>();
+            Collider enemyCollider = enemyObject.GetComponent<Collider>();
+            for (int hitIndex = 0; hitIndex < 3; hitIndex++)
+            {
+                controller.RefreshTarget();
+                Assert.That(controller.CurrentOption.HasValue, Is.True, $"第 {hitIndex + 1} 次命中前敌人应保持可选中");
+                Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+                Physics.SyncTransforms();
+
+                if (!enemy.IsDefeated)
+                {
+                    bool overlaps = Physics.ComputePenetration(
+                        enemyCollider,
+                        enemyObject.transform.position,
+                        enemyObject.transform.rotation,
+                        targetCollider,
+                        targetObject.transform.position,
+                        targetObject.transform.rotation,
+                        out _,
+                        out _);
+                    Assert.That(overlaps, Is.False, "击退不得让敌人穿入被保护设备");
+                }
+            }
+
+            Assert.That(enemy.IsDefeated, Is.True);
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
         public IEnumerator InterferenceEnemy_接近设备后持续干扰并触发失败()
         {
             CreateEncounter(

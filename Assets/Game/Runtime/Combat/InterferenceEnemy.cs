@@ -7,9 +7,11 @@ namespace FunGame.Combat
     /// 首个基础干扰敌人：沿直线接近设备、周期性干扰，并接受冲击扳手的离散击退。
     /// 障碍导航和复杂行为树明确留到关卡切片证明需要时再加入。
     /// </summary>
-    [RequireComponent(typeof(CapsuleCollider), typeof(MeshRenderer))]
+    [RequireComponent(typeof(CapsuleCollider), typeof(MeshRenderer), typeof(Rigidbody))]
     public sealed class InterferenceEnemy : MonoBehaviour, IToolTarget
     {
+        private const float CollisionSkin = 0.02f;
+
         [SerializeField] private string targetId = "interference-creature";
         [SerializeField] private string targetName = "线路干扰体";
         [SerializeField] private DefendableSystemTarget defenseTarget;
@@ -24,6 +26,7 @@ namespace FunGame.Combat
 
         private InterferenceEnemyRules _rules;
         private Collider _collider;
+        private Rigidbody _rigidbody;
         private Renderer _renderer;
         private MaterialPropertyBlock _propertyBlock;
         private Vector3 _spawnPosition;
@@ -36,6 +39,7 @@ namespace FunGame.Combat
         private void Awake()
         {
             _collider = GetComponent<Collider>();
+            EnsurePhysicsBody();
             _renderer = GetComponent<Renderer>();
             _propertyBlock = new MaterialPropertyBlock();
             _spawnPosition = transform.position;
@@ -58,7 +62,7 @@ namespace FunGame.Combat
             if (!targetInRange && distance > 0.001f)
             {
                 Vector3 direction = toTarget / distance;
-                transform.position += direction * (moveSpeed * Time.deltaTime);
+                MoveWithCollision(direction * (moveSpeed * Time.deltaTime));
                 transform.forward = direction;
             }
 
@@ -96,6 +100,7 @@ namespace FunGame.Combat
             wrenchDamage = Mathf.Max(1, configuredWrenchDamage);
             knockbackDistance = Mathf.Max(0f, configuredKnockbackDistance);
             _spawnPosition = transform.position;
+            EnsurePhysicsBody();
             CreateRules();
             SetEncounterActive(true);
             RefreshVisual();
@@ -147,7 +152,8 @@ namespace FunGame.Combat
                 _rules.Reset();
             }
 
-            transform.position = _spawnPosition;
+            EnsurePhysicsBody();
+            _rigidbody.position = _spawnPosition;
             SetEncounterActive(true);
             RefreshVisual();
         }
@@ -178,8 +184,52 @@ namespace FunGame.Combat
 
             if (away.sqrMagnitude > 0.001f)
             {
-                transform.position += away.normalized * knockbackDistance;
+                MoveWithCollision(away.normalized * knockbackDistance);
             }
+        }
+
+        private void EnsurePhysicsBody()
+        {
+            if (_rigidbody == null)
+            {
+                _rigidbody = GetComponent<Rigidbody>();
+            }
+
+            if (_rigidbody == null)
+            {
+                _rigidbody = gameObject.AddComponent<Rigidbody>();
+            }
+
+            _rigidbody.useGravity = false;
+            _rigidbody.isKinematic = true;
+            _rigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            _rigidbody.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+        }
+
+        /// <summary>
+        /// 直接修改 Transform 会绕过物理阻挡；所有主动移动和击退都先扫掠实体碰撞体。
+        /// </summary>
+        private void MoveWithCollision(Vector3 displacement)
+        {
+            float requestedDistance = displacement.magnitude;
+            if (requestedDistance <= 0.0001f)
+            {
+                return;
+            }
+
+            EnsurePhysicsBody();
+            Vector3 direction = displacement / requestedDistance;
+            float allowedDistance = requestedDistance;
+            if (_rigidbody.SweepTest(
+                    direction,
+                    out RaycastHit hit,
+                    requestedDistance + CollisionSkin,
+                    QueryTriggerInteraction.Ignore))
+            {
+                allowedDistance = Mathf.Max(0f, hit.distance - CollisionSkin);
+            }
+
+            _rigidbody.position += direction * allowedDistance;
         }
 
         private void CreateRules()

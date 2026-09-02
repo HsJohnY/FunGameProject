@@ -5,7 +5,7 @@ namespace FunGame.Combat
     /// <summary>
     /// 将纯设备完整度规则适配到场景对象，并以本体颜色表达受干扰程度。
     /// </summary>
-    [RequireComponent(typeof(MeshRenderer))]
+    [RequireComponent(typeof(MeshRenderer), typeof(BoxCollider))]
     public sealed class DefendableSystemTarget : MonoBehaviour
     {
         [SerializeField, Min(1)] private int maxIntegrity = 60;

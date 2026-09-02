@@ -1,5 +1,8 @@
 using FunGame.Combat;
 using NUnit.Framework;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FunGame.Tests.EditMode
 {
@@ -54,6 +57,47 @@ namespace FunGame.Tests.EditMode
 
             Assert.That(rules.Integrity, Is.EqualTo(20));
             Assert.That(rules.IsOffline, Is.False);
+        }
+
+        [Test]
+        public void CombatScene_敌人和设备均配置实体碰撞体积()
+        {
+            Scene scene = EditorSceneManager.OpenScene(
+                "Assets/Game/Scenes/Combat_DefenseSandbox.unity",
+                OpenSceneMode.Additive);
+
+            try
+            {
+                GameObject enemy = FindRoot(scene, "Line Interference Creature");
+                GameObject target = FindRoot(scene, "Defendable Cooling Control Unit");
+
+                Assert.That(enemy, Is.Not.Null);
+                Assert.That(target, Is.Not.Null);
+                Assert.That(enemy.TryGetComponent(out CapsuleCollider enemyCollider), Is.True);
+                Assert.That(enemyCollider.isTrigger, Is.False);
+                Assert.That(enemy.TryGetComponent(out Rigidbody enemyBody), Is.True);
+                Assert.That(enemyBody.isKinematic, Is.True);
+                Assert.That(enemyBody.useGravity, Is.False);
+                Assert.That(target.TryGetComponent(out BoxCollider targetCollider), Is.True);
+                Assert.That(targetCollider.isTrigger, Is.False);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        private static GameObject FindRoot(Scene scene, string objectName)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root.name == objectName)
+                {
+                    return root;
+                }
+            }
+
+            return null;
         }
     }
 }

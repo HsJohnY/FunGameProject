@@ -101,7 +101,12 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Combat/构建 Windows 开发版本")]
         public static void BuildWindowsDevelopment()
         {
-            ConfigureCurrent();
+            // 构建已有评审场景，避免每次构建重建全部 GameObject fileID 并制造协作冲突。
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
+            {
+                ConfigureCurrent();
+            }
+
             Directory.CreateDirectory("Builds/Combat-Windows");
 
             var options = new BuildPlayerOptions
