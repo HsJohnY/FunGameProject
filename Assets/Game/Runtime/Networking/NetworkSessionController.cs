@@ -10,19 +10,35 @@ namespace FunGame.Networking
     /// </summary>
     public sealed class NetworkSessionController : MonoBehaviour
     {
+        private enum SessionState
+        {
+            Idle,
+            Connecting,
+            ClientConnected,
+            HostRunning,
+            Stopping
+        }
+
+        private const int ConnectTimeoutMilliseconds = 500;
+        private const int MaxConnectAttempts = 6;
+
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
 
         private string addressText = NetworkEndpointRules.DefaultAddress;
         private string portText = NetworkEndpointRules.DefaultPort.ToString();
         private string statusText = "尚未启动会话";
+        private SessionState sessionState = SessionState.Idle;
+        private bool shutdownRequested;
 
         public string StatusText => statusText;
 
         public void Configure(NetworkManager manager, UnityTransport networkTransport)
         {
+            Unsubscribe();
             networkManager = manager;
             transport = networkTransport;
+            Subscribe();
         }
 
         private void OnEnable()
@@ -43,6 +59,24 @@ namespace FunGame.Networking
             }
         }
 
+        private void Update()
+        {
+            // NGO 的断开回调可能发生在其内部事件分发期间。延迟到下一帧清理，
+            // 避免在回调栈中再次关闭传输层，同时确保失败客户端回到可编辑状态。
+            if (!shutdownRequested)
+            {
+                return;
+            }
+
+            shutdownRequested = false;
+            if (networkManager != null && networkManager.IsListening)
+            {
+                networkManager.Shutdown();
+            }
+
+            sessionState = SessionState.Idle;
+        }
+
         private void OnGUI()
         {
             const float width = 420f;
@@ -50,7 +84,7 @@ namespace FunGame.Networking
             GUILayout.Label("M3-1 双人会话验证");
             GUILayout.Space(8f);
 
-            bool idle = networkManager != null && !networkManager.IsListening;
+            bool idle = networkManager != null && sessionState == SessionState.Idle;
             GUI.enabled = idle;
             GUILayout.Label("主机 IPv4 地址");
             addressText = GUILayout.TextField(addressText);
@@ -69,7 +103,8 @@ namespace FunGame.Networking
             }
             GUILayout.EndHorizontal();
 
-            GUI.enabled = networkManager != null && networkManager.IsListening;
+            // 停止操作由我们的会话状态控制，不能依赖 NGO 正在异步变化的 IsListening。
+            GUI.enabled = networkManager != null && sessionState != SessionState.Idle;
             if (GUILayout.Button("停止 / 断开", GUILayout.Height(28f)))
             {
                 StopSession();
@@ -93,8 +128,16 @@ namespace FunGame.Networking
                 return false;
             }
 
-            statusText = networkManager.StartHost() ? "主机已启动，等待客户端" : "主机启动失败，请查看 Console";
-            return networkManager.IsHost;
+            sessionState = SessionState.HostRunning;
+            if (networkManager.StartHost())
+            {
+                statusText = "主机已启动，等待客户端";
+                return true;
+            }
+
+            sessionState = SessionState.Idle;
+            statusText = "主机启动失败，请查看 Console";
+            return false;
         }
 
         public bool StartClient()
@@ -104,18 +147,32 @@ namespace FunGame.Networking
                 return false;
             }
 
-            statusText = networkManager.StartClient() ? "正在连接主机…" : "客户端启动失败，请查看 Console";
-            return networkManager.IsClient;
+            // 默认传输层可能持续重试约一分钟。技术验证阶段缩短到约三秒，
+            // 使错误地址或未启动的主机能快速失败并允许玩家重新输入。
+            transport.ConnectTimeoutMS = ConnectTimeoutMilliseconds;
+            transport.MaxConnectAttempts = MaxConnectAttempts;
+            sessionState = SessionState.Connecting;
+            if (networkManager.StartClient())
+            {
+                statusText = "正在连接主机…（可随时停止）";
+                return true;
+            }
+
+            sessionState = SessionState.Idle;
+            statusText = "客户端启动失败，请检查地址后重试";
+            return false;
         }
 
         public void StopSession()
         {
-            if (networkManager != null && networkManager.IsListening)
+            if (networkManager == null || sessionState == SessionState.Idle)
             {
-                networkManager.Shutdown();
+                return;
             }
 
+            sessionState = SessionState.Stopping;
             statusText = "会话已停止";
+            shutdownRequested = true;
         }
 
         private bool TryApplyEndpoint(string listenAddress)
@@ -126,7 +183,7 @@ namespace FunGame.Networking
                 return false;
             }
 
-            if (networkManager.IsListening)
+            if (sessionState != SessionState.Idle || networkManager.IsListening)
             {
                 statusText = "请先停止当前会话";
                 return false;
@@ -168,6 +225,7 @@ namespace FunGame.Networking
 
         private void HandleClientConnected(ulong clientId)
         {
+            sessionState = networkManager.IsHost ? SessionState.HostRunning : SessionState.ClientConnected;
             statusText = networkManager.IsHost
                 ? $"玩家 {clientId} 已连接"
                 : "已连接到主机";
@@ -180,6 +238,8 @@ namespace FunGame.Networking
                 statusText = string.IsNullOrWhiteSpace(networkManager.DisconnectReason)
                     ? "已与主机断开"
                     : $"连接已断开：{networkManager.DisconnectReason}";
+                sessionState = SessionState.Stopping;
+                shutdownRequested = true;
                 return;
             }
 
