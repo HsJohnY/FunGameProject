@@ -33,9 +33,9 @@ UnityEngine.GUIUtility:ProcessEvent (int,intptr,bool&)
 
 不为此问题删除中文注释，也不单独升级到实验版 Unity。未来评估稳定 Unity 升级时复测；若调用栈进入项目代码或在玩家构建中出现，则重新按阻塞缺陷处理。
 
-## KI-002：Unity 6000.0.82f1 Package Manager 无法初始化项目
+## KI-002：Codex 启动环境缺少 `ALLUSERSPROFILE` 导致 Package Manager 无法初始化
 
-- 状态：本机编辑器安装或环境问题；阻塞 Unity 导入与自动测试
+- 状态：已定位并规避；不再阻塞 Unity 导入、测试或构建
 - 发现版本：Unity `6000.0.82f1`
 - 首次发现：2026-09-02，基础战斗切片开发
 
@@ -48,20 +48,27 @@ UnityEngine.GUIUtility:ProcessEvent (int,intptr,bool&)
 [Package Manager] Failed to update project manifest: The "path" argument must be of type string. Received undefined
 ```
 
-### 本项目证据
+### 根因与本项目证据
 
 - 当前系统已不存在需求基线使用的 `6000.0.38f1`，只安装了 `D:\Unity\Hub\Editor\6000.0.82f1`；
 - 项目 `Packages/manifest.json` 是有效 JSON，且没有本地路径依赖；
-- 临时更新到该编辑器清单要求的包版本后错误不变，已恢复原版本声明；
 - 使用同一编辑器创建全新临时项目时出现完全相同错误，因此不是本仓库内容、新战斗代码或包锁造成；
-- Unity 尚未进入项目脚本编译阶段。
+- 直接运行 Unity Package Manager 并查看调用栈后，确认其读取 `process.env.ALLUSERSPROFILE` 并将缺失值传给 `path.join`；
+- Codex 启动的进程环境缺少标准 Windows 变量 `ALLUSERSPROFILE`，而系统约定值为 `C:\ProgramData`；
+- 仅为 Unity 子进程设置该变量后，包解析、项目导入、场景生成、EditMode、PlayMode 和 Windows 构建均成功。
 
-### 影响
+### 影响边界
 
-- 无法生成或保存 `Combat_DefenseSandbox` 场景资产；
-- 无法运行 Unity EditMode、PlayMode 或开发构建验证；
-- 纯 C# 规则和新增运行时代码已通过独立编译冒烟，但不能替代 Unity 验证。
+- 从 Unity Hub 或拥有完整标准环境的终端启动时通常不受影响；
+- 从缺少该变量的自动化进程直接启动 Unity 时仍会复现；
+- 不应通过修改包清单或重装编辑器来掩盖该环境缺失。
 
-### 恢复建议
+### 自动化规避
 
-优先在 Unity Hub 中修复或重新安装项目原版本 `6000.0.38f1`；若决定统一升级到 `6000.0.82f1`，应先修复该编辑器安装并在独立提交中完成包版本、项目版本和全量回归升级，不与战斗功能提交混合。
+启动 Unity 或 `UnityPackageManager.exe` 前，只在当前 PowerShell/子进程中设置：
+
+```powershell
+$env:ALLUSERSPROFILE = 'C:\ProgramData'
+```
+
+不要为此修改仓库文件或覆盖机器全局环境。Unity 版本升级及回归结果记录在 ADR-0003。

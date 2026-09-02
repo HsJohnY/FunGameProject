@@ -2,9 +2,11 @@
 
 ## 当前状态
 
-- 规则与运行时代码：独立编译和纯规则冒烟通过；
-- Unity 场景：已提供生成器，受 `KI-002` 编辑器环境故障影响尚未生成；
-- Unity EditMode / PlayMode：测试代码已编写，尚未执行；
+- 规则与运行时代码：Unity 编译与纯规则验证通过；
+- Unity 场景：`Assets/Game/Scenes/Combat_DefenseSandbox.unity` 已生成；
+- Unity EditMode：23/23 通过；PlayMode：19/19 通过；
+- Windows Development Build：已生成，并通过真实播放器 `--combat-smoke` 检查点；
+- 人工操作与手感评审：尚未执行；
 - 本切片是提前验证 M4 风险的隔离实验，不代表 M1 已通过或 M4 已正式开始。
 
 ## 范围
@@ -21,12 +23,9 @@
 
 ## 生成与启动
 
-修复 Unity 环境后：
-
-1. 使用项目指定的 Unity 6 编辑器打开工程；
-2. 执行菜单 `FunGame > Combat > 生成基础防卫场景`；
-3. 打开 `Assets/Game/Scenes/Combat_DefenseSandbox.unity`；
-4. 点击 Play。
+1. 使用 Unity `6000.0.82f1` 打开工程；
+2. 打开 `Assets/Game/Scenes/Combat_DefenseSandbox.unity`；
+3. 点击 Play；如需重新生成场景，执行菜单 `FunGame > Combat > 生成基础防卫场景`。
 
 ## 成功路径
 
@@ -59,12 +58,13 @@
 - [ ] 重置后可以再次完成成功或失败闭环；
 - [ ] Console 没有项目代码异常或持续错误。
 
-## 自动验证计划
+## 自动验证结果
 
 - EditMode：敌人三次命中、攻击间隔、重置和设备离线规则；
 - PlayMode：正确/错误工具、真实准星命中、设备干扰失败和遭遇重置；
-- 当前已执行：新增运行时代码独立编译通过，纯规则冒烟通过；
-- 当前未执行：Unity EditMode、PlayMode、场景生成和开发构建。
+- 2026-09-02：Unity `6000.0.82f1` 下 EditMode 23/23、PlayMode 19/19；
+- 2026-09-02：独立 Windows Development Build 成功，播放器进入 `combat-defense-slice-candidate` 后以退出码 0 正常退出；
+- 自动化不替代下方人工反馈评审。
 
 ## 评审重点
 

@@ -8,7 +8,7 @@
 | --- | --- |
 | 当前阶段 | 阶段 2 / M3：双人网络切片；并行执行有限战斗风险切片 |
 | 当前目标 | 验证冲击扳手防卫、基础干扰敌人与设备保护能否形成短促闭环 |
-| 正在进行 | 战斗规则与场景生成器已完成；等待修复 Unity 编辑器环境后执行实际导入、测试和人工评审 |
+| 正在进行 | 战斗规则、独立场景、自动测试与开发构建已完成；等待人工操作和反馈可读性评审 |
 | 预期结果 | 独立战斗灰盒中可完成取得扳手、防卫设备、成功/失败和控制台重置 |
 | 最近更新 | 2026-09-02 |
 
@@ -110,21 +110,23 @@
 - [x] 有限战斗切片：建立敌人生命、设备完整度和攻击节奏的纯规则边界
 - [x] 有限战斗切片：实现冲击扳手击退、敌人设备干扰、成功/失败和重置闭环
 - [x] 有限战斗切片：提供独立灰盒场景生成器、临时 HUD 与 EditMode/PlayMode 测试
-- [ ] 有限战斗切片：修复本机 Unity Package Manager 环境后生成场景并执行完整自动验证
+- [x] 有限战斗切片：升级到 Unity 6000.0.82f1，并生成独立 `Combat_DefenseSandbox` 场景
+- [x] 有限战斗切片：通过 EditMode 23/23、PlayMode 19/19 自动测试
+- [x] 有限战斗切片：生成 Windows Development Build，并通过真实播放器检查点冒烟
 - [ ] 有限战斗切片：完成人工操作、反馈可读性和短促节奏评审
 
 ## 风险与阻塞
 
-- 游戏已确定采用 3D、固定第一人称、巨构维修概念和风暴荒原主题；渲染管线已固定为 URP 17.0.3，业务模块仍按 M1 实际需要逐步建立。
+- 游戏已确定采用 3D、固定第一人称、巨构维修概念和风暴荒原主题；工具链已升级为 Unity 6000.0.82f1、URP 17.0.4、Input System 1.19.0 和 Test Framework 1.6.0，业务模块仍按实际门禁逐步建立。
 - 当前只要求内部内容易扩展，不将第三方 Mod 平台纳入 MVP。
 - 好友互联网联机仍需技术验证，但不依赖 Steamworks、公开匹配或商业在线服务。
 - 所有非 MVP 项已归入后续、明确不做或具体原型验证；不存在阻塞灰盒的产品决策。
-- Unity 未加入 PATH，但已找到版本匹配的显式可执行路径；后续脚本不得依赖机器全局 PATH。
+- Unity 未加入 PATH，但已找到版本匹配的显式可执行路径 `D:\Unity\Hub\Editor\6000.0.82f1\Editor\Unity.exe`；后续脚本不得依赖机器全局 PATH。
 - Unity 6000.0.38f1 在非英文编辑器界面绘制 Inspector 时可能触发 TextCore `DontSaveInEditor` 断言；已确认不经过游戏代码，详见 `Docs/KNOWN_ISSUES.md`。
 - M1-6 开发者自测成功用时仅 00:34；当前单链只能验证维修语义，不能证明 8–12 分钟内容量或重复游玩价值。
 - 原样重复固定事故已被判断为高厌倦风险；后续采用少量受控位置、组合、参数与路线变式，但不提前建设完整随机事故导演。
-- 本机只剩 Unity `6000.0.82f1`，其 Package Manager 在当前项目和全新临时项目中均以 `The "path" argument must be of type string. Received undefined` 退出；在修复或重新安装编辑器前，新增战斗代码只能执行独立编译与纯规则冒烟检查，不能声明 Unity 自动测试通过。
+- Codex 启动环境缺少 `ALLUSERSPROFILE` 时，Unity Package Manager 会以 `The "path" argument must be of type string. Received undefined` 退出；已确认只为 Unity 子进程设置 `C:\ProgramData` 可稳定规避，详见 `Docs/KNOWN_ISSUES.md`。
 
 ## 下一次评审
 
-修复 Unity 编辑器环境，生成 `Combat_DefenseSandbox` 并完成战斗自动回归与人工评审；随后继续 M3 网络切片门禁。
+使用 Unity 6000.0.82f1 打开 `Combat_DefenseSandbox`，按战斗切片评审清单完成人工操作、反馈可读性和短促节奏验收；随后继续 M3 网络切片门禁。
