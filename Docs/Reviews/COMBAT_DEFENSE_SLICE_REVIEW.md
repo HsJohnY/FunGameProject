@@ -4,7 +4,7 @@
 
 - 规则与运行时代码：Unity 编译与纯规则验证通过；
 - Unity 场景：`Assets/Game/Scenes/Combat_DefenseSandbox.unity` 已生成；
-- Unity EditMode：24/24 通过；PlayMode：20/20 通过；
+- Unity EditMode：30/30 通过；PlayMode：22/22 通过；
 - Windows Development Build：已生成，并通过真实播放器 `--combat-smoke` 检查点；
 - 人工操作与手感评审：尚未执行；
 - 本切片是提前验证 M4 风险的隔离实验，不代表 M1 已通过或 M4 已正式开始。
@@ -61,9 +61,10 @@
 ## 自动验证结果
 
 - EditMode：敌人三次命中、攻击间隔、重置和设备离线规则；
-- PlayMode：正确/错误工具、真实准星命中、设备干扰失败、遭遇重置，以及敌人被推向设备时的实体碰撞与连续可命中性；
+- PlayMode：正确/错误工具、真实准星命中、设备干扰失败、遭遇重置，以及敌人被推向设备时的实体碰撞、连续可命中性和重置后再次攻击；
 - 2026-09-02：Unity `6000.0.82f1` 下 EditMode 24/24、PlayMode 20/20；包含正式场景碰撞配置和击退设备边界回归；
 - 2026-09-02：合入最新 `main` 的 M3 网络基线后，EditMode 30/30、PlayMode 21/21 全量回归通过；
+- 2026-09-02：修复结束态重置时 Rigidbody 与 Transform 不同步的问题；验证敌人恢复出生位置、朝向、碰撞及设备伤害，EditMode 30/30、PlayMode 22/22 全量回归通过；
 - 2026-09-02：独立 Windows Development Build 成功，播放器进入 `combat-defense-slice-candidate` 后以退出码 0 正常退出；
 - 自动化不替代下方人工反馈评审。
 

@@ -189,6 +189,52 @@ namespace FunGame.Tests.PlayMode
             Object.Destroy(encounterObject);
         }
 
+        [UnityTest]
+        public IEnumerator CombatEncounter_成功后重置会恢复位置并再次造成设备伤害()
+        {
+            CreateEncounter(
+                new Vector3(0f, 140f, 0f),
+                new Vector3(0f, 140f, 1.2f),
+                out GameObject encounterObject,
+                out CombatEncounterController encounter,
+                out GameObject targetObject,
+                out DefendableSystemTarget target,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                targetIntegrity: 20,
+                attackRange: 2f,
+                attackIntervalSeconds: 0.05f,
+                interferenceDamage: 10,
+                knockbackDistance: 1.25f);
+            CreateToolActor(new Vector3(0f, 140f, -2.5f), out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            Vector3 spawnPosition = enemyObject.transform.position;
+            Quaternion spawnRotation = enemyObject.transform.rotation;
+
+            Assert.That(enemy.ApplyTool(toolbelt), Is.True);
+            yield return new WaitForFixedUpdate();
+            Assert.That(enemy.ApplyTool(toolbelt), Is.True);
+            yield return new WaitForFixedUpdate();
+            Assert.That(enemy.ApplyTool(toolbelt), Is.True);
+            yield return new WaitForFixedUpdate();
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
+            Assert.That(Vector3.Distance(enemyObject.transform.position, spawnPosition), Is.GreaterThan(0.5f));
+
+            Assert.That(encounter.ResetEncounter(), Is.True);
+            Assert.That(Vector3.Distance(enemyObject.transform.position, spawnPosition), Is.LessThan(0.001f));
+            Assert.That(Vector3.Distance(enemy.GetComponent<Rigidbody>().position, spawnPosition), Is.LessThan(0.001f));
+            Assert.That(Quaternion.Angle(enemyObject.transform.rotation, spawnRotation), Is.LessThan(0.01f));
+
+            yield return null;
+
+            Assert.That(target.Integrity, Is.LessThan(target.MaxIntegrity));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
         private static void CreateEncounter(
             Vector3 targetPosition,
             Vector3 enemyPosition,

@@ -30,6 +30,7 @@ namespace FunGame.Combat
         private Renderer _renderer;
         private MaterialPropertyBlock _propertyBlock;
         private Vector3 _spawnPosition;
+        private Quaternion _spawnRotation;
         private bool _encounterActive = true;
 
         public int Health => _rules?.Health ?? maxHealth;
@@ -43,6 +44,7 @@ namespace FunGame.Combat
             _renderer = GetComponent<Renderer>();
             _propertyBlock = new MaterialPropertyBlock();
             _spawnPosition = transform.position;
+            _spawnRotation = transform.rotation;
             CreateRules();
             RefreshVisual();
         }
@@ -100,6 +102,7 @@ namespace FunGame.Combat
             wrenchDamage = Mathf.Max(1, configuredWrenchDamage);
             knockbackDistance = Mathf.Max(0f, configuredKnockbackDistance);
             _spawnPosition = transform.position;
+            _spawnRotation = transform.rotation;
             EnsurePhysicsBody();
             CreateRules();
             SetEncounterActive(true);
@@ -153,7 +156,12 @@ namespace FunGame.Combat
             }
 
             EnsurePhysicsBody();
+            // 结束态会关闭碰撞体；先保持关闭完成传送，再同步 Transform 与物理世界后重新激活。
+            SetEncounterActive(false);
             _rigidbody.position = _spawnPosition;
+            _rigidbody.rotation = _spawnRotation;
+            transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
+            Physics.SyncTransforms();
             SetEncounterActive(true);
             RefreshVisual();
         }
