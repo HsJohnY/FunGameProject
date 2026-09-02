@@ -24,7 +24,7 @@
 
 必须完成：
 
-1. 确认可调用的 Unity 编辑器；M0 最初使用 `6000.0.38f1`，后由 ADR-0003 升级到 `6000.0.82f1`；
+1. 确认可调用的 Unity 编辑器；M0 最初使用 `6000.0.38f1`，后由 ADR-0004 升级到 `6000.0.82f1`；
 2. 决定 Built-in 或 URP，并记录 ADR；
 3. 固定 Input System 和 Test Framework 用法；
 4. 建立 Runtime、Content、Scenes、Tests/EditMode 和 Tests/PlayMode 程序集边界；

@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string[]]$UnityArguments,
 
-    [string]$UnityEditorPath = 'E:\Unity\UnityEditor\6000.0.38f1\Editor\Unity.exe'
+    [string]$UnityEditorPath = 'E:\Unity\UnityEditor\6000.0.82f1\Editor\Unity.exe'
 )
 
 $ErrorActionPreference = 'Stop'

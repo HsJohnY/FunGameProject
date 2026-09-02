@@ -2,7 +2,9 @@
   "name": "FunGame.EditModeTests",
   "rootNamespace": "FunGame.Tests.EditMode",
   "references": [
-    "FunGame.Runtime"
+    "FunGame.Runtime",
+    "Unity.Netcode.Runtime",
+    "Unity.Netcode.Transports.UTP"
   ],
   "includePlatforms": [
     "Editor"

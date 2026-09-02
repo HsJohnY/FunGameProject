@@ -4,6 +4,7 @@
 
 - 状态：上游编辑器问题；已确认规避方式
 - 发现版本：Unity `6000.0.38f1`
+- 迁移复查：Unity `6000.0.82f1` 的批处理导入、自动测试和 Windows 构建中未再次出现；仍需编辑器人工操作确认。
 - 首次发现：2026-09-01，M1-1 人工评审
 
 ### 表现
@@ -71,4 +72,4 @@ UnityEngine.GUIUtility:ProcessEvent (int,intptr,bool&)
 $env:ALLUSERSPROFILE = 'C:\ProgramData'
 ```
 
-不要为此修改仓库文件或覆盖机器全局环境。Unity 版本升级及回归结果记录在 ADR-0003。
+不要为此修改仓库文件或覆盖机器全局环境。Unity 版本升级及回归结果记录在 ADR-0004。
