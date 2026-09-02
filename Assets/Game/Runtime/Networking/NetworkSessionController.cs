@@ -152,6 +152,15 @@ namespace FunGame.Networking
                 return false;
             }
 
+            // 已知端口冲突在进入 Unity Transport 前转换为正常的界面提示，
+            // 避免底层按严重错误写入 Console，并让玩家可以立即修改端口。
+            ushort hostPort = transport.ConnectionData.Port;
+            if (!NetworkPortAvailability.CanBindUdp(hostPort))
+            {
+                statusText = $"无法启动主机：端口 {hostPort} 已被占用，请更换端口";
+                return false;
+            }
+
             transportFailedDuringStart = false;
             sessionState = SessionState.HostRunning;
             if (networkManager.StartHost())

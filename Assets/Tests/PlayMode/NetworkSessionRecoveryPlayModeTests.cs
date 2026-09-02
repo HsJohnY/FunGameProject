@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.RegularExpressions;
 using FunGame.Networking;
 using NUnit.Framework;
 using Unity.Netcode;
@@ -35,18 +34,12 @@ namespace FunGame.Tests.PlayMode
             sessionObject.SetActive(true);
             Assert.That(controller.TrySetEndpointInput("127.0.0.1", port.ToString()), Is.True);
 
-            LogAssert.Expect(LogType.Error, new Regex("Failed to bind UDP socket because the address is already in use.*"));
-            LogAssert.Expect(LogType.Error, "Server failed to bind. This is usually caused by another process being bound to the same port.");
-            LogAssert.Expect(LogType.Error, "[Netcode] Host is shutting down due to network transport start failure of UnityTransport!");
-            controller.StartHost();
-            float deadline = Time.realtimeSinceStartup + 2f;
-            while (!controller.IsEndpointEditable && Time.realtimeSinceStartup < deadline)
-            {
-                yield return null;
-            }
+            bool started = controller.StartHost();
 
+            Assert.That(started, Is.False);
             Assert.That(controller.IsEndpointEditable, Is.True, controller.StatusText);
             Assert.That(controller.StatusText, Does.Contain("端口"));
+            Assert.That(manager.IsListening, Is.False);
 
             Object.Destroy(sessionObject);
             yield return null;
