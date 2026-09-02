@@ -1,19 +1,40 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace FunGame.Combat
 {
     /// <summary>
-    /// 协调一个敌人和一个被防卫设备，提供成功、失败及可重复测试的重置边界。
+    /// 协调一个被防卫设备和有限数量干扰体，并发布可供未来主机权威同步消费的状态事件。
     /// </summary>
     public sealed class CombatEncounterController : MonoBehaviour
     {
         [SerializeField] private DefendableSystemTarget defenseTarget;
         [SerializeField] private InterferenceEnemy enemy;
+        [SerializeField] private List<InterferenceEnemy> additionalEnemies = new List<InterferenceEnemy>();
 
+        public event Action<CombatEncounterState> StateChanged;
         public CombatEncounterState State { get; private set; } = CombatEncounterState.Active;
         public int ResetCount { get; private set; }
         public DefendableSystemTarget DefenseTarget => defenseTarget;
         public InterferenceEnemy Enemy => enemy;
+        public IReadOnlyList<InterferenceEnemy> Enemies => BuildEnemyList();
+        public int RemainingEnemyCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (InterferenceEnemy candidate in BuildEnemyList())
+                {
+                    if (candidate != null && !candidate.IsDefeated)
+                    {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
 
         public string CurrentInstruction
         {
@@ -21,32 +42,86 @@ namespace FunGame.Combat
             {
                 switch (State)
                 {
+                    case CombatEncounterState.Dormant:
+                        return "继续处理冷却故障，留意设备周围的异常活动";
                     case CombatEncounterState.Succeeded:
-                        return "防卫完成：设备恢复安全，可在训练控制台重新开始";
+                        return "干扰已清除：继续完成冷却设备维修";
                     case CombatEncounterState.Failed:
-                        return "防卫失败：设备已离线，可在训练控制台重新开始";
+                        return "防卫失败：辅助控制设备已离线";
                     default:
-                        return "保护冷却控制单元：取得冲击扳手并击退线路干扰体";
+                        return "保护辅助控制设备：切换冲击扳手，清除正在接近的干扰体";
                 }
             }
         }
 
         public void Configure(DefendableSystemTarget configuredTarget, InterferenceEnemy configuredEnemy)
         {
-            defenseTarget = configuredTarget;
-            enemy = configuredEnemy;
-            State = CombatEncounterState.Active;
+            Configure(configuredTarget, new[] { configuredEnemy }, true);
         }
 
-        public void NotifyEnemyDefeated()
+        public void Configure(
+            DefendableSystemTarget configuredTarget,
+            IReadOnlyList<InterferenceEnemy> configuredEnemies,
+            bool startActive = true)
+        {
+            defenseTarget = configuredTarget;
+            enemy = configuredEnemies != null && configuredEnemies.Count > 0 ? configuredEnemies[0] : null;
+            additionalEnemies.Clear();
+            if (configuredEnemies != null)
+            {
+                for (int index = 1; index < configuredEnemies.Count; index++)
+                {
+                    if (configuredEnemies[index] != null)
+                    {
+                        additionalEnemies.Add(configuredEnemies[index]);
+                    }
+                }
+            }
+
+            SetState(startActive ? CombatEncounterState.Active : CombatEncounterState.Dormant);
+            SetEnemiesActive(startActive);
+        }
+
+        public void BeginEncounter()
+        {
+            defenseTarget?.ResetSystem();
+            foreach (InterferenceEnemy candidate in BuildEnemyList())
+            {
+                candidate?.ResetEnemy();
+            }
+
+            SetEnemiesActive(true);
+            SetState(CombatEncounterState.Active);
+            Debug.Log($"[Combat] encounter=defense action=begin enemies={BuildEnemyList().Count}", this);
+        }
+
+        public void PrepareDormant()
+        {
+            defenseTarget?.ResetSystem();
+            foreach (InterferenceEnemy candidate in BuildEnemyList())
+            {
+                candidate?.ResetEnemy();
+            }
+
+            SetEnemiesActive(false);
+            SetState(CombatEncounterState.Dormant);
+        }
+
+        public void NotifyEnemyDefeated(InterferenceEnemy defeatedEnemy = null)
         {
             if (State != CombatEncounterState.Active)
             {
                 return;
             }
 
-            State = CombatEncounterState.Succeeded;
-            enemy?.SetEncounterActive(false);
+            defeatedEnemy?.SetEncounterActive(false);
+            if (RemainingEnemyCount > 0)
+            {
+                return;
+            }
+
+            SetEnemiesActive(false);
+            SetState(CombatEncounterState.Succeeded);
             Debug.Log("[Combat] encounter=defense result=succeeded", this);
         }
 
@@ -57,27 +132,60 @@ namespace FunGame.Combat
                 return;
             }
 
-            State = CombatEncounterState.Failed;
-            enemy?.SetEncounterActive(false);
+            SetEnemiesActive(false);
+            SetState(CombatEncounterState.Failed);
             Debug.Log("[Combat] encounter=defense result=failed reason=system-offline", this);
         }
 
-        /// <summary>
-        /// 在同一场景内恢复设备、敌人和遭遇状态，供人工连续回归使用。
-        /// </summary>
         public bool ResetEncounter()
         {
-            if (State == CombatEncounterState.Active || defenseTarget == null || enemy == null)
+            if (State == CombatEncounterState.Active || defenseTarget == null || BuildEnemyList().Count == 0)
             {
                 return false;
             }
 
-            defenseTarget.ResetSystem();
-            enemy.ResetEnemy();
-            State = CombatEncounterState.Active;
+            BeginEncounter();
             ResetCount++;
             Debug.Log($"[Combat] encounter=defense action=reset count={ResetCount}", this);
             return true;
+        }
+
+        private List<InterferenceEnemy> BuildEnemyList()
+        {
+            var result = new List<InterferenceEnemy>(1 + additionalEnemies.Count);
+            if (enemy != null)
+            {
+                result.Add(enemy);
+            }
+
+            foreach (InterferenceEnemy candidate in additionalEnemies)
+            {
+                if (candidate != null && !result.Contains(candidate))
+                {
+                    result.Add(candidate);
+                }
+            }
+
+            return result;
+        }
+
+        private void SetEnemiesActive(bool active)
+        {
+            foreach (InterferenceEnemy candidate in BuildEnemyList())
+            {
+                candidate?.SetEncounterActive(active && !candidate.IsDefeated);
+            }
+        }
+
+        private void SetState(CombatEncounterState nextState)
+        {
+            if (State == nextState)
+            {
+                return;
+            }
+
+            State = nextState;
+            StateChanged?.Invoke(State);
         }
     }
 }

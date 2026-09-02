@@ -56,6 +56,9 @@ namespace FunGame.Editor
                 systemMaterial);
             var defenseTarget = systemObject.AddComponent<DefendableSystemTarget>();
             defenseTarget.Configure(60);
+            systemObject.AddComponent<AudioSource>();
+            systemObject.AddComponent<DeviceDamageFeedback>().Configure(defenseTarget);
+            CreateIntegrityIndicator(systemObject.transform, defenseTarget, warningMaterial);
 
             GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             enemyObject.name = "Line Interference Creature";
@@ -63,9 +66,13 @@ namespace FunGame.Editor
             enemyObject.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
             enemyObject.GetComponent<Renderer>().sharedMaterial = enemyMaterial;
             var enemy = enemyObject.AddComponent<InterferenceEnemy>();
+            var link = enemyObject.AddComponent<LineRenderer>();
+            link.startColor = new Color(1f, 0.75f, 0.08f);
+            link.endColor = new Color(0.8f, 0.15f, 1f);
 
             encounter.Configure(defenseTarget, enemy);
             enemy.Configure(defenseTarget, encounter);
+            enemyObject.AddComponent<InterferenceLinkFeedback>().Configure(enemy, defenseTarget, warningMaterial);
 
             GameObject wrenchRack = CreateBlock(
                 null,
@@ -212,6 +219,31 @@ namespace FunGame.Editor
             player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>();
             player.AddComponent<CombatStatusOverlay>().Configure(encounter);
+            var cameraFeedback = player.AddComponent<CombatCameraFeedback>();
+            cameraFeedback.Configure(cameraObject.transform);
+            var hitStop = player.AddComponent<LocalHitStopFeedback>();
+            player.AddComponent<AudioSource>();
+            player.AddComponent<WrenchFeedbackPresenter>().Configure(wrenchVisual.transform, cameraFeedback, hitStop);
+        }
+
+        private static void CreateIntegrityIndicator(Transform target, DefendableSystemTarget defenseTarget, Material material)
+        {
+            var indicatorRoot = new GameObject("World Integrity Indicator");
+            indicatorRoot.transform.SetParent(target, false);
+            indicatorRoot.transform.localPosition = new Vector3(0f, 0.72f, -0.82f);
+            var segments = new Renderer[3];
+            for (int index = 0; index < segments.Length; index++)
+            {
+                GameObject segment = CreateVisualCube(
+                    indicatorRoot.transform,
+                    $"Integrity Segment {index + 1}",
+                    new Vector3((index - 1) * 0.32f, 0f, 0f),
+                    new Vector3(0.24f, 0.16f, 0.08f),
+                    material);
+                segments[index] = segment.GetComponent<Renderer>();
+            }
+
+            indicatorRoot.AddComponent<DefendableSystemIndicator>().Configure(defenseTarget, segments);
         }
 
         private static GameObject CreateVisualCube(

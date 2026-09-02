@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace FunGame.Combat
@@ -17,6 +18,9 @@ namespace FunGame.Combat
         public int Integrity => _rules?.Integrity ?? maxIntegrity;
         public int MaxIntegrity => _rules?.MaxIntegrity ?? maxIntegrity;
         public bool IsOffline => _rules != null && _rules.IsOffline;
+        public event Action<int, int> IntegrityChanged;
+        public event Action<int> Damaged;
+        public event Action Offline;
 
         private void Awake()
         {
@@ -39,8 +43,20 @@ namespace FunGame.Combat
         public bool ApplyInterference(int damage)
         {
             EnsureRules();
+            int previousIntegrity = Integrity;
             bool wentOffline = _rules.ApplyInterference(damage);
             RefreshVisual();
+            if (Integrity != previousIntegrity)
+            {
+                Damaged?.Invoke(previousIntegrity - Integrity);
+                IntegrityChanged?.Invoke(Integrity, MaxIntegrity);
+            }
+
+            if (wentOffline && previousIntegrity > 0)
+            {
+                Offline?.Invoke();
+            }
+
             Debug.Log($"[Combat] target=defense-system action=interference integrity={Integrity}/{MaxIntegrity} offline={wentOffline}", this);
             return wentOffline;
         }
@@ -50,6 +66,7 @@ namespace FunGame.Combat
             EnsureRules();
             _rules.Reset();
             RefreshVisual();
+            IntegrityChanged?.Invoke(Integrity, MaxIntegrity);
         }
 
         private void EnsureRules()

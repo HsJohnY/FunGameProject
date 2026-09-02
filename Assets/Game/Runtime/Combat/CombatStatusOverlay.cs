@@ -31,7 +31,7 @@ namespace FunGame.Combat
             GUI.Label(new Rect(0f, 20f, Screen.width, 34f), encounter.CurrentInstruction, _statusStyle);
             GUI.Label(
                 new Rect(0f, 52f, Screen.width, 34f),
-                $"设备完整度：{encounter.DefenseTarget.Integrity}/{encounter.DefenseTarget.MaxIntegrity} · 干扰体状态：{encounter.Enemy.Health}/{encounter.Enemy.MaxHealth}",
+                $"设备完整度：{encounter.DefenseTarget.Integrity}/{encounter.DefenseTarget.MaxIntegrity} · 剩余干扰体：{encounter.RemainingEnemyCount}",
                 _statusStyle);
         }
 

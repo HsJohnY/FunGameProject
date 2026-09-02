@@ -51,10 +51,7 @@ namespace FunGame.Incident
                 return;
             }
 
-            _runState = CoolingIncidentRunState.Failed;
-            _lastRunDurationSeconds = _elapsedSeconds;
-            Debug.Log($"[Incident] result=failed phase={Phase} temperature={_temperature:F1} duration={FormatDuration(_lastRunDurationSeconds)}", this);
-            RunStateChanged?.Invoke();
+            FailIncident("ambient-temperature");
         }
 
         public void ConfigureTemperature(float starting, float failure, float risePerSecond)
@@ -97,6 +94,27 @@ namespace FunGame.Incident
         public bool TryTighten() => Execute("tighten", Rules.TryTighten);
         public bool TryResetPump() => Execute("reset-pump", Rules.TryResetPump);
 
+        /// <summary>
+        /// 外部系统干扰统一折算为温度冲击；不引入独立玩家生命或第二套失败规则。
+        /// </summary>
+        public bool ApplyTemperatureSpike(float amount)
+        {
+            if (_runState != CoolingIncidentRunState.Active || amount <= 0f)
+            {
+                return false;
+            }
+
+            _temperature += amount;
+            StateChanged?.Invoke();
+            if (_temperature < failureTemperature)
+            {
+                return true;
+            }
+
+            FailIncident("temperature-spike");
+            return true;
+        }
+
         private bool Execute(string action, Func<bool> transition)
         {
             if (_runState != CoolingIncidentRunState.Active)
@@ -130,6 +148,19 @@ namespace FunGame.Incident
         {
             int totalSeconds = Mathf.Max(0, Mathf.FloorToInt(seconds));
             return $"{totalSeconds / 60:00}:{totalSeconds % 60:00}";
+        }
+
+        private void FailIncident(string reason)
+        {
+            if (_runState != CoolingIncidentRunState.Active)
+            {
+                return;
+            }
+
+            _runState = CoolingIncidentRunState.Failed;
+            _lastRunDurationSeconds = _elapsedSeconds;
+            Debug.Log($"[Incident] result=failed reason={reason} phase={Phase} temperature={_temperature:F1} duration={FormatDuration(_lastRunDurationSeconds)}", this);
+            RunStateChanged?.Invoke();
         }
     }
 }

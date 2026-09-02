@@ -21,18 +21,20 @@ namespace FunGame.Tests.EditMode
         }
 
         [Test]
-        public void InterferenceEnemy_只在目标范围内按间隔攻击()
+        public void InterferenceEnemy_进入范围后先蓄力再按间隔攻击()
         {
-            var rules = new InterferenceEnemyRules(3, 1f);
+            var rules = new InterferenceEnemyRules(3, 1f, 0.4f);
 
-            Assert.That(rules.Advance(0f, false), Is.False);
-            Assert.That(rules.Advance(0f, true), Is.True);
-            Assert.That(rules.Advance(0.5f, true), Is.False);
-            Assert.That(rules.Advance(0.5f, true), Is.True);
+            Assert.That(rules.Advance(0f, false), Is.EqualTo(InterferenceEnemyAction.None));
+            Assert.That(rules.Advance(0f, true), Is.EqualTo(InterferenceEnemyAction.TelegraphStarted));
+            Assert.That(rules.IsTelegraphing, Is.True);
+            Assert.That(rules.Advance(0.39f, true), Is.EqualTo(InterferenceEnemyAction.None));
+            Assert.That(rules.Advance(0.02f, true), Is.EqualTo(InterferenceEnemyAction.AttackCommitted));
+            Assert.That(rules.Advance(1f, true), Is.EqualTo(InterferenceEnemyAction.TelegraphStarted));
         }
 
         [Test]
-        public void InterferenceEnemy_重置后恢复生命和即时攻击资格()
+        public void InterferenceEnemy_重置后恢复生命和蓄力资格()
         {
             var rules = new InterferenceEnemyRules(2, 1f);
             rules.ReceiveHit(2);
@@ -41,7 +43,7 @@ namespace FunGame.Tests.EditMode
 
             Assert.That(rules.Health, Is.EqualTo(2));
             Assert.That(rules.IsDefeated, Is.False);
-            Assert.That(rules.Advance(0f, true), Is.True);
+            Assert.That(rules.Advance(0f, true), Is.EqualTo(InterferenceEnemyAction.TelegraphStarted));
         }
 
         [Test]
@@ -80,6 +82,44 @@ namespace FunGame.Tests.EditMode
                 Assert.That(enemyBody.useGravity, Is.False);
                 Assert.That(target.TryGetComponent(out BoxCollider targetCollider), Is.True);
                 Assert.That(targetCollider.isTrigger, Is.False);
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Test]
+        public void CombatRepairScene_包含双行为敌人和维修联动组件()
+        {
+            Scene scene = EditorSceneManager.OpenScene(
+                "Assets/Game/Scenes/Combat_CoolingBayIntegration.unity",
+                OpenSceneMode.Additive);
+
+            try
+            {
+                CoolingCombatIntegrationController integration = null;
+                DefendableSystemIndicator indicator = null;
+                int enemyCount = 0;
+                bool hasDirect = false;
+                bool hasFlanking = false;
+                foreach (GameObject root in scene.GetRootGameObjects())
+                {
+                    integration = integration ?? root.GetComponentInChildren<CoolingCombatIntegrationController>(true);
+                    indicator = indicator ?? root.GetComponentInChildren<DefendableSystemIndicator>(true);
+                    foreach (InterferenceEnemy enemy in root.GetComponentsInChildren<InterferenceEnemy>(true))
+                    {
+                        enemyCount++;
+                        hasDirect |= enemy.Behavior == InterferenceEnemyBehavior.Direct;
+                        hasFlanking |= enemy.Behavior == InterferenceEnemyBehavior.FlankingAttach;
+                    }
+                }
+
+                Assert.That(integration, Is.Not.Null);
+                Assert.That(indicator, Is.Not.Null);
+                Assert.That(enemyCount, Is.EqualTo(2));
+                Assert.That(hasDirect, Is.True);
+                Assert.That(hasFlanking, Is.True);
             }
             finally
             {
