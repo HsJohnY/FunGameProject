@@ -30,8 +30,32 @@ namespace FunGame.Networking
         private string statusText = "尚未启动会话";
         private SessionState sessionState = SessionState.Idle;
         private bool shutdownRequested;
+        private bool transportFailedDuringStart;
 
         public string StatusText => statusText;
+        public bool IsEndpointEditable => sessionState == SessionState.Idle;
+
+        /// <summary>
+        /// 为后续正式大厅界面和自动测试提供统一的地址输入入口。
+        /// </summary>
+        public bool TrySetEndpointInput(string address, string port)
+        {
+            if (!IsEndpointEditable)
+            {
+                statusText = "请先停止当前会话";
+                return false;
+            }
+
+            if (!NetworkEndpointRules.TryNormalize(address, port, out string normalizedAddress, out ushort normalizedPort, out string error))
+            {
+                statusText = error;
+                return false;
+            }
+
+            addressText = normalizedAddress;
+            portText = normalizedPort.ToString();
+            return true;
+        }
 
         public void Configure(NetworkManager manager, UnityTransport networkTransport)
         {
@@ -128,15 +152,26 @@ namespace FunGame.Networking
                 return false;
             }
 
+            transportFailedDuringStart = false;
             sessionState = SessionState.HostRunning;
             if (networkManager.StartHost())
             {
+                // 端口绑定错误既可能同步返回，也可能在后续传输更新中报告。
+                // 同步失败事件已经提供了更明确的提示时，不要用泛化消息覆盖它。
+                if (transportFailedDuringStart)
+                {
+                    return false;
+                }
+
                 statusText = "主机已启动，等待客户端";
                 return true;
             }
 
             sessionState = SessionState.Idle;
-            statusText = "主机启动失败，请查看 Console";
+            if (!transportFailedDuringStart)
+            {
+                statusText = "主机启动失败，请检查端口后重试";
+            }
             return false;
         }
 
@@ -208,8 +243,10 @@ namespace FunGame.Networking
 
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+            networkManager.OnTransportFailure -= HandleTransportFailure;
             networkManager.OnClientConnectedCallback += HandleClientConnected;
             networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
+            networkManager.OnTransportFailure += HandleTransportFailure;
         }
 
         private void Unsubscribe()
@@ -221,6 +258,7 @@ namespace FunGame.Networking
 
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+            networkManager.OnTransportFailure -= HandleTransportFailure;
         }
 
         private void HandleClientConnected(ulong clientId)
@@ -244,6 +282,16 @@ namespace FunGame.Networking
             }
 
             statusText = $"玩家 {clientId} 已断开";
+        }
+
+        private void HandleTransportFailure()
+        {
+            transportFailedDuringStart = true;
+            statusText = sessionState == SessionState.HostRunning
+                ? "主机启动失败：端口可能已被占用，请更换端口后重试"
+                : "网络传输失败，请检查地址和端口后重试";
+            sessionState = SessionState.Stopping;
+            shutdownRequested = true;
         }
     }
 }

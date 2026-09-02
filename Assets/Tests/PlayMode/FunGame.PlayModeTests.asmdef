@@ -2,7 +2,9 @@
   "name": "FunGame.PlayModeTests",
   "rootNamespace": "FunGame.Tests.PlayMode",
   "references": [
-    "FunGame.Runtime"
+    "FunGame.Runtime",
+    "Unity.Netcode.Runtime",
+    "Unity.Netcode.Transports.UTP"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
