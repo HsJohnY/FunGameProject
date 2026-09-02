@@ -6,7 +6,7 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Game/Scenes/M1_CoolingBay.unity
-    guid: d2b85407833b7244887563b95c208fa9
+    path: Assets/Game/Scenes/M3_NetworkSlice.unity
+    guid: d216098d46e3f654b8fb4e3ff3e65329
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

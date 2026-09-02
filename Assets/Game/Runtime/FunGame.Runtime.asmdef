@@ -2,7 +2,9 @@
   "name": "FunGame.Runtime",
   "rootNamespace": "FunGame",
   "references": [
-    "Unity.InputSystem"
+    "Unity.InputSystem",
+    "Unity.Netcode.Runtime",
+    "Unity.Netcode.Transports.UTP"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
