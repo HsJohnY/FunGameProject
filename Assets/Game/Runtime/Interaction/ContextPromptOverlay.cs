@@ -1,6 +1,7 @@
 using UnityEngine;
 using FunGame.Tools;
 using FunGame.Incident;
+using FunGame.UI;
 
 namespace FunGame.Interaction
 {
@@ -30,6 +31,11 @@ namespace FunGame.Interaction
 
         private void OnGUI()
         {
+            if (GameMenuController.IsAnyMenuOpen)
+            {
+                return;
+            }
+
             EnsureStyles();
 
             var crosshairRect = new Rect(Screen.width * 0.5f - 15f, Screen.height * 0.5f - 18f, 30f, 36f);

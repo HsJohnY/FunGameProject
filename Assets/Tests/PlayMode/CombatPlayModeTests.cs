@@ -41,6 +41,11 @@ namespace FunGame.Tests.PlayMode
 
             Assert.That(enemy.IsDefeated, Is.True);
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
+            Assert.That(enemyObject.GetComponent<Collider>().enabled, Is.False, "被击败的干扰体应立即停止碰撞和攻击");
+
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            Assert.That(enemyObject.GetComponent<Renderer>().enabled, Is.False, "失效动画结束后不应留下黑色残骸");
 
             Object.Destroy(actor);
             Object.Destroy(enemyObject);
@@ -155,6 +160,53 @@ namespace FunGame.Tests.PlayMode
             Assert.That(target.IsOffline, Is.True);
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Failed));
 
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator InterferenceEnemy_遇到实体障碍会绕行并攻击设备()
+        {
+            var encounterObject = new GameObject("Obstacle Avoidance Encounter");
+            var encounter = encounterObject.AddComponent<CombatEncounterController>();
+            GameObject targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            targetObject.transform.position = new Vector3(2.5f, 125f, 0f);
+            var target = targetObject.AddComponent<DefendableSystemTarget>();
+            target.Configure(60);
+
+            GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            enemyObject.transform.position = new Vector3(-2.5f, 125f, 0f);
+            var enemy = enemyObject.AddComponent<InterferenceEnemy>();
+            encounter.Configure(target, enemy);
+            enemy.Configure(
+                target,
+                encounter,
+                configuredMoveSpeed: 3f,
+                configuredAttackRange: 1.3f,
+                configuredAttackIntervalSeconds: 0.05f,
+                configuredInterferenceDamage: 10,
+                configuredKnockbackDistance: 0f,
+                configuredAttackWindupSeconds: 0.02f);
+
+            GameObject obstacle = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            obstacle.name = "Finite Navigation Obstacle";
+            obstacle.transform.position = new Vector3(0f, 125f, 0f);
+            obstacle.transform.localScale = new Vector3(0.35f, 2f, 2.2f);
+            Physics.SyncTransforms();
+
+            float timeout = Time.time + 4f;
+            float maximumSideOffset = 0f;
+            while (target.Integrity == target.MaxIntegrity && Time.time < timeout)
+            {
+                maximumSideOffset = Mathf.Max(maximumSideOffset, Mathf.Abs(enemyObject.transform.position.z));
+                yield return null;
+            }
+
+            Assert.That(target.Integrity, Is.LessThan(target.MaxIntegrity), "干扰体应绕过有限障碍并攻击设备");
+            Assert.That(maximumSideOffset, Is.GreaterThan(1f), "绕行时应从障碍侧面通过");
+
+            Object.Destroy(obstacle);
             Object.Destroy(enemyObject);
             Object.Destroy(targetObject);
             Object.Destroy(encounterObject);

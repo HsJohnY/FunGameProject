@@ -21,16 +21,17 @@ namespace FunGame.Player
 
         [Header("视角")]
         [SerializeField, Min(0.001f)] private float mouseSensitivity = 0.08f;
+        [SerializeField] private bool invertYAxis;
 
         private CharacterController _characterController;
         private InputAction _moveAction;
         private InputAction _lookAction;
         private InputAction _jumpAction;
         private InputAction _sprintAction;
-        private InputAction _toggleCursorAction;
         private float _verticalVelocity;
         private float _pitch;
         private bool _cursorLocked;
+        private bool _gameplayInputAllowed = true;
 
         /// <summary>
         /// 当前镜头俯仰角，供调试界面和自动化测试只读查询。
@@ -46,6 +47,7 @@ namespace FunGame.Player
         /// 鼠标是否正被第一人称视角锁定；菜单和交互适配器可据此暂停输入。
         /// </summary>
         public bool IsCursorLocked => _cursorLocked;
+        public float MouseSensitivity => mouseSensitivity;
 
         private void Awake()
         {
@@ -71,8 +73,7 @@ namespace FunGame.Player
             _lookAction?.Enable();
             _jumpAction?.Enable();
             _sprintAction?.Enable();
-            _toggleCursorAction?.Enable();
-            SetCursorLocked(true);
+            SetGameplayInputEnabled(_gameplayInputAllowed);
         }
 
         private void OnDisable()
@@ -81,7 +82,7 @@ namespace FunGame.Player
             _lookAction?.Disable();
             _jumpAction?.Disable();
             _sprintAction?.Disable();
-            _toggleCursorAction?.Disable();
+            SetCursorLocked(false);
         }
 
         private void OnDestroy()
@@ -90,16 +91,10 @@ namespace FunGame.Player
             _lookAction?.Dispose();
             _jumpAction?.Dispose();
             _sprintAction?.Dispose();
-            _toggleCursorAction?.Dispose();
         }
 
         private void Update()
         {
-            if (_toggleCursorAction.WasPressedThisFrame())
-            {
-                SetCursorLocked(!_cursorLocked);
-            }
-
             UpdateLook();
             UpdateMovement();
         }
@@ -118,7 +113,6 @@ namespace FunGame.Player
             _lookAction = new InputAction("观察", InputActionType.Value, "<Mouse>/delta");
             _jumpAction = new InputAction("跳跃", InputActionType.Button, "<Keyboard>/space");
             _sprintAction = new InputAction("冲刺", InputActionType.Button, "<Keyboard>/leftShift");
-            _toggleCursorAction = new InputAction("切换鼠标锁定", InputActionType.Button, "<Keyboard>/escape");
         }
 
         private void UpdateLook()
@@ -131,7 +125,8 @@ namespace FunGame.Player
             Vector2 lookDelta = _lookAction.ReadValue<Vector2>() * mouseSensitivity;
             transform.Rotate(Vector3.up, lookDelta.x, Space.Self);
 
-            _pitch = FirstPersonMotionMath.ClampPitch(_pitch - lookDelta.y);
+            float verticalLook = invertYAxis ? lookDelta.y : -lookDelta.y;
+            _pitch = FirstPersonMotionMath.ClampPitch(_pitch + verticalLook);
             viewCamera.transform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
         }
 
@@ -156,6 +151,37 @@ namespace FunGame.Player
             float speed = walkSpeed * (_sprintAction.IsPressed() ? sprintMultiplier : 1f);
             Vector3 velocity = planarDirection * speed + Vector3.up * _verticalVelocity;
             _characterController.Move(velocity * Time.deltaTime);
+        }
+
+        public void ApplyLookSettings(float sensitivity, float fieldOfView, bool invertY)
+        {
+            mouseSensitivity = Mathf.Clamp(sensitivity, 0.02f, 0.3f);
+            invertYAxis = invertY;
+            if (viewCamera != null)
+            {
+                viewCamera.fieldOfView = Mathf.Clamp(fieldOfView, 65f, 110f);
+            }
+        }
+
+        public void SetGameplayInputEnabled(bool enabledInput)
+        {
+            _gameplayInputAllowed = enabledInput;
+            if (enabledInput && isActiveAndEnabled)
+            {
+                _moveAction?.Enable();
+                _lookAction?.Enable();
+                _jumpAction?.Enable();
+                _sprintAction?.Enable();
+            }
+            else
+            {
+                _moveAction?.Disable();
+                _lookAction?.Disable();
+                _jumpAction?.Disable();
+                _sprintAction?.Disable();
+            }
+
+            SetCursorLocked(enabledInput);
         }
 
         private void SetCursorLocked(bool locked)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using FunGame.UI;
 
 namespace FunGame.Combat
 {
@@ -17,7 +18,8 @@ namespace FunGame.Combat
 
         private void OnGUI()
         {
-            if (integration == null || !integration.HasTriggered || integration.Encounter == null)
+            if (GameMenuController.IsAnyMenuOpen || integration == null ||
+                !integration.HasTriggered || integration.Encounter == null)
             {
                 return;
             }

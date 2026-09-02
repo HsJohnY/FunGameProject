@@ -120,6 +120,12 @@ namespace FunGame.Tests.EditMode
                 Assert.That(enemyCount, Is.EqualTo(2));
                 Assert.That(hasDirect, Is.True);
                 Assert.That(hasFlanking, Is.True);
+                GameObject walkwayA = FindInScene(scene, "Walkway A");
+                GameObject walkwayB = FindInScene(scene, "Walkway B");
+                Assert.That(walkwayA, Is.Not.Null);
+                Assert.That(walkwayB, Is.Not.Null);
+                Assert.That(walkwayA.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
+                Assert.That(walkwayB.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
             }
             finally
             {
@@ -134,6 +140,22 @@ namespace FunGame.Tests.EditMode
                 if (root.name == objectName)
                 {
                     return root;
+                }
+            }
+
+            return null;
+        }
+
+        private static GameObject FindInScene(Scene scene, string objectName)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (Transform candidate in root.GetComponentsInChildren<Transform>(true))
+                {
+                    if (candidate.name == objectName)
+                    {
+                        return candidate.gameObject;
+                    }
                 }
             }
 

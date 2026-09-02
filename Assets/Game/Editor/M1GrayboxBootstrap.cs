@@ -1,9 +1,11 @@
 using System.IO;
+using FunGame.Audio;
 using FunGame.Diagnostics;
 using FunGame.Interaction;
 using FunGame.Player;
 using FunGame.Tools;
 using FunGame.Incident;
+using FunGame.UI;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -21,11 +23,20 @@ namespace FunGame.Editor
     {
         private const string ScenePath = "Assets/Game/Scenes/M1_CoolingBay.unity";
         private const string MaterialFolder = "Assets/Game/Content/Graybox";
+        private const string MenuBgmPath = "Assets/ThirdParty/OpenGameArt/WackyWobblings/wackywobblings.ogg";
+        private const string GameplayBgmPath = "Assets/ThirdParty/OpenGameArt/FuturePower/futurepower_loop.ogg";
 
         [MenuItem("FunGame/M1/生成当前冷却舱场景")]
         public static void ConfigureCurrent()
         {
             EnsureFolder(MaterialFolder);
+            AudioClip[] bgmClips = ProceduralBgmAssetBuilder.GenerateOrRefresh();
+            AudioClip menuBgm = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuBgmPath);
+            AudioClip gameplayBgm = AssetDatabase.LoadAssetAtPath<AudioClip>(GameplayBgmPath);
+            if (menuBgm == null || gameplayBgm == null)
+            {
+                throw new InvalidDataException("缺少已核准的 OpenGameArt BGM 资源，请检查 Assets/ThirdParty。");
+            }
 
             Material structureMaterial = CreateOrLoadMaterial(
                 MaterialFolder + "/M1_Structure.mat", new Color(0.22f, 0.26f, 0.3f));
@@ -35,6 +46,10 @@ namespace FunGame.Editor
                 MaterialFolder + "/M1_Machinery.mat", new Color(0.12f, 0.42f, 0.48f));
             Material warningMaterial = CreateOrLoadMaterial(
                 MaterialFolder + "/M1_Warning.mat", new Color(0.85f, 0.38f, 0.08f));
+            Material trimMaterial = CreateOrLoadMaterial(
+                MaterialFolder + "/M1_Trim.mat", new Color(0.34f, 0.19f, 0.12f));
+            Material glowMaterial = CreateOrLoadMaterial(
+                MaterialFolder + "/M1_Glow.mat", new Color(0.3f, 0.9f, 0.82f));
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "M1_CoolingBay";
@@ -44,7 +59,14 @@ namespace FunGame.Editor
             var incidentObject = new GameObject("Cooling Incident");
             var incident = incidentObject.AddComponent<CoolingIncidentController>();
             CreateCoolingBay(structureMaterial, floorMaterial, machineryMaterial, warningMaterial, incident);
-            CreatePlayer(warningMaterial, machineryMaterial, incident);
+            CoolingBayArtBuilder.BuildEnvironment(
+                structureMaterial, machineryMaterial, warningMaterial, trimMaterial, glowMaterial);
+            FirstPersonController player = CreatePlayer(warningMaterial, machineryMaterial, incident);
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(machineryMaterial, warningMaterial, trimMaterial);
+            var bgm = new GameObject("Adaptive Cooling Bay BGM").AddComponent<CoolingBayBgmController>();
+            bgm.Configure(incident);
+            bgm.ConfigureMusicAssets(menuBgm, gameplayBgm, bgmClips[1]);
+            new GameObject("Main and Pause Menu").AddComponent<GameMenuController>().Configure(player);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
@@ -163,11 +185,11 @@ namespace FunGame.Editor
             carryableItem.ConfigureIdentity("replacement-pipe", "替换管件");
             carryable.AddComponent<TaskItemRecovery>().Configure(recoveryPointObject.transform, -3f);
 
-            CreateBlock(environment, "Walkway A", new Vector3(-3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
-            CreateBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
+            CreateDecorationBlock(environment, "Walkway A", new Vector3(-3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
+            CreateDecorationBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
         }
 
-        private static void CreatePlayer(
+        private static FirstPersonController CreatePlayer(
             Material warningMaterial,
             Material machineryMaterial,
             CoolingIncidentController incident)
@@ -208,10 +230,11 @@ namespace FunGame.Editor
 
             var toolbelt = player.AddComponent<PlayerToolbelt>();
             toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
-            player.AddComponent<FirstPersonController>();
+            var playerController = player.AddComponent<FirstPersonController>();
             player.AddComponent<ContextInteractor>();
             player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>().Configure(incident);
+            return playerController;
         }
 
         private static GameObject CreateVisualCube(
@@ -245,6 +268,18 @@ namespace FunGame.Editor
             block.transform.SetPositionAndRotation(position, Quaternion.identity);
             block.transform.localScale = scale;
             block.GetComponent<MeshRenderer>().sharedMaterial = material;
+            return block;
+        }
+
+        private static GameObject CreateDecorationBlock(
+            Transform parent,
+            string name,
+            Vector3 position,
+            Vector3 scale,
+            Material material)
+        {
+            GameObject block = CreateBlock(parent, name, position, scale, material);
+            Object.DestroyImmediate(block.GetComponent<Collider>());
             return block;
         }
 
