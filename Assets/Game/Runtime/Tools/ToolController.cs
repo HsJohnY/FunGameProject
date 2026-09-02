@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FunGame.Interaction;
 using UnityEngine;
@@ -16,8 +17,12 @@ namespace FunGame.Tools
         private PlayerToolbelt _toolbelt;
         private InputAction _primaryAction;
         private IToolTarget _currentTarget;
+        [SerializeField, Min(0.05f)] private float impactWrenchCooldownSeconds = 0.38f;
+        private float _nextImpactWrenchActionTime;
 
         public ToolActionOption? CurrentOption { get; private set; }
+        public event Action<ToolActionFeedback> ToolActionExecuted;
+        public float ImpactWrenchCooldownRemaining => Mathf.Max(0f, _nextImpactWrenchActionTime - Time.unscaledTime);
 
         private void Awake()
         {
@@ -82,6 +87,11 @@ namespace FunGame.Tools
             }
 
             ToolActionOption option = CurrentOption.Value;
+            if (option.EquippedTool == ToolKind.ImpactWrench && ImpactWrenchCooldownRemaining > 0f)
+            {
+                return false;
+            }
+
             if (!option.IsAvailable)
             {
                 Debug.Log($"[Tool] target={option.TargetId} blocked={option.BlockedReason}", this);
@@ -89,9 +99,23 @@ namespace FunGame.Tools
             }
 
             bool succeeded = _currentTarget.ApplyTool(_toolbelt);
+            if (option.EquippedTool == ToolKind.ImpactWrench)
+            {
+                _nextImpactWrenchActionTime = Time.unscaledTime + impactWrenchCooldownSeconds;
+            }
+
+            ToolActionExecuted?.Invoke(new ToolActionFeedback(
+                option.EquippedTool,
+                _currentTarget as MonoBehaviour,
+                succeeded));
             Debug.Log($"[Tool] target={option.TargetId} action={option.ActionLabel} tool={option.EquippedTool} success={succeeded}", this);
             RefreshTarget();
             return succeeded;
+        }
+
+        public void ConfigureImpactWrenchCooldown(float seconds)
+        {
+            impactWrenchCooldownSeconds = Mathf.Max(0.05f, seconds);
         }
     }
 }

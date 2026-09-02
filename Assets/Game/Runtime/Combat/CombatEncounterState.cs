@@ -5,8 +5,9 @@ namespace FunGame.Combat
     /// </summary>
     public enum CombatEncounterState
     {
-        Active = 0,
-        Succeeded = 1,
-        Failed = 2
+        Dormant = 0,
+        Active = 1,
+        Succeeded = 2,
+        Failed = 3
     }
 }

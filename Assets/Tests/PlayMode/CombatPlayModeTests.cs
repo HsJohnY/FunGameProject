@@ -1,5 +1,6 @@
 using System.Collections;
 using FunGame.Combat;
+using FunGame.Incident;
 using FunGame.Interaction;
 using FunGame.Tools;
 using NUnit.Framework;
@@ -35,6 +36,7 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(controller.CurrentOption.HasValue, Is.True);
                 Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("击退"));
                 Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+                yield return new WaitForSecondsRealtime(0.4f);
             }
 
             Assert.That(enemy.IsDefeated, Is.True);
@@ -105,6 +107,7 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(controller.CurrentOption.HasValue, Is.True, $"第 {hitIndex + 1} 次命中前敌人应保持可选中");
                 Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
                 Physics.SyncTransforms();
+                yield return new WaitForSecondsRealtime(0.4f);
 
                 if (!enemy.IsDefeated)
                 {
@@ -174,7 +177,7 @@ namespace FunGame.Tests.PlayMode
                 attackIntervalSeconds: 0.05f,
                 interferenceDamage: 10);
 
-            yield return null;
+            yield return new WaitForSeconds(0.06f);
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Failed));
 
             Assert.That(encounter.ResetEncounter(), Is.True);
@@ -187,6 +190,122 @@ namespace FunGame.Tests.PlayMode
             Object.Destroy(enemyObject);
             Object.Destroy(targetObject);
             Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator ToolController_扳手冷却会阻止同帧重复命中()
+        {
+            CreateEncounter(
+                new Vector3(0f, 140f, 6f),
+                new Vector3(0f, 140f, 2f),
+                out GameObject encounterObject,
+                out _,
+                out GameObject targetObject,
+                out _,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                knockbackDistance: 0f);
+            CreateToolActor(new Vector3(0f, 140f, 0f), out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            Physics.SyncTransforms();
+            yield return null;
+
+            controller.RefreshTarget();
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+            int healthAfterFirstHit = enemy.Health;
+            controller.RefreshTarget();
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.False);
+            Assert.That(enemy.Health, Is.EqualTo(healthAfterFirstHit));
+            Assert.That(controller.ImpactWrenchCooldownRemaining, Is.GreaterThan(0f));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator CombatEncounter_双敌人需要全部清除才成功()
+        {
+            var encounterObject = new GameObject("Multi Enemy Encounter");
+            var encounter = encounterObject.AddComponent<CombatEncounterController>();
+            GameObject targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            targetObject.transform.position = new Vector3(0f, 150f, 8f);
+            var target = targetObject.AddComponent<DefendableSystemTarget>();
+            target.Configure(60);
+            GameObject firstObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            firstObject.transform.position = new Vector3(-1f, 150f, 4f);
+            var first = firstObject.AddComponent<InterferenceEnemy>();
+            GameObject secondObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            secondObject.transform.position = new Vector3(1f, 150f, 4f);
+            var second = secondObject.AddComponent<InterferenceEnemy>();
+            first.Configure(target, encounter, configuredKnockbackDistance: 0f);
+            second.Configure(target, encounter, configuredKnockbackDistance: 0f, configuredBehavior: InterferenceEnemyBehavior.FlankingAttach);
+            encounter.Configure(target, new[] { first, second });
+            var actor = new GameObject("Multi Enemy Tool Actor");
+            var toolbelt = actor.AddComponent<PlayerToolbelt>();
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            yield return null;
+
+            for (int index = 0; index < 3; index++)
+            {
+                Assert.That(first.ApplyTool(toolbelt), Is.True);
+            }
+
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Active));
+            Assert.That(encounter.RemainingEnemyCount, Is.EqualTo(1));
+            for (int index = 0; index < 3; index++)
+            {
+                Assert.That(second.ApplyTool(toolbelt), Is.True);
+            }
+
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
+
+            Object.Destroy(actor);
+            Object.Destroy(secondObject);
+            Object.Destroy(firstObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator CoolingCombatIntegration_密封完成触发防卫且设备受击升温()
+        {
+            var incidentObject = new GameObject("Integrated Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureTemperature(65f, 100f, 0f);
+            CreateEncounter(
+                new Vector3(0f, 160f, 4f),
+                new Vector3(0f, 160f, 0f),
+                out GameObject encounterObject,
+                out CombatEncounterController encounter,
+                out GameObject targetObject,
+                out DefendableSystemTarget target,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                attackRange: 0.1f);
+            var integration = encounterObject.AddComponent<CoolingCombatIntegrationController>();
+            integration.Configure(incident, encounter, target, 3f);
+            yield return null;
+
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Dormant));
+            Assert.That(enemy.IsEncounterActive, Is.False);
+            incident.AddSealProgress(1f);
+            Assert.That(integration.HasTriggered, Is.True);
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Active));
+            float before = incident.Temperature;
+            target.ApplyInterference(10);
+            Assert.That(incident.Temperature, Is.EqualTo(before + 3f).Within(0.001f));
+
+            incident.ResetIncident();
+            Assert.That(integration.HasTriggered, Is.False);
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Dormant));
+            Assert.That(enemy.IsEncounterActive, Is.False);
+
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+            Object.Destroy(incidentObject);
         }
 
         private static void CreateEncounter(
@@ -225,7 +344,8 @@ namespace FunGame.Tests.PlayMode
                 configuredAttackIntervalSeconds: attackIntervalSeconds,
                 configuredInterferenceDamage: interferenceDamage,
                 configuredWrenchDamage: 1,
-                configuredKnockbackDistance: knockbackDistance);
+                configuredKnockbackDistance: knockbackDistance,
+                configuredAttackWindupSeconds: 0.02f);
         }
 
         private static void CreateToolActor(

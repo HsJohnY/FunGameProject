@@ -9,9 +9,11 @@ namespace FunGame.Combat
     {
         private readonly int _maxHealth;
         private readonly float _attackIntervalSeconds;
+        private readonly float _attackWindupSeconds;
         private float _attackCooldownSeconds;
+        private float _windupRemainingSeconds;
 
-        public InterferenceEnemyRules(int maxHealth, float attackIntervalSeconds)
+        public InterferenceEnemyRules(int maxHealth, float attackIntervalSeconds, float attackWindupSeconds = 0.4f)
         {
             if (maxHealth <= 0)
             {
@@ -23,19 +25,26 @@ namespace FunGame.Combat
                 throw new ArgumentOutOfRangeException(nameof(attackIntervalSeconds));
             }
 
+            if (attackWindupSeconds < 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(attackWindupSeconds));
+            }
+
             _maxHealth = maxHealth;
             _attackIntervalSeconds = attackIntervalSeconds;
+            _attackWindupSeconds = attackWindupSeconds;
             Reset();
         }
 
         public int Health { get; private set; }
         public int MaxHealth => _maxHealth;
         public bool IsDefeated => Health <= 0;
+        public bool IsTelegraphing { get; private set; }
 
         /// <summary>
         /// 推进攻击冷却；仅当目标仍在范围内且冷却结束时返回一次攻击许可。
         /// </summary>
-        public bool Advance(float deltaTime, bool targetInRange)
+        public InterferenceEnemyAction Advance(float deltaTime, bool targetInRange)
         {
             if (deltaTime < 0f)
             {
@@ -44,17 +53,45 @@ namespace FunGame.Combat
 
             if (IsDefeated)
             {
-                return false;
+                return InterferenceEnemyAction.None;
             }
 
             _attackCooldownSeconds = Math.Max(0f, _attackCooldownSeconds - deltaTime);
-            if (!targetInRange || _attackCooldownSeconds > 0f)
+            if (!targetInRange)
             {
-                return false;
+                IsTelegraphing = false;
+                _windupRemainingSeconds = 0f;
+                return InterferenceEnemyAction.None;
             }
 
+            if (IsTelegraphing)
+            {
+                _windupRemainingSeconds = Math.Max(0f, _windupRemainingSeconds - deltaTime);
+                if (_windupRemainingSeconds > 0f)
+                {
+                    return InterferenceEnemyAction.None;
+                }
+
+                IsTelegraphing = false;
+                _attackCooldownSeconds = _attackIntervalSeconds;
+                return InterferenceEnemyAction.AttackCommitted;
+            }
+
+            if (_attackCooldownSeconds > 0f)
+            {
+                return InterferenceEnemyAction.None;
+            }
+
+            IsTelegraphing = true;
+            _windupRemainingSeconds = _attackWindupSeconds;
+            if (_attackWindupSeconds > 0f)
+            {
+                return InterferenceEnemyAction.TelegraphStarted;
+            }
+
+            IsTelegraphing = false;
             _attackCooldownSeconds = _attackIntervalSeconds;
-            return true;
+            return InterferenceEnemyAction.AttackCommitted;
         }
 
         /// <summary>
@@ -74,8 +111,10 @@ namespace FunGame.Combat
         public void Reset()
         {
             Health = _maxHealth;
-            // 初次接触目标时允许立即干扰，让敌人行为与危险原因保持清晰。
+            // 初次接触会先进入蓄力，而不是无提示地立即扣除设备完整度。
             _attackCooldownSeconds = 0f;
+            _windupRemainingSeconds = 0f;
+            IsTelegraphing = false;
         }
     }
 }
