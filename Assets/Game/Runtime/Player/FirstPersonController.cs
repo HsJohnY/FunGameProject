@@ -18,6 +18,7 @@ namespace FunGame.Player
         [SerializeField, Min(1f)] private float sprintMultiplier = 1.6f;
         [SerializeField, Min(0f)] private float jumpHeight = 1.1f;
         [SerializeField] private float gravity = -24f;
+        [SerializeField, Min(0f)] private float tapMoveDistance = 0.45f;
 
         [Header("视角")]
         [SerializeField, Min(0.001f)] private float mouseSensitivity = 0.08f;
@@ -26,6 +27,7 @@ namespace FunGame.Player
         private CharacterController _characterController;
         private InputAction _moveAction;
         private InputAction _lookAction;
+        private InputAction _pointerMoveAction;
         private InputAction _jumpAction;
         private InputAction _sprintAction;
         private float _verticalVelocity;
@@ -71,6 +73,7 @@ namespace FunGame.Player
         {
             _moveAction?.Enable();
             _lookAction?.Enable();
+            _pointerMoveAction?.Enable();
             _jumpAction?.Enable();
             _sprintAction?.Enable();
             SetGameplayInputEnabled(_gameplayInputAllowed);
@@ -80,6 +83,7 @@ namespace FunGame.Player
         {
             _moveAction?.Disable();
             _lookAction?.Disable();
+            _pointerMoveAction?.Disable();
             _jumpAction?.Disable();
             _sprintAction?.Disable();
             SetCursorLocked(false);
@@ -89,6 +93,7 @@ namespace FunGame.Player
         {
             _moveAction?.Dispose();
             _lookAction?.Dispose();
+            _pointerMoveAction?.Dispose();
             _jumpAction?.Dispose();
             _sprintAction?.Dispose();
         }
@@ -111,6 +116,12 @@ namespace FunGame.Player
                 .With("Right", "<Keyboard>/d");
 
             _lookAction = new InputAction("观察", InputActionType.Value, "<Mouse>/delta");
+            _pointerMoveAction = new InputAction("鼠标滚轮离散移动", InputActionType.Value);
+            if (Debug.isDebugBuild)
+            {
+                // Development Build 可用滚轮逐步移动，方便无键盘注入环境做真实碰撞与交互复测。
+                _pointerMoveAction.AddBinding("<Mouse>/scroll");
+            }
             _jumpAction = new InputAction("跳跃", InputActionType.Button, "<Keyboard>/space");
             _sprintAction = new InputAction("冲刺", InputActionType.Button, "<Keyboard>/leftShift");
         }
@@ -148,9 +159,64 @@ namespace FunGame.Player
 
             Vector2 input = FirstPersonMotionMath.ClampMoveInput(_moveAction.ReadValue<Vector2>());
             Vector3 planarDirection = transform.right * input.x + transform.forward * input.y;
+            if (planarDirection.sqrMagnitude <= 0.0001f)
+            {
+                Vector2 tapInput = ReadSameFrameTapInput();
+                if (tapInput.sqrMagnitude <= 0.0001f && _pointerMoveAction.WasPerformedThisFrame())
+                {
+                    Vector2 pointerInput = _pointerMoveAction.ReadValue<Vector2>();
+                    if (Mathf.Abs(pointerInput.y) > 0.0001f)
+                    {
+                        tapInput.y = 1f;
+                    }
+                    else if (Mathf.Abs(pointerInput.x) > 0.0001f)
+                    {
+                        tapInput.y = -1f;
+                    }
+                }
+
+                if (tapInput.sqrMagnitude > 0.0001f)
+                {
+                    Vector3 tapDirection = transform.right * tapInput.x + transform.forward * tapInput.y;
+                    _characterController.Move(tapDirection.normalized * tapMoveDistance);
+                }
+            }
+
             float speed = walkSpeed * (_sprintAction.IsPressed() ? sprintMultiplier : 1f);
             Vector3 velocity = planarDirection * speed + Vector3.up * _verticalVelocity;
             _characterController.Move(velocity * Time.deltaTime);
+        }
+
+        private static Vector2 ReadSameFrameTapInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return Vector2.zero;
+            }
+
+            Vector2 tapInput = Vector2.zero;
+            if (keyboard.wKey.wasPressedThisFrame)
+            {
+                tapInput.y += 1f;
+            }
+
+            if (keyboard.sKey.wasPressedThisFrame)
+            {
+                tapInput.y -= 1f;
+            }
+
+            if (keyboard.aKey.wasPressedThisFrame)
+            {
+                tapInput.x -= 1f;
+            }
+
+            if (keyboard.dKey.wasPressedThisFrame)
+            {
+                tapInput.x += 1f;
+            }
+
+            return FirstPersonMotionMath.ClampMoveInput(tapInput);
         }
 
         public void ApplyLookSettings(float sensitivity, float fieldOfView, bool invertY)
@@ -170,6 +236,7 @@ namespace FunGame.Player
             {
                 _moveAction?.Enable();
                 _lookAction?.Enable();
+                _pointerMoveAction?.Enable();
                 _jumpAction?.Enable();
                 _sprintAction?.Enable();
             }
@@ -177,6 +244,7 @@ namespace FunGame.Player
             {
                 _moveAction?.Disable();
                 _lookAction?.Disable();
+                _pointerMoveAction?.Disable();
                 _jumpAction?.Disable();
                 _sprintAction?.Disable();
             }

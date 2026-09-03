@@ -40,17 +40,16 @@ namespace FunGame.Demo
             Vector2 direction;
             if (!inFront)
             {
-                // 正后方附近的左右符号对微小视角变化很敏感；越过明显死区后才允许换边。
-                if (Mathf.Abs(cameraLocalTarget.x) > 0.55f)
+                // 正后方附近的左右符号对微小视角变化很敏感。死区按距离放大，
+                // 只有玩家已经明确朝另一侧转动后才换边；背后目标也始终贴左右边，
+                // 避免轻微俯仰把提示甩到屏幕底部。
+                float sideSwitchThreshold = Mathf.Max(0.55f, Mathf.Abs(cameraLocalTarget.z) * 0.45f);
+                if (Mathf.Abs(cameraLocalTarget.x) > sideSwitchThreshold)
                 {
                     rememberedSide = Mathf.Sign(cameraLocalTarget.x);
                 }
 
-                float vertical = Mathf.Clamp(
-                    -cameraLocalTarget.y / Mathf.Max(1f, Mathf.Abs(cameraLocalTarget.z)),
-                    -0.65f,
-                    0.65f);
-                direction = new Vector2(rememberedSide, vertical);
+                direction = new Vector2(rememberedSide, 0f);
             }
             else
             {
