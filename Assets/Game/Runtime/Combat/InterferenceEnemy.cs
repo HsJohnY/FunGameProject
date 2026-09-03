@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FunGame.Tools;
 using UnityEngine;
 
@@ -23,14 +24,17 @@ namespace FunGame.Combat
         [SerializeField, Min(0.05f)] private float attackIntervalSeconds = 1.25f;
         [SerializeField, Min(0f)] private float attackWindupSeconds = 0.45f;
         [SerializeField, Min(1)] private int interferenceDamage = 10;
-        [SerializeField, Min(1)] private int wrenchDamage = 1;
+        [SerializeField, Min(1)] private int wrenchDamage = 2;
         [SerializeField, Min(0f)] private float knockbackDistance = 1.25f;
         [SerializeField, Range(0.1f, 1f)] private float sealantSpeedMultiplier = 0.35f;
         [SerializeField, Min(0.1f)] private float sealantSlowSeconds = 2.25f;
         [SerializeField, Min(0.05f)] private float sealantPulseIntervalSeconds = 0.15f;
         [SerializeField, Min(0f)] private float sealantPushDistance = 0.18f;
+        [SerializeField, Min(1)] private int sealantDamage = 1;
+        [SerializeField, Min(0.1f)] private float sealantSplashRadius = 1.65f;
         [SerializeField, Min(0.1f)] private float bridgerStunSeconds = 1.4f;
         [SerializeField, Min(0)] private int bridgerOverloadDamage = 1;
+        [SerializeField] private bool requiresCircuitDisruption;
         [SerializeField, Min(0f)] private float defeatedVisualSeconds = 0.75f;
 
         private InterferenceEnemyRules _rules;
@@ -62,6 +66,7 @@ namespace FunGame.Combat
         public bool IsTelegraphing => _rules != null && _rules.IsTelegraphing;
         public bool IsSlowed => Time.time < _slowedUntil;
         public bool IsStunned => Time.time < _stunnedUntil;
+        public bool IsDisruptionShieldActive => requiresCircuitDisruption && !IsStunned && !IsDefeated;
         public bool IsEncounterActive => _encounterActive;
         public InterferenceEnemyBehavior Behavior => behavior;
         public DefendableSystemTarget DefenseTarget => defenseTarget;
@@ -131,7 +136,7 @@ namespace FunGame.Combat
             float configuredAttackRange = 1.3f,
             float configuredAttackIntervalSeconds = 1.25f,
             int configuredInterferenceDamage = 10,
-            int configuredWrenchDamage = 1,
+            int configuredWrenchDamage = 2,
             float configuredKnockbackDistance = 1.25f,
             InterferenceEnemyBehavior configuredBehavior = InterferenceEnemyBehavior.Direct,
             float configuredAttackWindupSeconds = 0.45f,
@@ -139,7 +144,10 @@ namespace FunGame.Combat
             float configuredSealantSlowSeconds = 2.25f,
             float configuredSealantPushDistance = 0.18f,
             float configuredBridgerStunSeconds = 1.4f,
-            int configuredBridgerOverloadDamage = 1)
+            int configuredBridgerOverloadDamage = 1,
+            int configuredSealantDamage = 1,
+            float configuredSealantSplashRadius = 1.65f,
+            bool configuredRequiresCircuitDisruption = false)
         {
             defenseTarget = configuredTarget;
             encounter = configuredEncounter;
@@ -155,8 +163,11 @@ namespace FunGame.Combat
             sealantSpeedMultiplier = Mathf.Clamp(configuredSealantSpeedMultiplier, 0.1f, 1f);
             sealantSlowSeconds = Mathf.Max(0.1f, configuredSealantSlowSeconds);
             sealantPushDistance = Mathf.Max(0f, configuredSealantPushDistance);
+            sealantDamage = Mathf.Max(1, configuredSealantDamage);
+            sealantSplashRadius = Mathf.Max(0.1f, configuredSealantSplashRadius);
             bridgerStunSeconds = Mathf.Max(0.1f, configuredBridgerStunSeconds);
             bridgerOverloadDamage = Mathf.Max(0, configuredBridgerOverloadDamage);
+            requiresCircuitDisruption = configuredRequiresCircuitDisruption;
             spawnPosition = transform.position;
             baseScale = transform.localScale;
             hasSpawnPose = true;
@@ -172,18 +183,29 @@ namespace FunGame.Combat
         {
             bool canDefend = _encounterActive && !IsDefeated && defenseTarget != null && !defenseTarget.IsOffline;
             ToolKind equippedTool = toolbelt.EquippedTool;
+            if (canDefend && IsDisruptionShieldActive && equippedTool != ToolKind.CircuitBridger)
+            {
+                return new ToolActionOption(
+                    targetId,
+                    targetName,
+                    "短路护盾",
+                    ToolKind.CircuitBridger,
+                    equippedTool,
+                    true);
+            }
+
             ToolKind requiredTool = equippedTool == ToolKind.None ? ToolKind.ImpactWrench : equippedTool;
             string actionLabel;
             switch (equippedTool)
             {
                 case ToolKind.SealantGun:
-                    actionLabel = "喷覆减速";
+                    actionLabel = "范围喷覆";
                     break;
                 case ToolKind.CircuitBridger:
-                    actionLabel = "电击瘫痪";
+                    actionLabel = IsDisruptionShieldActive ? "短路护盾" : "电击瘫痪";
                     break;
                 default:
-                    actionLabel = "重击击退";
+                    actionLabel = "重击";
                     break;
             }
 
@@ -206,34 +228,70 @@ namespace FunGame.Combat
             }
 
             ToolKind tool = toolbelt.EquippedTool;
-            bool defeated = false;
-            string action;
             switch (tool)
             {
                 case ToolKind.SealantGun:
-                    if (Time.time < _nextSealantPulseTime)
-                    {
-                        return false;
-                    }
-
-                    _nextSealantPulseTime = Time.time + sealantPulseIntervalSeconds;
-                    _slowedUntil = Mathf.Max(_slowedUntil, Time.time + sealantSlowSeconds);
-                    ApplyKnockback(toolbelt.transform.position, sealantPushDistance);
-                    action = "sealant-slow";
-                    break;
+                    return ApplySealantArea(toolbelt.transform.position);
                 case ToolKind.CircuitBridger:
+                    bool brokeShield = IsDisruptionShieldActive;
                     _stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + bridgerStunSeconds);
-                    defeated = _rules.ReceiveHit(bridgerOverloadDamage);
-                    action = "bridger-stun";
-                    break;
+                    _rules.Advance(0f, false);
+                    return ApplyCombatResult(
+                        "bridger-stun",
+                        _rules.ReceiveHit(bridgerOverloadDamage),
+                        brokeShield ? " shield=disabled" : string.Empty);
                 case ToolKind.ImpactWrench:
-                    defeated = _rules.ReceiveHit(wrenchDamage);
                     ApplyKnockback(toolbelt.transform.position, knockbackDistance);
-                    action = "wrench-hit";
-                    break;
+                    return ApplyCombatResult("wrench-heavy-hit", _rules.ReceiveHit(wrenchDamage));
                 default:
                     return false;
             }
+        }
+
+        private bool ApplySealantArea(Vector3 sourcePosition)
+        {
+            Vector3 center = transform.position;
+            if (!TryApplySealantEffect(sourcePosition, "sealant-area-primary"))
+            {
+                return false;
+            }
+
+            Collider[] overlaps = Physics.OverlapSphere(
+                center,
+                sealantSplashRadius,
+                ~0,
+                QueryTriggerInteraction.Ignore);
+            var affected = new HashSet<InterferenceEnemy> { this };
+            foreach (Collider overlap in overlaps)
+            {
+                InterferenceEnemy nearby = overlap.GetComponentInParent<InterferenceEnemy>();
+                if (nearby == null || nearby.encounter != encounter || !affected.Add(nearby))
+                {
+                    continue;
+                }
+
+                nearby.TryApplySealantEffect(sourcePosition, "sealant-area-splash");
+            }
+
+            return true;
+        }
+
+        private bool TryApplySealantEffect(Vector3 sourcePosition, string action)
+        {
+            if (!_encounterActive || IsDefeated || Time.time < _nextSealantPulseTime)
+            {
+                return false;
+            }
+
+            _nextSealantPulseTime = Time.time + sealantPulseIntervalSeconds;
+            _slowedUntil = Mathf.Max(_slowedUntil, Time.time + sealantSlowSeconds);
+            ApplyKnockback(sourcePosition, sealantPushDistance);
+            int damage = IsDisruptionShieldActive ? 0 : sealantDamage;
+            return ApplyCombatResult(action, _rules.ReceiveHit(damage));
+        }
+
+        private bool ApplyCombatResult(string action, bool defeated, string extraLog = "")
+        {
 
             _hitFlashRemaining = 0.12f;
             if (defeated)
@@ -243,7 +301,7 @@ namespace FunGame.Combat
 
             RefreshVisual();
             HitReceived?.Invoke(this);
-            Debug.Log($"[Combat] target={targetId} action={action} health={Health}/{MaxHealth} slowed={IsSlowed} stunned={IsStunned} defeated={defeated}", this);
+            Debug.Log($"[Combat] target={targetId} action={action} health={Health}/{MaxHealth} slowed={IsSlowed} stunned={IsStunned} defeated={defeated}{extraLog}", this);
 
             if (defeated)
             {
@@ -536,6 +594,11 @@ namespace FunGame.Combat
             if (IsTelegraphing)
             {
                 stateColor = Color.Lerp(stateColor, new Color(1f, 0.75f, 0.05f), 0.75f);
+            }
+
+            if (IsDisruptionShieldActive)
+            {
+                stateColor = Color.Lerp(stateColor, new Color(0.25f, 0.45f, 1f), 0.82f);
             }
 
             if (IsSlowed)

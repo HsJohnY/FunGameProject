@@ -171,7 +171,7 @@ namespace FunGame.Editor
                 configuredAttackRange: 1.15f,
                 configuredAttackIntervalSeconds: 1.5f,
                 configuredInterferenceDamage: 10,
-                configuredWrenchDamage: 1,
+                configuredWrenchDamage: 2,
                 configuredKnockbackDistance: 1.1f,
                 configuredBehavior: behavior,
                 configuredAttackWindupSeconds: 0.55f);

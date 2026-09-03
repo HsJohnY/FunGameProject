@@ -40,11 +40,11 @@ namespace FunGame.UI
                 $"主工具：{_toolbelt.EquippedTool.GetDisplayName()}    手持物：[Q] {heldItem}", _activeStyle);
 
             GUI.Label(new Rect(panel.x + 12f, panel.y + 62f, panel.width - 24f, 22f),
-                FormatTool(ToolKind.ImpactWrench, "紧固 / 重击击退"), GetStyle(ToolKind.ImpactWrench));
+                FormatTool(ToolKind.ImpactWrench, "紧固 / 高单体重击"), GetStyle(ToolKind.ImpactWrench));
             GUI.Label(new Rect(panel.x + 12f, panel.y + 86f, panel.width - 24f, 22f),
-                FormatTool(ToolKind.SealantGun, "密封 / 喷覆减速"), GetStyle(ToolKind.SealantGun));
+                FormatTool(ToolKind.SealantGun, "密封 / 范围喷覆清群"), GetStyle(ToolKind.SealantGun));
             GUI.Label(new Rect(panel.x + 12f, panel.y + 110f, panel.width - 24f, 22f),
-                FormatTool(ToolKind.CircuitBridger, "桥接 / 电击瘫痪"), GetStyle(ToolKind.CircuitBridger));
+                FormatTool(ToolKind.CircuitBridger, "桥接 / 瘫痪破盾"), GetStyle(ToolKind.CircuitBridger));
             GUI.Label(new Rect(panel.x + 12f, panel.y + 136f, panel.width - 24f, 20f),
                 "[E] 取用/放回 · [左键] 使用 · [Q] 抛下", _bodyStyle);
         }

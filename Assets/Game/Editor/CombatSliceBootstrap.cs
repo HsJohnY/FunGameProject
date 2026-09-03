@@ -61,19 +61,24 @@ namespace FunGame.Editor
             systemObject.AddComponent<DeviceDamageFeedback>().Configure(defenseTarget);
             CreateIntegrityIndicator(systemObject.transform, defenseTarget, warningMaterial);
 
-            GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            enemyObject.name = "Line Interference Creature";
-            enemyObject.transform.position = new Vector3(0f, 1f, 0.6f);
-            enemyObject.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
-            enemyObject.GetComponent<Renderer>().sharedMaterial = enemyMaterial;
-            var enemy = enemyObject.AddComponent<InterferenceEnemy>();
-            var link = enemyObject.AddComponent<LineRenderer>();
-            link.startColor = new Color(1f, 0.75f, 0.08f);
-            link.endColor = new Color(0.8f, 0.15f, 1f);
-
-            encounter.Configure(defenseTarget, enemy);
-            enemy.Configure(defenseTarget, encounter);
-            enemyObject.AddComponent<InterferenceLinkFeedback>().Configure(enemy, defenseTarget, warningMaterial);
+            var enemies = new[]
+            {
+                CreateEnemy("Line Interference Creature", new Vector3(0f, 1f, 0.8f), new Vector3(0.72f, 0.72f, 0.72f),
+                    3, 1.2f, 10, false, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Shielded Relay Guardian", new Vector3(3.1f, 1f, 1.4f), new Vector3(1.05f, 1.05f, 1.05f),
+                    6, 0.75f, 12, true, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Swarm Bug 1", new Vector3(-2.7f, 0.55f, 0.2f), new Vector3(0.34f, 0.34f, 0.34f),
+                    1, 1.05f, 4, false, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Swarm Bug 2", new Vector3(-2.1f, 0.55f, 0.5f), new Vector3(0.34f, 0.34f, 0.34f),
+                    1, 1.05f, 4, false, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Swarm Bug 3", new Vector3(-1.5f, 0.55f, 0.15f), new Vector3(0.34f, 0.34f, 0.34f),
+                    1, 1.05f, 4, false, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Swarm Bug 4", new Vector3(-2.45f, 0.55f, 1.0f), new Vector3(0.34f, 0.34f, 0.34f),
+                    1, 1.05f, 4, false, enemyMaterial, warningMaterial, defenseTarget, encounter),
+                CreateEnemy("Swarm Bug 5", new Vector3(-1.75f, 0.55f, 1.15f), new Vector3(0.34f, 0.34f, 0.34f),
+                    1, 1.05f, 4, false, enemyMaterial, warningMaterial, defenseTarget, encounter)
+            };
+            encounter.Configure(defenseTarget, enemies);
 
             GameObject wrenchRack = CreateBlock(
                 null,
@@ -173,6 +178,46 @@ namespace FunGame.Editor
             workLight.range = 14f;
             workLight.intensity = 7f;
             workLight.color = new Color(0.65f, 0.82f, 1f);
+        }
+
+        private static InterferenceEnemy CreateEnemy(
+            string name,
+            Vector3 position,
+            Vector3 scale,
+            int health,
+            float speed,
+            int damage,
+            bool requiresCircuitDisruption,
+            Material enemyMaterial,
+            Material warningMaterial,
+            DefendableSystemTarget defenseTarget,
+            CombatEncounterController encounter)
+        {
+            GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            enemyObject.name = name;
+            enemyObject.transform.position = position;
+            enemyObject.transform.localScale = scale;
+            enemyObject.GetComponent<Renderer>().sharedMaterial = enemyMaterial;
+            var enemy = enemyObject.AddComponent<InterferenceEnemy>();
+            enemy.Configure(
+                defenseTarget,
+                encounter,
+                configuredMaxHealth: health,
+                configuredMoveSpeed: speed,
+                configuredAttackRange: 1.2f,
+                configuredAttackIntervalSeconds: 1.5f,
+                configuredInterferenceDamage: damage,
+                configuredWrenchDamage: 2,
+                configuredKnockbackDistance: 1.1f,
+                configuredAttackWindupSeconds: 0.55f,
+                configuredRequiresCircuitDisruption: requiresCircuitDisruption);
+            var link = enemyObject.AddComponent<LineRenderer>();
+            link.startColor = new Color(1f, 0.75f, 0.08f);
+            link.endColor = requiresCircuitDisruption
+                ? new Color(0.2f, 0.75f, 1f)
+                : new Color(0.8f, 0.15f, 1f);
+            enemyObject.AddComponent<InterferenceLinkFeedback>().Configure(enemy, defenseTarget, warningMaterial);
+            return enemy;
         }
 
         private static void CreateRoom(Material structureMaterial, Material floorMaterial, Material warningMaterial)

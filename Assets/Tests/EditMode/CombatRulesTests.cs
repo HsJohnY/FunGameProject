@@ -83,6 +83,15 @@ namespace FunGame.Tests.EditMode
                 Assert.That(enemyBody.useGravity, Is.False);
                 Assert.That(target.TryGetComponent(out BoxCollider targetCollider), Is.True);
                 Assert.That(targetCollider.isTrigger, Is.False);
+                GameObject guardian = FindRoot(scene, "Shielded Relay Guardian");
+                Assert.That(guardian, Is.Not.Null);
+                Assert.That(guardian.GetComponent<InterferenceEnemy>().IsDisruptionShieldActive, Is.True);
+                for (int index = 1; index <= 5; index++)
+                {
+                    GameObject swarmBug = FindRoot(scene, $"Swarm Bug {index}");
+                    Assert.That(swarmBug, Is.Not.Null, $"战斗沙盒应包含虫群单位 {index}");
+                    Assert.That(swarmBug.GetComponent<InterferenceEnemy>().MaxHealth, Is.EqualTo(1));
+                }
             }
             finally
             {
