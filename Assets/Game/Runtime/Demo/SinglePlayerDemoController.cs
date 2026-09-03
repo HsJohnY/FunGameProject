@@ -24,6 +24,10 @@ namespace FunGame.Demo
         private bool _relayChapterFailed;
         private bool _stormChapterFailed;
         private float _elapsedSeconds;
+        private float _chapterStartedAt;
+        private float _coolingChapterSeconds;
+        private float _relayChapterSeconds;
+        private float _stormChapterSeconds;
 
         public event Action StateChanged;
         public SinglePlayerDemoChapter Chapter => Rules.Chapter;
@@ -37,6 +41,11 @@ namespace FunGame.Demo
         public float ElapsedSeconds => _elapsedSeconds;
         public int ChapterRestartCount { get; private set; }
         public bool IsCompleted => Chapter == SinglePlayerDemoChapter.Completed;
+        public float CoolingChapterSeconds => _coolingChapterSeconds;
+        public float RelayChapterSeconds => _relayChapterSeconds;
+        public float StormChapterSeconds => _stormChapterSeconds;
+        public float RecordedChapterSeconds =>
+            _coolingChapterSeconds + _relayChapterSeconds + _stormChapterSeconds;
         public bool IsAwaitingCalibration => Rules.IsAwaitingCalibration;
         public bool IsCurrentChapterFailed => _relayChapterFailed || _stormChapterFailed;
         public CombatEncounterController RelayDefenseEncounter => relayDefense;
@@ -136,6 +145,11 @@ namespace FunGame.Demo
                 RequiredCoolingRuns,
                 Mathf.Max(1, relayTargets?.Length ?? 0),
                 Mathf.Max(1, stormWaves?.Length ?? 0));
+            _elapsedSeconds = 0f;
+            _chapterStartedAt = 0f;
+            _coolingChapterSeconds = 0f;
+            _relayChapterSeconds = 0f;
+            _stormChapterSeconds = 0f;
             campaignConsole?.Configure(this);
         }
 
@@ -158,6 +172,7 @@ namespace FunGame.Demo
                 {
                     if (Rules.Chapter == SinglePlayerDemoChapter.RelaySurge)
                     {
+                        RecordChapterDuration(1, ref _coolingChapterSeconds);
                         BeginRelayChapter();
                     }
                     else
@@ -280,6 +295,7 @@ namespace FunGame.Demo
 
             if (Rules.Chapter == SinglePlayerDemoChapter.StormCalibration)
             {
+                RecordChapterDuration(2, ref _relayChapterSeconds);
                 BeginStormChapter();
             }
         }
@@ -373,12 +389,28 @@ namespace FunGame.Demo
 
         private void CompleteDemo()
         {
+            RecordChapterDuration(3, ref _stormChapterSeconds);
             foreach (CombatEncounterController wave in stormWaves)
             {
                 wave?.PrepareDormant();
             }
 
-            Debug.Log($"[Demo] result=completed duration={CoolingIncidentController.FormatDuration(_elapsedSeconds)} secret325={EasterEgg325Discovered} restarts={ChapterRestartCount}", this);
+            Debug.Log(
+                $"[Demo] result=completed duration={CoolingIncidentController.FormatDuration(_elapsedSeconds)} " +
+                $"cooling={CoolingIncidentController.FormatDuration(_coolingChapterSeconds)} " +
+                $"relay={CoolingIncidentController.FormatDuration(_relayChapterSeconds)} " +
+                $"storm={CoolingIncidentController.FormatDuration(_stormChapterSeconds)} " +
+                $"secret325={EasterEgg325Discovered} restarts={ChapterRestartCount}",
+                this);
+        }
+
+        private void RecordChapterDuration(int chapter, ref float target)
+        {
+            target = Mathf.Max(0f, _elapsedSeconds - _chapterStartedAt);
+            _chapterStartedAt = _elapsedSeconds;
+            Debug.Log(
+                $"[Demo] chapter={chapter} result=completed duration={CoolingIncidentController.FormatDuration(target)}",
+                this);
         }
     }
 }

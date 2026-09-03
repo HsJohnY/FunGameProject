@@ -130,7 +130,7 @@
 .\Tools\Run-SinglePlayerDemoPlaytest.ps1
 ```
 
-脚本会打开真实玩家构建。完成结算后从菜单退出，脚本会读取结算记录中的游戏内用时，输出到 `TestResults/SinglePlayerDemo-ManualTiming.txt`。`PASS` 表示完整通关且用时处于 25–35 分钟；`OUTSIDE_TARGET` 表示已经通关但需要继续调节内容节奏；`NOT_COMPLETED` 表示本轮没有到达结算。
+脚本会打开真实玩家构建。完成结算后从菜单退出，脚本会读取结算记录中的总游戏时长以及 `coolingChapterDuration`、`relayChapterDuration`、`stormChapterDuration` 三段耗时，输出到 `TestResults/SinglePlayerDemo-ManualTiming.txt`。三段耗时包含该章内的失败重启，合计等于有效总游玩时间。`PASS` 表示完整通关且用时处于 25–35 分钟；`OUTSIDE_TARGET` 表示已经通关但需要根据章节拆分继续调节内容节奏；`NOT_COMPLETED` 表示本轮没有到达结算。
 
 ## 已知边界
 

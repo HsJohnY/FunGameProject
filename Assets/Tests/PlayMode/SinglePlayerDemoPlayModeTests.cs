@@ -109,6 +109,10 @@ namespace FunGame.Tests.PlayMode
 
             Assert.That(campaign.IsCompleted, Is.True);
             Assert.That(campaign.ShipCapabilityStatus, Does.Contain("全部在线"));
+            Assert.That(campaign.CoolingChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.RelayChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.StormChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.RecordedChapterSeconds, Is.EqualTo(campaign.ElapsedSeconds).Within(0.05f));
 
             Object.Destroy(actor);
             Object.Destroy(campaignObject);
