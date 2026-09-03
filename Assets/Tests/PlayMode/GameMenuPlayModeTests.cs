@@ -30,6 +30,11 @@ namespace FunGame.Tests.PlayMode
             Assert.That(player.IsInputEnabled, Is.False);
             Assert.That(player.IsCursorLocked, Is.False);
 
+            menu.OpenSettingsForAutomation();
+            Assert.That(menu.IsMenuOpen, Is.True);
+            Assert.That(GameMenuController.IsAnyMenuOpen, Is.True);
+            Assert.That(Time.timeScale, Is.Zero);
+
             Object.Destroy(menuObject);
             Object.Destroy(playerObject);
             yield return null;

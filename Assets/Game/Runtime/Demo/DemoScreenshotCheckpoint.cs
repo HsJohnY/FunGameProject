@@ -13,21 +13,27 @@ namespace FunGame.Demo
     {
         private const string MainMenuArgument = "--demo-capture-main-menu";
         private const string GameplayArgument = "--demo-capture-gameplay";
+        private const string SettingsArgument = "--demo-capture-settings";
 
         private IEnumerator Start()
         {
             string[] arguments = Environment.GetCommandLineArgs();
             bool captureMainMenu = Array.IndexOf(arguments, MainMenuArgument) >= 0;
             bool captureGameplay = Array.IndexOf(arguments, GameplayArgument) >= 0;
-            if (!captureMainMenu && !captureGameplay)
+            bool captureSettings = Array.IndexOf(arguments, SettingsArgument) >= 0;
+            if (!captureMainMenu && !captureGameplay && !captureSettings)
             {
                 yield break;
             }
 
+            GameMenuController menu = FindFirstObjectByType<GameMenuController>();
             if (captureGameplay)
             {
-                GameMenuController menu = FindFirstObjectByType<GameMenuController>();
                 menu?.EnterGameplayForAutomation();
+            }
+            else if (captureSettings)
+            {
+                menu?.OpenSettingsForAutomation();
             }
 
             for (int frame = 0; frame < 12; frame++)
@@ -35,7 +41,11 @@ namespace FunGame.Demo
                 yield return null;
             }
 
-            string fileName = captureMainMenu ? "MainMenuCapture.png" : "GameplayCapture.png";
+            string fileName = captureMainMenu
+                ? "MainMenuCapture.png"
+                : captureSettings
+                    ? "SettingsCapture.png"
+                    : "GameplayCapture.png";
             string path = Path.GetFullPath(Path.Combine(Application.dataPath, "..", fileName));
             ScreenCapture.CaptureScreenshot(path);
             float deadline = Time.realtimeSinceStartup + 10f;
