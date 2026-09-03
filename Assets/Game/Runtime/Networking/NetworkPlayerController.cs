@@ -16,6 +16,7 @@ namespace FunGame.Networking
         [SerializeField] private Camera viewCamera;
         [SerializeField] private AudioListener audioListener;
         [SerializeField] private Renderer[] remoteBodyRenderers;
+        [SerializeField] private Behaviour[] ownerOnlyBehaviours;
 
         public bool HasLocalControl => firstPersonController != null && firstPersonController.enabled;
         public bool IsViewActive => viewCamera != null && viewCamera.enabled;
@@ -42,14 +43,7 @@ namespace FunGame.Networking
 
         public override void OnNetworkSpawn()
         {
-            if (IsOwner)
-            {
-                // 移动由拥有者负责，出生位置也由拥有者首先写入，再由 NetworkTransform 复制。
-                transform.SetPositionAndRotation(
-                    NetworkPlayerSpawnLayout.GetSpawnPosition(OwnerClientId),
-                    Quaternion.identity);
-            }
-
+            ApplyPlayerColor(OwnerClientId);
             ApplyOwnershipPresentation(IsOwner);
         }
 
@@ -105,7 +99,7 @@ namespace FunGame.Networking
 
             if (remoteBodyRenderers == null)
             {
-                return;
+                remoteBodyRenderers = new Renderer[0];
             }
 
             foreach (Renderer bodyRenderer in remoteBodyRenderers)
@@ -115,6 +109,47 @@ namespace FunGame.Networking
                     // 第一人称拥有者隐藏自己的临时胶囊体，其他玩家仍可看到它。
                     bodyRenderer.enabled = !ownsPlayer;
                 }
+            }
+
+            if (ownerOnlyBehaviours == null)
+            {
+                return;
+            }
+
+            foreach (Behaviour ownerOnlyBehaviour in ownerOnlyBehaviours)
+            {
+                if (ownerOnlyBehaviour != null)
+                {
+                    ownerOnlyBehaviour.enabled = ownsPlayer;
+                }
+            }
+        }
+
+        public static Color GetPlayerColor(ulong clientId)
+        {
+            Color[] colors =
+            {
+                new Color(0.2f, 0.65f, 1f),
+                new Color(1f, 0.42f, 0.2f),
+                new Color(0.35f, 0.9f, 0.4f),
+                new Color(0.85f, 0.35f, 1f)
+            };
+            return colors[clientId % (ulong)colors.Length];
+        }
+
+        private void ApplyPlayerColor(ulong clientId)
+        {
+            if (remoteBodyRenderers == null)
+            {
+                return;
+            }
+
+            var propertyBlock = new MaterialPropertyBlock();
+            propertyBlock.SetColor("_BaseColor", GetPlayerColor(clientId));
+            propertyBlock.SetColor("_Color", GetPlayerColor(clientId));
+            foreach (Renderer bodyRenderer in remoteBodyRenderers)
+            {
+                bodyRenderer?.SetPropertyBlock(propertyBlock);
             }
         }
     }

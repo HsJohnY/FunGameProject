@@ -32,6 +32,7 @@ namespace FunGame.Networking
         private SessionState sessionState = SessionState.Idle;
         private bool shutdownRequested;
         private bool transportFailedDuringStart;
+        private bool panelVisible = true;
 
         public string StatusText => statusText;
         public bool IsEndpointEditable => sessionState == SessionState.Idle;
@@ -86,6 +87,11 @@ namespace FunGame.Networking
 
         private void Update()
         {
+            if (Keyboard.current?.f1Key.wasPressedThisFrame == true)
+            {
+                panelVisible = !panelVisible;
+            }
+
             // 网络玩家生成后鼠标会被第一人称视角锁定；Esc 始终保留为技术验证场景的安全退出键。
             if (sessionState != SessionState.Idle && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
@@ -106,13 +112,22 @@ namespace FunGame.Networking
             }
 
             sessionState = SessionState.Idle;
+            panelVisible = true;
         }
 
         private void OnGUI()
         {
+            if (!panelVisible)
+            {
+                GUILayout.BeginArea(new Rect(20f, 20f, 300f, 58f), GUI.skin.box);
+                GUILayout.Label($"F1：显示网络面板　状态：{statusText}");
+                GUILayout.EndArea();
+                return;
+            }
+
             const float width = 420f;
-            GUILayout.BeginArea(new Rect(20f, 20f, width, 270f), GUI.skin.box);
-            GUILayout.Label("M3-1 双人会话验证");
+            GUILayout.BeginArea(new Rect(20f, 20f, width, 300f), GUI.skin.box);
+            GUILayout.Label("M3-2 双人会话验证（F1 隐藏）");
             GUILayout.Space(8f);
 
             bool idle = networkManager != null && sessionState == SessionState.Idle;
@@ -261,9 +276,11 @@ namespace FunGame.Networking
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
             networkManager.OnTransportFailure -= HandleTransportFailure;
+            networkManager.ConnectionApprovalCallback -= HandleConnectionApproval;
             networkManager.OnClientConnectedCallback += HandleClientConnected;
             networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
             networkManager.OnTransportFailure += HandleTransportFailure;
+            networkManager.ConnectionApprovalCallback += HandleConnectionApproval;
         }
 
         private void Unsubscribe()
@@ -276,11 +293,25 @@ namespace FunGame.Networking
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
             networkManager.OnTransportFailure -= HandleTransportFailure;
+            networkManager.ConnectionApprovalCallback -= HandleConnectionApproval;
+        }
+
+        private static void HandleConnectionApproval(
+            NetworkManager.ConnectionApprovalRequest request,
+            NetworkManager.ConnectionApprovalResponse response)
+        {
+            // 在 NetworkObject 创建前由服务器写入出生变换，避免先在预制体原点坠落再被拥有者拉回。
+            response.Approved = true;
+            response.CreatePlayerObject = true;
+            response.Position = NetworkPlayerSpawnLayout.GetSpawnPosition(request.ClientNetworkId);
+            response.Rotation = Quaternion.identity;
+            response.Pending = false;
         }
 
         private void HandleClientConnected(ulong clientId)
         {
             sessionState = networkManager.IsHost ? SessionState.HostRunning : SessionState.ClientConnected;
+            panelVisible = false;
             statusText = networkManager.IsHost
                 ? $"玩家 {clientId} 已连接"
                 : "已连接到主机";

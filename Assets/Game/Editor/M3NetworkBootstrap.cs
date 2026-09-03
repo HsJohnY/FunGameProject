@@ -1,6 +1,8 @@
 using System.IO;
 using FunGame.Networking;
 using FunGame.Player;
+using FunGame.Interaction;
+using FunGame.Tools;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using Unity.Netcode.Transports.UTP;
@@ -33,6 +35,7 @@ namespace FunGame.Editor
             var transport = sessionObject.AddComponent<UnityTransport>();
             networkManager.NetworkConfig.NetworkTransport = transport;
             networkManager.NetworkConfig.EnableSceneManagement = false;
+            networkManager.NetworkConfig.ConnectionApproval = true;
             networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
 
             var sessionController = sessionObject.AddComponent<NetworkSessionController>();
@@ -46,7 +49,7 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M3-2] 玩家生成与移动同步验证场景生成成功。");
+            Debug.Log("[M3-3A] 玩家同步与联网工具位验证场景生成成功。");
         }
 
         private static void CreateEnvironment()
@@ -75,14 +78,29 @@ namespace FunGame.Editor
             // 出生区标记用于快速判断双方是否生成在不同位置。
             CreateBlock("Host Spawn Marker", new Vector3(-2f, 0.05f, -4f), new Vector3(2f, 0.1f, 2f));
             CreateBlock("Client Spawn Marker", new Vector3(2f, 0.05f, -4f), new Vector3(2f, 0.1f, 2f));
+
+            GameObject wrenchRack = CreateBlock(
+                "Network Impact Wrench Rack",
+                new Vector3(-6f, 1f, 1f),
+                new Vector3(1f, 2f, 1f));
+            wrenchRack.AddComponent<NetworkToolRackInteractable>()
+                .Configure("network-impact-wrench-rack", ToolKind.ImpactWrench);
+
+            GameObject sealantRack = CreateBlock(
+                "Network Sealant Gun Rack",
+                new Vector3(6f, 0.75f, 1f),
+                new Vector3(2f, 1.5f, 1f));
+            sealantRack.AddComponent<NetworkToolRackInteractable>()
+                .Configure("network-sealant-gun-rack", ToolKind.SealantGun);
         }
 
-        private static void CreateBlock(string name, Vector3 position, Vector3 scale)
+        private static GameObject CreateBlock(string name, Vector3 position, Vector3 scale)
         {
             GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
             block.name = name;
             block.transform.position = position;
             block.transform.localScale = scale;
+            return block;
         }
 
         private static GameObject CreatePlayerPrefab()
@@ -119,8 +137,32 @@ namespace FunGame.Editor
             Object.DestroyImmediate(body.GetComponent<Collider>());
             Renderer bodyRenderer = body.GetComponent<Renderer>();
 
+            var toolVisualAnchor = new GameObject("Main Tool Visual Anchor");
+            toolVisualAnchor.transform.SetParent(cameraObject.transform, false);
+            toolVisualAnchor.transform.localPosition = new Vector3(0.35f, -0.25f, 0.75f);
+
+            GameObject wrenchVisual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            wrenchVisual.name = "Impact Wrench Visual";
+            wrenchVisual.transform.SetParent(toolVisualAnchor.transform, false);
+            wrenchVisual.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            wrenchVisual.transform.localScale = new Vector3(0.12f, 0.35f, 0.12f);
+            Object.DestroyImmediate(wrenchVisual.GetComponent<Collider>());
+
+            GameObject sealantVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            sealantVisual.name = "Sealant Gun Visual";
+            sealantVisual.transform.SetParent(toolVisualAnchor.transform, false);
+            sealantVisual.transform.localScale = new Vector3(0.18f, 0.18f, 0.5f);
+            Object.DestroyImmediate(sealantVisual.GetComponent<Collider>());
+
             FirstPersonController firstPersonController = player.AddComponent<FirstPersonController>();
             firstPersonController.enabled = false;
+            var playerToolbelt = player.AddComponent<PlayerToolbelt>();
+            playerToolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
+            player.AddComponent<NetworkPlayerToolbelt>();
+            var contextInteractor = player.AddComponent<ContextInteractor>();
+            contextInteractor.enabled = false;
+            var promptOverlay = player.AddComponent<ContextPromptOverlay>();
+            promptOverlay.enabled = false;
             NetworkPlayerController networkPlayer = player.AddComponent<NetworkPlayerController>();
 
             var serializedPlayer = new SerializedObject(networkPlayer);
@@ -130,6 +172,10 @@ namespace FunGame.Editor
             SerializedProperty renderers = serializedPlayer.FindProperty("remoteBodyRenderers");
             renderers.arraySize = 1;
             renderers.GetArrayElementAtIndex(0).objectReferenceValue = bodyRenderer;
+            SerializedProperty ownerBehaviours = serializedPlayer.FindProperty("ownerOnlyBehaviours");
+            ownerBehaviours.arraySize = 2;
+            ownerBehaviours.GetArrayElementAtIndex(0).objectReferenceValue = contextInteractor;
+            ownerBehaviours.GetArrayElementAtIndex(1).objectReferenceValue = promptOverlay;
             serializedPlayer.ApplyModifiedPropertiesWithoutUndo();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);

@@ -32,5 +32,17 @@ namespace FunGame.Tests.EditMode
 
             Assert.That(positions, Is.Unique);
         }
+
+        [Test]
+        public void GetPlayerColor_前四名玩家颜色均不相同()
+        {
+            var colors = new Color[4];
+            for (ulong clientId = 0; clientId < 4; clientId++)
+            {
+                colors[clientId] = NetworkPlayerController.GetPlayerColor(clientId);
+            }
+
+            Assert.That(colors, Is.Unique);
+        }
     }
 }
