@@ -25,6 +25,12 @@ namespace FunGame.Combat
         [SerializeField, Min(1)] private int interferenceDamage = 10;
         [SerializeField, Min(1)] private int wrenchDamage = 1;
         [SerializeField, Min(0f)] private float knockbackDistance = 1.25f;
+        [SerializeField, Range(0.1f, 1f)] private float sealantSpeedMultiplier = 0.35f;
+        [SerializeField, Min(0.1f)] private float sealantSlowSeconds = 2.25f;
+        [SerializeField, Min(0.05f)] private float sealantPulseIntervalSeconds = 0.15f;
+        [SerializeField, Min(0f)] private float sealantPushDistance = 0.18f;
+        [SerializeField, Min(0.1f)] private float bridgerStunSeconds = 1.4f;
+        [SerializeField, Min(0)] private int bridgerOverloadDamage = 1;
         [SerializeField, Min(0f)] private float defeatedVisualSeconds = 0.75f;
 
         private InterferenceEnemyRules _rules;
@@ -37,6 +43,9 @@ namespace FunGame.Combat
         [SerializeField, HideInInspector] private bool hasSpawnPose;
         private float _hitFlashRemaining;
         private float _defeatedVisualRemaining;
+        private float _slowedUntil;
+        private float _stunnedUntil;
+        private float _nextSealantPulseTime;
         private bool _encounterActive = true;
         private bool _reachedFlankWaypoint;
         private float _flankSide = 1f;
@@ -51,6 +60,8 @@ namespace FunGame.Combat
         public int MaxHealth => _rules?.MaxHealth ?? maxHealth;
         public bool IsDefeated => _rules != null && _rules.IsDefeated;
         public bool IsTelegraphing => _rules != null && _rules.IsTelegraphing;
+        public bool IsSlowed => Time.time < _slowedUntil;
+        public bool IsStunned => Time.time < _stunnedUntil;
         public bool IsEncounterActive => _encounterActive;
         public InterferenceEnemyBehavior Behavior => behavior;
         public DefendableSystemTarget DefenseTarget => defenseTarget;
@@ -75,6 +86,13 @@ namespace FunGame.Combat
                 return;
             }
 
+            if (IsStunned)
+            {
+                // 瘫痪会中断当前攻击蓄力，恢复后必须重新给出预警。
+                _rules.Advance(0f, false);
+                return;
+            }
+
             Vector3 destination = GetDestination();
             Vector3 toDestination = destination - transform.position;
             toDestination.y = 0f;
@@ -84,7 +102,8 @@ namespace FunGame.Combat
             if (!targetInRange && distance > 0.001f)
             {
                 Vector3 direction = toDestination / distance;
-                MoveWithCollision(direction * (moveSpeed * Time.deltaTime), true);
+                float speedMultiplier = IsSlowed ? sealantSpeedMultiplier : 1f;
+                MoveWithCollision(direction * (moveSpeed * speedMultiplier * Time.deltaTime), true);
                 transform.forward = direction;
             }
 
@@ -115,7 +134,12 @@ namespace FunGame.Combat
             int configuredWrenchDamage = 1,
             float configuredKnockbackDistance = 1.25f,
             InterferenceEnemyBehavior configuredBehavior = InterferenceEnemyBehavior.Direct,
-            float configuredAttackWindupSeconds = 0.45f)
+            float configuredAttackWindupSeconds = 0.45f,
+            float configuredSealantSpeedMultiplier = 0.35f,
+            float configuredSealantSlowSeconds = 2.25f,
+            float configuredSealantPushDistance = 0.18f,
+            float configuredBridgerStunSeconds = 1.4f,
+            int configuredBridgerOverloadDamage = 1)
         {
             defenseTarget = configuredTarget;
             encounter = configuredEncounter;
@@ -128,6 +152,11 @@ namespace FunGame.Combat
             interferenceDamage = Mathf.Max(1, configuredInterferenceDamage);
             wrenchDamage = Mathf.Max(1, configuredWrenchDamage);
             knockbackDistance = Mathf.Max(0f, configuredKnockbackDistance);
+            sealantSpeedMultiplier = Mathf.Clamp(configuredSealantSpeedMultiplier, 0.1f, 1f);
+            sealantSlowSeconds = Mathf.Max(0.1f, configuredSealantSlowSeconds);
+            sealantPushDistance = Mathf.Max(0f, configuredSealantPushDistance);
+            bridgerStunSeconds = Mathf.Max(0.1f, configuredBridgerStunSeconds);
+            bridgerOverloadDamage = Mathf.Max(0, configuredBridgerOverloadDamage);
             spawnPosition = transform.position;
             baseScale = transform.localScale;
             hasSpawnPose = true;
@@ -142,12 +171,28 @@ namespace FunGame.Combat
         public ToolActionOption GetToolAction(PlayerToolbelt toolbelt)
         {
             bool canDefend = _encounterActive && !IsDefeated && defenseTarget != null && !defenseTarget.IsOffline;
+            ToolKind equippedTool = toolbelt.EquippedTool;
+            ToolKind requiredTool = equippedTool == ToolKind.None ? ToolKind.ImpactWrench : equippedTool;
+            string actionLabel;
+            switch (equippedTool)
+            {
+                case ToolKind.SealantGun:
+                    actionLabel = "喷覆减速";
+                    break;
+                case ToolKind.CircuitBridger:
+                    actionLabel = "电击瘫痪";
+                    break;
+                default:
+                    actionLabel = "重击击退";
+                    break;
+            }
+
             return new ToolActionOption(
                 targetId,
                 targetName,
-                "击退",
-                ToolKind.ImpactWrench,
-                toolbelt.EquippedTool,
+                actionLabel,
+                requiredTool,
+                equippedTool,
                 canDefend,
                 IsDefeated ? "干扰体已失去活动能力" : "防卫遭遇尚未开始或已经结束");
         }
@@ -160,17 +205,45 @@ namespace FunGame.Combat
                 return false;
             }
 
-            bool defeated = _rules.ReceiveHit(wrenchDamage);
+            ToolKind tool = toolbelt.EquippedTool;
+            bool defeated = false;
+            string action;
+            switch (tool)
+            {
+                case ToolKind.SealantGun:
+                    if (Time.time < _nextSealantPulseTime)
+                    {
+                        return false;
+                    }
+
+                    _nextSealantPulseTime = Time.time + sealantPulseIntervalSeconds;
+                    _slowedUntil = Mathf.Max(_slowedUntil, Time.time + sealantSlowSeconds);
+                    ApplyKnockback(toolbelt.transform.position, sealantPushDistance);
+                    action = "sealant-slow";
+                    break;
+                case ToolKind.CircuitBridger:
+                    _stunnedUntil = Mathf.Max(_stunnedUntil, Time.time + bridgerStunSeconds);
+                    defeated = _rules.ReceiveHit(bridgerOverloadDamage);
+                    action = "bridger-stun";
+                    break;
+                case ToolKind.ImpactWrench:
+                    defeated = _rules.ReceiveHit(wrenchDamage);
+                    ApplyKnockback(toolbelt.transform.position, knockbackDistance);
+                    action = "wrench-hit";
+                    break;
+                default:
+                    return false;
+            }
+
             _hitFlashRemaining = 0.12f;
             if (defeated)
             {
                 _defeatedVisualRemaining = defeatedVisualSeconds;
             }
 
-            ApplyKnockback(toolbelt.transform.position);
             RefreshVisual();
             HitReceived?.Invoke(this);
-            Debug.Log($"[Combat] target={targetId} action=wrench-hit health={Health}/{MaxHealth} defeated={defeated}", this);
+            Debug.Log($"[Combat] target={targetId} action={action} health={Health}/{MaxHealth} slowed={IsSlowed} stunned={IsStunned} defeated={defeated}", this);
 
             if (defeated)
             {
@@ -201,6 +274,9 @@ namespace FunGame.Combat
             ClearAvoidance();
             _hitFlashRemaining = 0f;
             _defeatedVisualRemaining = 0f;
+            _slowedUntil = 0f;
+            _stunnedUntil = 0f;
+            _nextSealantPulseTime = 0f;
             SetEncounterActive(true);
             RefreshVisual();
         }
@@ -251,7 +327,7 @@ namespace FunGame.Combat
             return _reachedFlankWaypoint ? attachPoint : flankWaypoint;
         }
 
-        private void ApplyKnockback(Vector3 sourcePosition)
+        private void ApplyKnockback(Vector3 sourcePosition, float distance)
         {
             Vector3 away = transform.position - sourcePosition;
             away.y = 0f;
@@ -263,7 +339,7 @@ namespace FunGame.Combat
 
             if (away.sqrMagnitude > 0.001f)
             {
-                MoveWithCollision(away.normalized * knockbackDistance, false);
+                MoveWithCollision(away.normalized * distance, false);
             }
         }
 
@@ -460,6 +536,16 @@ namespace FunGame.Combat
             if (IsTelegraphing)
             {
                 stateColor = Color.Lerp(stateColor, new Color(1f, 0.75f, 0.05f), 0.75f);
+            }
+
+            if (IsSlowed)
+            {
+                stateColor = Color.Lerp(stateColor, new Color(0.4f, 0.8f, 1f), 0.65f);
+            }
+
+            if (IsStunned)
+            {
+                stateColor = Color.Lerp(stateColor, new Color(0.15f, 1f, 0.95f), 0.85f);
             }
 
             if (_hitFlashRemaining > 0f)

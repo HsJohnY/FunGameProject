@@ -1,4 +1,5 @@
 using FunGame.Combat;
+using FunGame.Tools;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -126,6 +127,15 @@ namespace FunGame.Tests.EditMode
                 Assert.That(walkwayB, Is.Not.Null);
                 Assert.That(walkwayA.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
                 Assert.That(walkwayB.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
+                Assert.That(FindInScene(scene, "Impact Wrench Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Gun Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Circuit Bridger Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Mechanical Fastener Demo"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Leak Demo"), Is.Not.Null);
+                GameObject circuitTask = FindInScene(scene, "Circuit Bridge Demo");
+                Assert.That(circuitTask, Is.Not.Null);
+                Assert.That(circuitTask.GetComponent<CircuitBridgeTarget>(), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Circuit Bridger Visual"), Is.Not.Null);
             }
             finally
             {

@@ -4,6 +4,7 @@ using FunGame.Diagnostics;
 using FunGame.Interaction;
 using FunGame.Player;
 using FunGame.Tools;
+using FunGame.UI;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -15,7 +16,7 @@ using UnityEngine.SceneManagement;
 namespace FunGame.Editor
 {
     /// <summary>
-    /// 生成与 M1 冷却事故隔离的最小战斗切片，验证冲击扳手防卫和设备干扰闭环。
+    /// 生成与 M1 冷却事故隔离的最小战斗切片，验证三种维修工具的防卫方式。
     /// </summary>
     public static class CombatSliceBootstrap
     {
@@ -81,6 +82,20 @@ namespace FunGame.Editor
                 new Vector3(0.7f, 1.8f, 0.8f),
                 warningMaterial);
             wrenchRack.AddComponent<ToolRackInteractable>().Configure("combat-impact-wrench-rack", ToolKind.ImpactWrench);
+            GameObject sealantRack = CreateBlock(
+                null,
+                "Sealant Gun Rack",
+                new Vector3(0f, 1f, -4.2f),
+                new Vector3(0.7f, 1.8f, 0.8f),
+                systemMaterial);
+            sealantRack.AddComponent<ToolRackInteractable>().Configure("combat-sealant-gun-rack", ToolKind.SealantGun);
+            GameObject bridgerRack = CreateBlock(
+                null,
+                "Circuit Bridger Rack",
+                new Vector3(2.2f, 1f, -4.2f),
+                new Vector3(0.7f, 1.8f, 0.8f),
+                warningMaterial);
+            bridgerRack.AddComponent<ToolRackInteractable>().Configure("combat-circuit-bridger-rack", ToolKind.CircuitBridger);
 
             GameObject resetConsole = CreateBlock(
                 null,
@@ -211,19 +226,31 @@ namespace FunGame.Editor
                 new Vector3(0f, -0.03f, 0.12f),
                 new Vector3(0.22f, 0.18f, 0.5f),
                 systemMaterial);
+            GameObject bridgerVisual = CreateVisualCube(
+                toolAnchorObject.transform,
+                "Circuit Bridger Visual",
+                new Vector3(0f, -0.02f, 0.14f),
+                new Vector3(0.18f, 0.14f, 0.58f),
+                warningMaterial);
 
             var toolbelt = player.AddComponent<PlayerToolbelt>();
-            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
+            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual, bridgerVisual);
             player.AddComponent<FirstPersonController>();
             player.AddComponent<ContextInteractor>();
             player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>();
+            player.AddComponent<ToolbeltStatusOverlay>();
             player.AddComponent<CombatStatusOverlay>().Configure(encounter);
             var cameraFeedback = player.AddComponent<CombatCameraFeedback>();
             cameraFeedback.Configure(cameraObject.transform);
             var hitStop = player.AddComponent<LocalHitStopFeedback>();
             player.AddComponent<AudioSource>();
-            player.AddComponent<WrenchFeedbackPresenter>().Configure(wrenchVisual.transform, cameraFeedback, hitStop);
+            player.AddComponent<WrenchFeedbackPresenter>().Configure(
+                wrenchVisual.transform,
+                sealantVisual.transform,
+                bridgerVisual.transform,
+                cameraFeedback,
+                hitStop);
         }
 
         private static void CreateIntegrityIndicator(Transform target, DefendableSystemTarget defenseTarget, Material material)

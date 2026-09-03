@@ -152,6 +152,30 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator CircuitBridgeTarget_依次检测连接并验证回路()
+        {
+            CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            var targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var target = targetObject.AddComponent<CircuitBridgeTarget>();
+
+            yield return null;
+
+            Assert.That(target.GetToolAction(toolbelt).ActionLabel, Is.EqualTo("检测端点"));
+            Assert.That(target.ApplyTool(toolbelt), Is.True);
+            Assert.That(target.GetToolAction(toolbelt).ActionLabel, Is.EqualTo("连接旁路"));
+            Assert.That(target.ApplyTool(toolbelt), Is.True);
+            Assert.That(target.GetToolAction(toolbelt).ActionLabel, Is.EqualTo("验证回路"));
+            Assert.That(target.ApplyTool(toolbelt), Is.True);
+            Assert.That(target.IsBridged, Is.True);
+            Assert.That(target.CompletedSteps, Is.EqualTo(3));
+            Assert.That(target.GetToolAction(toolbelt).BlockedReason, Is.EqualTo("临时旁路已稳定"));
+
+            Object.Destroy(actor);
+            Object.Destroy(targetObject);
+        }
+
+        [UnityTest]
         public IEnumerator ContextInteractor_抛放后刚体获得向前和向上速度()
         {
             ContextInteractor interactor = CreateCarryActor(out GameObject actor);

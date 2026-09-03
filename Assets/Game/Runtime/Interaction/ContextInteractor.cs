@@ -32,6 +32,7 @@ namespace FunGame.Interaction
 
         public InteractionOption? CurrentOption => _currentOption;
         public bool IsHoldingItem => _heldItem != null;
+        public CarryableInteractable HeldItem => _heldItem;
         public PlayerToolbelt Toolbelt => _toolbelt;
 
         private void Awake()

@@ -34,7 +34,7 @@ namespace FunGame.Tests.PlayMode
             {
                 controller.RefreshTarget();
                 Assert.That(controller.CurrentOption.HasValue, Is.True);
-                Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("击退"));
+                Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("重击击退"));
                 Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
                 yield return new WaitForSecondsRealtime(0.4f);
             }
@@ -54,7 +54,7 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator InterferenceEnemy_错误工具不会造成伤害()
+        public IEnumerator InterferenceEnemy_密封喷枪持续减速推离但不造成伤害()
         {
             CreateEncounter(
                 new Vector3(0f, 110f, 6f),
@@ -74,10 +74,48 @@ namespace FunGame.Tests.PlayMode
             controller.RefreshTarget();
 
             Assert.That(controller.CurrentOption.HasValue, Is.True);
-            Assert.That(controller.CurrentOption.Value.IsAvailable, Is.False);
-            Assert.That(controller.CurrentOption.Value.BlockedReason, Is.EqualTo("需要冲击扳手"));
-            Assert.That(controller.ExecuteCurrentToolAction(), Is.False);
+            Assert.That(controller.CurrentOption.Value.IsAvailable, Is.True);
+            Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("喷覆减速"));
+            Rigidbody enemyBody = enemyObject.GetComponent<Rigidbody>();
+            float beforePositionZ = enemyBody.position.z;
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
             Assert.That(enemy.Health, Is.EqualTo(enemy.MaxHealth));
+            Assert.That(enemy.IsSlowed, Is.True);
+            Assert.That(enemyBody.position.z, Is.GreaterThan(beforePositionZ));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator InterferenceEnemy_线路桥接器造成过载并中断攻击蓄力()
+        {
+            CreateEncounter(
+                new Vector3(0f, 112f, 3f),
+                new Vector3(0f, 112f, 2f),
+                out GameObject encounterObject,
+                out _,
+                out GameObject targetObject,
+                out _,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                attackRange: 2f,
+                knockbackDistance: 0f);
+            CreateToolActor(new Vector3(0f, 112f, 0f), out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            Physics.SyncTransforms();
+
+            yield return null;
+            controller.RefreshTarget();
+
+            Assert.That(controller.CurrentOption.HasValue, Is.True);
+            Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("电击瘫痪"));
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+            Assert.That(enemy.IsStunned, Is.True);
+            Assert.That(enemy.Health, Is.EqualTo(enemy.MaxHealth - 1));
+            Assert.That(controller.CircuitBridgerCooldownRemaining, Is.GreaterThan(0f));
 
             Object.Destroy(actor);
             Object.Destroy(enemyObject);

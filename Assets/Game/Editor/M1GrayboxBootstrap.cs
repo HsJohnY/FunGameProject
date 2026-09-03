@@ -157,13 +157,15 @@ namespace FunGame.Editor
             CreateBlock(environment, "Cooling Pump Placeholder", new Vector3(0f, 1f, 5.8f), new Vector3(4f, 2f, 2.5f), machineryMaterial);
             GameObject console = CreateBlock(environment, "Interactive Control Console", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
             console.AddComponent<ToggleConsoleInteractable>().Configure(incident);
-            CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 4f), structureMaterial);
+            CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 5.4f), structureMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
 
-            GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -3.3f), new Vector3(0.35f, 1.1f, 1.1f), warningMaterial);
+            GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -4f), new Vector3(0.35f, 1.1f, 1.1f), warningMaterial);
             wrenchRack.AddComponent<ToolRackInteractable>().Configure("impact-wrench-rack", ToolKind.ImpactWrench);
-            GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.7f), new Vector3(0.35f, 1.1f, 1.1f), machineryMaterial);
+            GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -2.5f), new Vector3(0.35f, 1.1f, 1.1f), machineryMaterial);
             sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
+            GameObject bridgerRack = CreateBlock(environment, "Circuit Bridger Rack", new Vector3(5.15f, 1f, -1f), new Vector3(0.35f, 1.1f, 1.1f), warningMaterial);
+            bridgerRack.AddComponent<ToolRackInteractable>().Configure("circuit-bridger-rack", ToolKind.CircuitBridger);
 
             var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
             recoveryPointObject.transform.SetParent(environment);
@@ -177,6 +179,8 @@ namespace FunGame.Editor
             fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform, recoveryPointObject.transform);
             GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
             leak.AddComponent<SealantTarget>().Configure(incident);
+            GameObject circuit = CreateBlock(environment, "Circuit Bridge Demo", new Vector3(-5.85f, 1.25f, 4.6f), new Vector3(0.28f, 1.35f, 1.1f), warningMaterial);
+            circuit.AddComponent<CircuitBridgeTarget>().Configure(incident);
 
             GameObject carryable = CreateBlock(environment, "Replacement Pipe", recoveryPointObject.transform.position, new Vector3(0.6f, 0.6f, 1.5f), warningMaterial);
             var itemBody = carryable.AddComponent<Rigidbody>();
@@ -227,13 +231,20 @@ namespace FunGame.Editor
                 new Vector3(0f, -0.03f, 0.12f),
                 new Vector3(0.22f, 0.18f, 0.5f),
                 machineryMaterial);
+            GameObject bridgerVisual = CreateVisualCube(
+                toolAnchorObject.transform,
+                "Circuit Bridger Visual",
+                new Vector3(0f, -0.02f, 0.14f),
+                new Vector3(0.18f, 0.14f, 0.58f),
+                warningMaterial);
 
             var toolbelt = player.AddComponent<PlayerToolbelt>();
-            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
+            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual, bridgerVisual);
             var playerController = player.AddComponent<FirstPersonController>();
             player.AddComponent<ContextInteractor>();
             player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>().Configure(incident);
+            player.AddComponent<ToolbeltStatusOverlay>();
             return playerController;
         }
 

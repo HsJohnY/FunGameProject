@@ -36,6 +36,12 @@ namespace FunGame.Tests.EditMode
         }
 
         [Test]
+        public void ToolKind_线路桥接器使用明确名称()
+        {
+            Assert.That(ToolKind.CircuitBridger.GetDisplayName(), Is.EqualTo("线路桥接器"));
+        }
+
+        [Test]
         public void CalculateImpulse_向上观察产生更大的垂直冲量()
         {
             Vector3 horizontal = CarryThrowMath.CalculateImpulse(Vector3.forward, 4.5f, 1f);
