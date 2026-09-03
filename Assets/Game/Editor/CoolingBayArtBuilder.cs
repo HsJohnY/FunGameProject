@@ -25,59 +25,147 @@ namespace FunGame.Editor
 
         public static void EnhanceFirstPersonTools(Material machineryMaterial, Material warningMaterial, Material trimMaterial)
         {
-            GameObject wrenchPlaceholder = GameObject.Find("Impact Wrench Visual");
+            GameObject wrenchPlaceholder = FindSceneObject("Impact Wrench Visual");
             if (wrenchPlaceholder != null)
             {
-                SetRendererVisible(wrenchPlaceholder, false);
-                Transform root = wrenchPlaceholder.transform;
-                root.localScale = Vector3.one;
-                CreateLocalShape(root, "Wrench Grip", PrimitiveType.Cylinder,
-                    new Vector3(0f, -0.01f, 0.03f), new Vector3(0.065f, 0.27f, 0.065f),
-                    trimMaterial, Quaternion.Euler(90f, 0f, 0f));
-                CreateLocalShape(root, "Wrench Motor", PrimitiveType.Cylinder,
-                    new Vector3(0f, 0f, 0.33f), new Vector3(0.14f, 0.13f, 0.14f),
-                    warningMaterial, Quaternion.Euler(0f, 0f, 90f));
-                CreateLocalShape(root, "Wrench Socket", PrimitiveType.Cylinder,
-                    new Vector3(0.15f, 0f, 0.33f), new Vector3(0.06f, 0.08f, 0.06f),
+                Transform root = PrepareToolModel(wrenchPlaceholder, "Impact Wrench Model");
+                CreateLocalShape(root, "Wrench Main Housing", PrimitiveType.Cube,
+                    new Vector3(0f, 0f, 0.22f), new Vector3(0.2f, 0.16f, 0.32f),
+                    warningMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Wrench Motor Drum", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.25f), new Vector3(0.16f, 0.19f, 0.16f),
                     machineryMaterial, Quaternion.Euler(0f, 0f, 90f));
+                CreateLocalShape(root, "Wrench Rear Cap", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.02f), new Vector3(0.12f, 0.04f, 0.12f),
+                    trimMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Wrench Nose Collar", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.44f), new Vector3(0.105f, 0.07f, 0.105f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Wrench Socket Shaft", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.57f), new Vector3(0.055f, 0.07f, 0.055f),
+                    machineryMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Wrench Socket Anvil", PrimitiveType.Cube,
+                    new Vector3(0f, 0f, 0.67f), new Vector3(0.085f, 0.085f, 0.09f),
+                    trimMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Wrench Pistol Grip", PrimitiveType.Cube,
+                    new Vector3(0f, -0.22f, 0.14f), new Vector3(0.13f, 0.34f, 0.14f),
+                    trimMaterial, Quaternion.Euler(-12f, 0f, 0f));
+                CreateLocalShape(root, "Wrench Trigger", PrimitiveType.Cube,
+                    new Vector3(0f, -0.08f, 0.25f), new Vector3(0.065f, 0.08f, 0.05f),
+                    machineryMaterial, Quaternion.Euler(-12f, 0f, 0f));
+                CreateLocalShape(root, "Wrench Battery", PrimitiveType.Cube,
+                    new Vector3(0f, -0.41f, 0.09f), new Vector3(0.2f, 0.1f, 0.22f),
+                    machineryMaterial, Quaternion.identity);
             }
 
-            GameObject sealantPlaceholder = GameObject.Find("Sealant Gun Visual");
+            GameObject sealantPlaceholder = FindSceneObject("Sealant Gun Visual");
             if (sealantPlaceholder != null)
             {
-                SetRendererVisible(sealantPlaceholder, false);
-                Transform root = sealantPlaceholder.transform;
-                root.localScale = Vector3.one;
+                Transform root = PrepareToolModel(sealantPlaceholder, "Sealant Sprayer Model");
                 CreateLocalShape(root, "Sealant Cartridge", PrimitiveType.Cylinder,
-                    new Vector3(0f, -0.03f, 0.1f), new Vector3(0.105f, 0.24f, 0.105f),
+                    new Vector3(0f, 0.01f, 0.2f), new Vector3(0.135f, 0.28f, 0.135f),
                     machineryMaterial, Quaternion.Euler(90f, 0f, 0f));
-                CreateLocalShape(root, "Sealant Nozzle", PrimitiveType.Cylinder,
-                    new Vector3(0f, -0.03f, 0.41f), new Vector3(0.035f, 0.1f, 0.035f),
+                CreateLocalShape(root, "Sealant Rear Band", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.01f, -0.08f), new Vector3(0.15f, 0.025f, 0.15f),
                     warningMaterial, Quaternion.Euler(90f, 0f, 0f));
-                CreateLocalShape(root, "Sealant Grip", PrimitiveType.Cube,
-                    new Vector3(0f, -0.17f, 0.07f), new Vector3(0.11f, 0.25f, 0.12f),
+                CreateLocalShape(root, "Sealant Front Band", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.01f, 0.46f), new Vector3(0.15f, 0.025f, 0.15f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Nozzle Collar", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.01f, 0.53f), new Vector3(0.095f, 0.055f, 0.095f),
+                    trimMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Spray Nozzle", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.01f, 0.67f), new Vector3(0.045f, 0.1f, 0.045f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Spray Shroud", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.01f, 0.79f), new Vector3(0.075f, 0.035f, 0.075f),
+                    machineryMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Pistol Grip", PrimitiveType.Cube,
+                    new Vector3(0f, -0.22f, 0.08f), new Vector3(0.13f, 0.34f, 0.14f),
                     trimMaterial, Quaternion.Euler(-12f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Trigger", PrimitiveType.Cube,
+                    new Vector3(0f, -0.08f, 0.2f), new Vector3(0.065f, 0.08f, 0.05f),
+                    warningMaterial, Quaternion.Euler(-12f, 0f, 0f));
+                CreateLocalShape(root, "Sealant Pressure Gauge", PrimitiveType.Sphere,
+                    new Vector3(0.13f, 0.12f, 0.17f), new Vector3(0.1f, 0.1f, 0.045f),
+                    warningMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Sealant Pump Rail", PrimitiveType.Cube,
+                    new Vector3(-0.14f, -0.11f, 0.28f), new Vector3(0.045f, 0.055f, 0.42f),
+                    trimMaterial, Quaternion.identity);
             }
 
-            GameObject bridgerPlaceholder = GameObject.Find("Circuit Bridger Visual");
+            GameObject bridgerPlaceholder = FindSceneObject("Circuit Bridger Visual");
             if (bridgerPlaceholder != null)
             {
-                SetRendererVisible(bridgerPlaceholder, false);
-                Transform root = bridgerPlaceholder.transform;
-                root.localScale = Vector3.one;
-                CreateLocalShape(root, "Bridger Grip", PrimitiveType.Cube,
-                    new Vector3(0f, -0.12f, 0.08f), new Vector3(0.11f, 0.24f, 0.13f),
+                Transform root = PrepareToolModel(bridgerPlaceholder, "Circuit Bridger Model");
+                CreateLocalShape(root, "Bridger Main Housing", PrimitiveType.Cube,
+                    new Vector3(0f, 0f, 0.2f), new Vector3(0.25f, 0.16f, 0.34f),
+                    trimMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Pistol Grip", PrimitiveType.Cube,
+                    new Vector3(0f, -0.22f, 0.08f), new Vector3(0.13f, 0.34f, 0.14f),
                     trimMaterial, Quaternion.Euler(-10f, 0f, 0f));
-                CreateLocalShape(root, "Bridger Coil", PrimitiveType.Cylinder,
-                    new Vector3(0f, 0f, 0.24f), new Vector3(0.12f, 0.18f, 0.12f),
+                CreateLocalShape(root, "Bridger Battery", PrimitiveType.Cube,
+                    new Vector3(0f, -0.41f, 0.06f), new Vector3(0.21f, 0.1f, 0.2f),
+                    machineryMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Coil Core", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.4f), new Vector3(0.115f, 0.12f, 0.115f),
                     machineryMaterial, Quaternion.Euler(90f, 0f, 0f));
-                CreateLocalShape(root, "Bridger Fork Left", PrimitiveType.Cube,
-                    new Vector3(-0.07f, 0f, 0.48f), new Vector3(0.035f, 0.045f, 0.22f),
+                CreateLocalShape(root, "Bridger Coil Rear Ring", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.31f), new Vector3(0.14f, 0.025f, 0.14f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Bridger Coil Front Ring", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0f, 0.49f), new Vector3(0.14f, 0.025f, 0.14f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Bridger Fork Brace", PrimitiveType.Cube,
+                    new Vector3(0f, 0f, 0.54f), new Vector3(0.3f, 0.08f, 0.08f),
+                    machineryMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Probe Left", PrimitiveType.Cube,
+                    new Vector3(-0.11f, 0f, 0.7f), new Vector3(0.045f, 0.045f, 0.32f),
                     warningMaterial, Quaternion.identity);
-                CreateLocalShape(root, "Bridger Fork Right", PrimitiveType.Cube,
-                    new Vector3(0.07f, 0f, 0.48f), new Vector3(0.035f, 0.045f, 0.22f),
+                CreateLocalShape(root, "Bridger Probe Right", PrimitiveType.Cube,
+                    new Vector3(0.11f, 0f, 0.7f), new Vector3(0.045f, 0.045f, 0.32f),
                     warningMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Probe Tip Left", PrimitiveType.Sphere,
+                    new Vector3(-0.11f, 0f, 0.88f), new Vector3(0.075f, 0.075f, 0.075f),
+                    machineryMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Probe Tip Right", PrimitiveType.Sphere,
+                    new Vector3(0.11f, 0f, 0.88f), new Vector3(0.075f, 0.075f, 0.075f),
+                    machineryMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridger Status Display", PrimitiveType.Cube,
+                    new Vector3(0f, 0.1f, 0.15f), new Vector3(0.13f, 0.025f, 0.11f),
+                    machineryMaterial, Quaternion.Euler(-12f, 0f, 0f));
             }
+        }
+
+        private static Transform PrepareToolModel(GameObject placeholder, string modelName)
+        {
+            SetRendererVisible(placeholder, false);
+            Transform placeholderTransform = placeholder.transform;
+            placeholderTransform.localScale = Vector3.one;
+            for (int index = placeholderTransform.childCount - 1; index >= 0; index--)
+            {
+                UnityEngine.Object.DestroyImmediate(placeholderTransform.GetChild(index).gameObject);
+            }
+
+            var model = new GameObject(modelName).transform;
+            model.SetParent(placeholderTransform, false);
+            return model;
+        }
+
+        private static GameObject FindSceneObject(string objectName)
+        {
+            Transform[] candidates = UnityEngine.Object.FindObjectsByType<Transform>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+            foreach (Transform candidate in candidates)
+            {
+                if (candidate.name == objectName && candidate.gameObject.scene.IsValid())
+                {
+                    return candidate.gameObject;
+                }
+            }
+
+            return null;
         }
 
         private static void BuildBulkheadRibs(Transform root, Material structure, Material warning)

@@ -92,6 +92,10 @@ namespace FunGame.Tests.EditMode
                     Assert.That(swarmBug, Is.Not.Null, $"战斗沙盒应包含虫群单位 {index}");
                     Assert.That(swarmBug.GetComponent<InterferenceEnemy>().MaxHealth, Is.EqualTo(1));
                 }
+                Assert.That(FindInScene(scene, "Wrench Socket Anvil"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Spray Shroud"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Left"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Right"), Is.Not.Null);
             }
             finally
             {
@@ -154,6 +158,10 @@ namespace FunGame.Tests.EditMode
                 Assert.That(circuitTask, Is.Not.Null);
                 Assert.That(circuitTask.GetComponent<CircuitBridgeTarget>(), Is.Not.Null);
                 Assert.That(FindInScene(scene, "Circuit Bridger Visual"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Wrench Socket Anvil"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Spray Shroud"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Left"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Right"), Is.Not.Null);
             }
             finally
             {

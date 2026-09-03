@@ -44,6 +44,11 @@ namespace FunGame.Editor
                 throw new IOException($"无法复制维修防卫集成场景：{ScenePath}");
             }
 
+            Material toolMachineryMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Machinery.mat") ?? systemMaterial;
+            Material toolWarningMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Warning.mat") ?? warningMaterial;
+            Material toolTrimMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Trim.mat") ?? enemyMaterial;
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(toolMachineryMaterial, toolWarningMaterial, toolTrimMaterial);
+
             CoolingIncidentController incident = Object.FindFirstObjectByType<CoolingIncidentController>();
             if (incident == null)
             {
