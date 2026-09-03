@@ -23,7 +23,11 @@ namespace FunGame.Editor
             BuildMaintenanceSuitReference(root, structureMaterial, warningMaterial, trimMaterial, glowMaterial);
         }
 
-        public static void EnhanceFirstPersonTools(Material machineryMaterial, Material warningMaterial, Material trimMaterial)
+        public static void EnhanceFirstPersonTools(
+            Material machineryMaterial,
+            Material warningMaterial,
+            Material trimMaterial,
+            Material circuitMaterial)
         {
             GameObject wrenchPlaceholder = GameObject.Find("Impact Wrench Visual");
             if (wrenchPlaceholder != null)
@@ -57,6 +61,26 @@ namespace FunGame.Editor
                 CreateLocalShape(root, "Sealant Grip", PrimitiveType.Cube,
                     new Vector3(0f, -0.17f, 0.07f), new Vector3(0.11f, 0.25f, 0.12f),
                     trimMaterial, Quaternion.Euler(-12f, 0f, 0f));
+            }
+
+            GameObject bridgerPlaceholder = GameObject.Find("Circuit Bridger Visual");
+            if (bridgerPlaceholder != null)
+            {
+                SetRendererVisible(bridgerPlaceholder, false);
+                Transform root = bridgerPlaceholder.transform;
+                root.localScale = Vector3.one;
+                CreateLocalShape(root, "Bridge Scanner", PrimitiveType.Cube,
+                    new Vector3(0f, 0f, 0.15f), new Vector3(0.22f, 0.14f, 0.38f),
+                    circuitMaterial, Quaternion.identity);
+                CreateLocalShape(root, "Bridge Probe Left", PrimitiveType.Cylinder,
+                    new Vector3(-0.09f, 0f, 0.42f), new Vector3(0.025f, 0.12f, 0.025f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Bridge Probe Right", PrimitiveType.Cylinder,
+                    new Vector3(0.09f, 0f, 0.42f), new Vector3(0.025f, 0.12f, 0.025f),
+                    warningMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateLocalShape(root, "Bridge Grip", PrimitiveType.Cube,
+                    new Vector3(0f, -0.16f, 0.08f), new Vector3(0.1f, 0.24f, 0.13f),
+                    trimMaterial, Quaternion.Euler(-10f, 0f, 0f));
             }
         }
 
@@ -169,10 +193,12 @@ namespace FunGame.Editor
             CreateShape(root, "Tool Rack Header", PrimitiveType.Cube,
                 new Vector3(5.12f, 1.82f, -2.5f), new Vector3(0.22f, 0.3f, 3.45f), warning);
             CreateShape(root, "Rack Wrench Silhouette", PrimitiveType.Cylinder,
-                new Vector3(4.91f, 1.05f, -3.3f), new Vector3(0.08f, 0.42f, 0.08f), warning,
+                new Vector3(4.91f, 1.05f, -3.65f), new Vector3(0.08f, 0.34f, 0.08f), warning,
                 Quaternion.Euler(90f, 0f, 0f));
+            CreateShape(root, "Rack Bridger Silhouette", PrimitiveType.Cube,
+                new Vector3(4.91f, 1.05f, -2.5f), new Vector3(0.1f, 0.25f, 0.28f), warning);
             CreateShape(root, "Rack Sealant Silhouette", PrimitiveType.Cylinder,
-                new Vector3(4.91f, 1.05f, -1.7f), new Vector3(0.13f, 0.34f, 0.13f), machinery,
+                new Vector3(4.91f, 1.05f, -1.35f), new Vector3(0.13f, 0.3f, 0.13f), machinery,
                 Quaternion.Euler(90f, 0f, 0f));
         }
 

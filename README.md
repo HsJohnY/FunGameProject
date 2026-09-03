@@ -1,12 +1,13 @@
 # Fun Game Project
 
-这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线 `requirements-v1.0.0` 和 M0 技术准备已完成，进入 **M1：单机核心灰盒**。
+这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线、单机核心灰盒、首次玩法评审和 M3-1 网络会话已完成，正在制作一个约半小时的三章单人 Demo，用来验证内容节奏、事件组合和低模表现。
 
 ## 从哪里开始
 
 1. 查看 [Docs/PROJECT_STATUS.md](Docs/PROJECT_STATUS.md)，了解当前阶段、正在做什么和下一步。
 2. 查看 [Docs/MVP_DEVELOPMENT_PLAN.md](Docs/MVP_DEVELOPMENT_PLAN.md)，了解当前小阶段、运行门禁和人工审查方式。
 3. 查看 [Docs/Requirements/GRAYBOX_SCOPE.md](Docs/Requirements/GRAYBOX_SCOPE.md)，确认首个 8–12 分钟灰盒的冻结范围。
+4. 查看 [Docs/Reviews/SINGLEPLAYER_THREE_CHAPTER_DEMO.md](Docs/Reviews/SINGLEPLAYER_THREE_CHAPTER_DEMO.md)，运行并评审当前三章单人候选。
 
 ## 目录约定
 
@@ -34,6 +35,8 @@
 .\Tools\Run-UnityTests.ps1 -Mode All
 .\Tools\Build-M0.ps1
 .\Tools\Test-M0Build.ps1
+.\Tools\Build-SinglePlayerDemo.ps1
+.\Tools\Test-SinglePlayerDemoBuild.ps1
 ```
 
 脚本默认使用本机已确认的 Unity 路径，也接受 `-UnityEditorPath` 覆盖。生成包、日志和测试结果均被 Git 忽略。

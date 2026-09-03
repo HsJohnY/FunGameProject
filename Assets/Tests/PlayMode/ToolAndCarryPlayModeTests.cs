@@ -3,6 +3,7 @@ using System.Reflection;
 using FunGame.Interaction;
 using FunGame.Incident;
 using FunGame.Tools;
+using FunGame.Demo;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -85,6 +86,87 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator CoolingIncident_扩展诊断验证与结算指标形成完整闭环()
+        {
+            var incidentObject = new GameObject("Test Extended Cooling Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureExtendedIncident(true);
+            incident.ConfigureTemperature(65f, 100f, 0f);
+
+            yield return null;
+
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.AssessSymptoms));
+            Assert.That(incident.TryInspectPressure(), Is.True);
+            Assert.That(incident.TryInspectPump(), Is.True);
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.RestoreControlPower));
+            Assert.That(incident.TryAdvanceCircuitBridge(), Is.True);
+            Assert.That(incident.TryAdvanceCircuitBridge(), Is.True);
+            Assert.That(incident.TryAdvanceCircuitBridge(), Is.True);
+            incident.RecordRejectedAction("tool:test", "需要密封喷枪");
+            incident.AddSealProgress(1f);
+            incident.TryLoosen();
+            incident.TryInstallPipe();
+            incident.TryTighten();
+            Assert.That(incident.TryResetPump(), Is.False);
+            Assert.That(incident.TryInspectPressure(), Is.True);
+            Assert.That(incident.TryResetPump(), Is.True);
+
+            Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Succeeded));
+            Assert.That(incident.RejectedActionCount, Is.EqualTo(1));
+
+            incident.ResetIncident();
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.AssessSymptoms));
+            Assert.That(incident.RejectedActionCount, Is.Zero);
+
+            Object.Destroy(incidentObject);
+        }
+
+        [UnityTest]
+        public IEnumerator ControlledLayout_每次重置轮换位置并找回手持任务物()
+        {
+            var incidentObject = new GameObject("Layout Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            var leak = new GameObject("Layout Leak");
+            var repair = new GameObject("Layout Repair");
+            var recovery = new GameObject("Layout Recovery");
+            var itemObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            itemObject.AddComponent<Rigidbody>();
+            var item = itemObject.AddComponent<CarryableInteractable>();
+            ContextInteractor interactor = CreateCarryActor(out GameObject actor);
+            var layoutObject = new GameObject("Layout Controller");
+            var layout = layoutObject.AddComponent<CoolingIncidentLayoutController>();
+            layout.Configure(
+                incident,
+                leak.transform,
+                repair.transform,
+                recovery.transform,
+                item,
+                new[] { Vector3.zero, Vector3.right },
+                new[] { Vector3.forward, Vector3.forward * 2f },
+                new[] { Vector3.left, Vector3.left * 2f });
+            layout.ConfigurePlayer(interactor);
+
+            yield return null;
+            Assert.That(interactor.TryPickup(item), Is.True);
+            Assert.That(interactor.IsHoldingItem, Is.True);
+
+            incident.ResetIncident();
+
+            Assert.That(layout.CurrentLayoutIndex, Is.EqualTo(1));
+            Assert.That(leak.transform.position, Is.EqualTo(Vector3.right));
+            Assert.That(item.transform.position, Is.EqualTo(Vector3.left * 2f));
+            Assert.That(interactor.IsHoldingItem, Is.False);
+
+            Object.Destroy(layoutObject);
+            Object.Destroy(actor);
+            Object.Destroy(itemObject);
+            Object.Destroy(recovery);
+            Object.Destroy(repair);
+            Object.Destroy(leak);
+            Object.Destroy(incidentObject);
+        }
+
+        [UnityTest]
         public IEnumerator ToolRack_重复取用同类工具会恢复空手()
         {
             CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
@@ -125,6 +207,64 @@ namespace FunGame.Tests.PlayMode
 
             Object.Destroy(actor);
             Object.Destroy(targetObject);
+        }
+
+        [UnityTest]
+        public IEnumerator CircuitBridgeTarget_三次离散操作恢复控制联锁()
+        {
+            var incidentObject = new GameObject("Circuit Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureExtendedIncident(true);
+            incident.TryInspectPressure();
+            incident.TryInspectPump();
+            CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            var targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var target = targetObject.AddComponent<CircuitBridgeTarget>();
+            target.Configure(incident);
+
+            yield return null;
+
+            for (int step = 1; step <= CoolingIncidentRules.RequiredCircuitBridgeSteps; step++)
+            {
+                Assert.That(target.ApplyTool(toolbelt), Is.True);
+                Assert.That(target.CompletedSteps, Is.EqualTo(step));
+            }
+
+            Assert.That(target.IsBridged, Is.True);
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.ContainLeak));
+
+            incident.ResetIncident();
+            Assert.That(target.CompletedSteps, Is.Zero);
+
+            Object.Destroy(targetObject);
+            Object.Destroy(actor);
+            Object.Destroy(incidentObject);
+        }
+
+        [UnityTest]
+        public IEnumerator DemoRelayTarget_章节启用后复用桥接器完成三步稳定()
+        {
+            CreateToolActor(out GameObject actor, out PlayerToolbelt toolbelt, out _);
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            var relayObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var relay = relayObject.AddComponent<DemoRelayTarget>();
+            relay.Configure("test-relay", "测试继电器");
+            relay.SetChapterActive(true, true);
+            int stabilizedEvents = 0;
+            relay.Stabilized += _ => stabilizedEvents++;
+
+            yield return null;
+
+            Assert.That(relay.ApplyTool(toolbelt), Is.True);
+            Assert.That(relay.ApplyTool(toolbelt), Is.True);
+            Assert.That(relay.ApplyTool(toolbelt), Is.True);
+            Assert.That(relay.IsStabilized, Is.True);
+            Assert.That(stabilizedEvents, Is.EqualTo(1));
+            Assert.That(relay.ApplyTool(toolbelt), Is.False);
+
+            Object.Destroy(relayObject);
+            Object.Destroy(actor);
         }
 
         [UnityTest]

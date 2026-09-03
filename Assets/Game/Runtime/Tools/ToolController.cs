@@ -22,6 +22,7 @@ namespace FunGame.Tools
 
         public ToolActionOption? CurrentOption { get; private set; }
         public event Action<ToolActionFeedback> ToolActionExecuted;
+        public event Action<string, string> ToolActionRejected;
         public float ImpactWrenchCooldownRemaining => Mathf.Max(0f, _nextImpactWrenchActionTime - Time.unscaledTime);
 
         private void Awake()
@@ -94,6 +95,7 @@ namespace FunGame.Tools
 
             if (!option.IsAvailable)
             {
+                ToolActionRejected?.Invoke(option.TargetId, option.BlockedReason);
                 Debug.Log($"[Tool] target={option.TargetId} blocked={option.BlockedReason}", this);
                 return false;
             }
