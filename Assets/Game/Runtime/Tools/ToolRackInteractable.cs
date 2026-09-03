@@ -11,6 +11,8 @@ namespace FunGame.Tools
         [SerializeField] private string targetId = "tool-rack";
         [SerializeField] private ToolKind offeredTool = ToolKind.ImpactWrench;
 
+        public ToolKind OfferedTool => offeredTool;
+
         public void Configure(string id, ToolKind tool)
         {
             targetId = id;

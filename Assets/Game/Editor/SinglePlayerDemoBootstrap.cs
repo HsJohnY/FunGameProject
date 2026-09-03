@@ -168,10 +168,27 @@ namespace FunGame.Editor
                 stormMaterial,
                 true);
             var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
+            CreateLocalDecoration(consoleObject.transform, "Calibration Console Screen", PrimitiveType.Cube,
+                new Vector3(0f, 0.18f, -0.58f), new Vector3(0.62f, 0.24f, 0.08f), darkMaterial);
+            CreateLocalDecoration(consoleObject.transform, "Calibration Console Lever", PrimitiveType.Cylinder,
+                new Vector3(0.32f, -0.15f, -0.62f), new Vector3(0.07f, 0.22f, 0.07f), warningMaterial,
+                Quaternion.Euler(62f, 0f, 0f));
+            for (int index = 0; index < 5; index++)
+            {
+                CreateLocalDecoration(consoleObject.transform, $"Calibration Stage Light {index + 1}", PrimitiveType.Sphere,
+                    new Vector3(-0.42f + index * 0.21f, -0.2f, -0.62f), new Vector3(0.055f, 0.055f, 0.035f),
+                    index == 2 ? warningMaterial : relayMaterial);
+            }
 
             var campaign = root.gameObject.AddComponent<SinglePlayerDemoController>();
             campaign.Configure(incident, relayDefense, relays, stormWaves, campaignConsole);
             root.gameObject.AddComponent<SinglePlayerDemoOverlay>().Configure(campaign);
+            var guidance = root.gameObject.AddComponent<DemoObjectiveGuidancePresenter>();
+            guidance.Configure(
+                campaign,
+                incident,
+                UnityEngine.Object.FindFirstObjectByType<ContextInteractor>(),
+                chapterOneCombat);
             root.gameObject.AddComponent<DemoScreenshotCheckpoint>();
             presentation.Configure(
                 campaign,
@@ -248,8 +265,15 @@ namespace FunGame.Editor
                     true);
                 relays[index] = relayObject.AddComponent<DemoRelayTarget>();
                 relays[index].Configure($"storm-relay-{index + 1}", $"风暴继电器 {index + 1}");
+                CreateLocalDecoration(relayObject.transform, "Relay Phase Coil", PrimitiveType.Cylinder,
+                    new Vector3(0f, 0.15f, 0f), new Vector3(0.62f, 0.45f, 0.62f), warning,
+                    Quaternion.Euler(0f, 0f, 90f));
                 CreateLocalDecoration(relayObject.transform, "Relay Crown", PrimitiveType.Sphere,
-                    new Vector3(0f, 0.85f, 0f), new Vector3(0.28f, 0.18f, 0.28f), warning);
+                    new Vector3(0f, 0.85f, 0f), new Vector3(0.4f, 0.22f, 0.4f), warning);
+                CreateLocalDecoration(relayObject.transform, "Relay Contact Upper", PrimitiveType.Cube,
+                    new Vector3(0f, 0.52f, -0.58f), new Vector3(0.44f, 0.12f, 0.12f), relay);
+                CreateLocalDecoration(relayObject.transform, "Relay Contact Lower", PrimitiveType.Cube,
+                    new Vector3(0f, -0.38f, -0.58f), new Vector3(0.44f, 0.12f, 0.12f), relay);
             }
 
             return relays;
@@ -305,6 +329,16 @@ namespace FunGame.Editor
             target.Configure(integrity);
             targetObject.AddComponent<AudioSource>();
             targetObject.AddComponent<DeviceDamageFeedback>().Configure(target);
+            CreateLocalDecoration(targetObject.transform, "Defense Core Lens", PrimitiveType.Sphere,
+                new Vector3(0f, 0.12f, -0.58f), new Vector3(0.52f, 0.52f, 0.2f), material);
+            for (int index = 0; index < 4; index++)
+            {
+                float angle = index * Mathf.PI * 0.5f;
+                CreateLocalDecoration(targetObject.transform, $"Defense Core Fin {index + 1}", PrimitiveType.Cube,
+                    new Vector3(Mathf.Cos(angle) * 0.68f, Mathf.Sin(angle) * 0.68f, 0f),
+                    index % 2 == 0 ? new Vector3(0.18f, 0.52f, 0.38f) : new Vector3(0.52f, 0.18f, 0.38f),
+                    material);
+            }
             return target;
         }
 
@@ -487,13 +521,14 @@ namespace FunGame.Editor
             PrimitiveType type,
             Vector3 localPosition,
             Vector3 localScale,
-            Material material)
+            Material material,
+            Quaternion localRotation = default)
         {
             GameObject decoration = GameObject.CreatePrimitive(type);
             decoration.name = name;
             decoration.transform.SetParent(parent, false);
             decoration.transform.localPosition = localPosition;
-            decoration.transform.localRotation = Quaternion.identity;
+            decoration.transform.localRotation = localRotation == default ? Quaternion.identity : localRotation;
             decoration.transform.localScale = localScale;
             decoration.GetComponent<Renderer>().sharedMaterial = material;
             UnityEngine.Object.DestroyImmediate(decoration.GetComponent<Collider>());

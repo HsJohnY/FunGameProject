@@ -22,6 +22,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(root, Is.Not.Null);
 
                 SinglePlayerDemoController campaign = root.GetComponent<SinglePlayerDemoController>();
+                DemoObjectiveGuidancePresenter guidance = root.GetComponent<DemoObjectiveGuidancePresenter>();
                 DemoRelayTarget[] relays = root.GetComponentsInChildren<DemoRelayTarget>(true);
                 CombatEncounterController[] encounters = root.GetComponentsInChildren<CombatEncounterController>(true);
                 InterferenceEnemy[] enemies = root.GetComponentsInChildren<InterferenceEnemy>(true);
@@ -33,6 +34,7 @@ namespace FunGame.Tests.EditMode
                     .FirstOrDefault(item => item.name == "Local First Person Player")?.transform;
 
                 Assert.That(campaign, Is.Not.Null);
+                Assert.That(guidance, Is.Not.Null);
                 Assert.That(campaign.RequiredCoolingRunCount, Is.EqualTo(2));
                 Assert.That(campaign.RequiredRelayCount, Is.EqualTo(5));
                 Assert.That(campaign.StormWaveCount, Is.EqualTo(5));
@@ -46,6 +48,10 @@ namespace FunGame.Tests.EditMode
                 Assert.That(engravedNumber, Is.Not.Null);
                 Assert.That(stormCore, Is.Not.Null);
                 Assert.That(player, Is.Not.Null);
+                Assert.That(FindTransform(scene, "Pressure Gauge Needle Model"), Is.Not.Null);
+                Assert.That(FindTransform(scene, "Replacement Pipe Model"), Is.Not.Null);
+                Assert.That(FindTransform(scene, "Relay Phase Coil"), Is.Not.Null);
+                Assert.That(FindTransform(scene, "Calibration Console Screen"), Is.Not.Null);
                 Assert.That(Vector3.Distance(player.position, stormCore.position), Is.GreaterThan(4f),
                     "风暴核心不能遮挡第一章的玩家出生镜头。");
             }
@@ -53,6 +59,13 @@ namespace FunGame.Tests.EditMode
             {
                 EditorSceneManager.CloseScene(scene, true);
             }
+        }
+
+        private static Transform FindTransform(Scene scene, string name)
+        {
+            return scene.GetRootGameObjects()
+                .SelectMany(item => item.GetComponentsInChildren<Transform>(true))
+                .FirstOrDefault(item => item.name == name);
         }
     }
 }

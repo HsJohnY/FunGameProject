@@ -64,7 +64,7 @@ namespace FunGame.Editor
             CoolingIncidentLayoutController layout = CreateCoolingBay(
                 structureMaterial, floorMaterial, machineryMaterial, warningMaterial, circuitMaterial, incident);
             CoolingBayArtBuilder.BuildEnvironment(
-                structureMaterial, machineryMaterial, warningMaterial, trimMaterial, glowMaterial);
+                structureMaterial, machineryMaterial, warningMaterial, trimMaterial, glowMaterial, circuitMaterial);
             FirstPersonController player = CreatePlayer(warningMaterial, machineryMaterial, circuitMaterial, incident);
             layout.ConfigurePlayer(player.GetComponent<ContextInteractor>());
             CoolingBayArtBuilder.EnhanceFirstPersonTools(machineryMaterial, warningMaterial, trimMaterial, circuitMaterial);

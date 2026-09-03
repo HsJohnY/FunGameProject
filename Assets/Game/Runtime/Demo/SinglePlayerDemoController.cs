@@ -37,6 +37,10 @@ namespace FunGame.Demo
         public float ElapsedSeconds => _elapsedSeconds;
         public int ChapterRestartCount { get; private set; }
         public bool IsCompleted => Chapter == SinglePlayerDemoChapter.Completed;
+        public bool IsAwaitingCalibration => Rules.IsAwaitingCalibration;
+        public bool IsCurrentChapterFailed => _relayChapterFailed || _stormChapterFailed;
+        public CombatEncounterController RelayDefenseEncounter => relayDefense;
+        public CombatEncounterController CurrentStormEncounter => GetCurrentStormWave();
         public bool IsCampaignConsoleAvailable =>
             _relayChapterFailed || _stormChapterFailed ||
             (Chapter == SinglePlayerDemoChapter.StormCalibration && Rules.IsAwaitingCalibration);
