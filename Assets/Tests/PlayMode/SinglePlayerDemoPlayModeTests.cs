@@ -21,8 +21,8 @@ namespace FunGame.Tests.PlayMode
             incident.ConfigureTemperature(65f, 100f, 0f);
 
             CombatEncounterController relayDefense = CreateEmptyEncounter("Relay Defense");
-            var relayObjects = new GameObject[3];
-            var relays = new DemoRelayTarget[3];
+            var relayObjects = new GameObject[5];
+            var relays = new DemoRelayTarget[5];
             for (int index = 0; index < relays.Length; index++)
             {
                 relayObjects[index] = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -34,7 +34,9 @@ namespace FunGame.Tests.PlayMode
             {
                 CreateEmptyEncounter("Storm Wave 1"),
                 CreateEmptyEncounter("Storm Wave 2"),
-                CreateEmptyEncounter("Storm Wave 3")
+                CreateEmptyEncounter("Storm Wave 3"),
+                CreateEmptyEncounter("Storm Wave 4"),
+                CreateEmptyEncounter("Storm Wave 5")
             };
             var consoleObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
             var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
@@ -44,6 +46,12 @@ namespace FunGame.Tests.PlayMode
             CreateCircuitActor(out GameObject actor, out PlayerToolbelt toolbelt);
 
             yield return null;
+
+            CompleteIncident(incident);
+            yield return null;
+            Assert.That(campaign.Chapter, Is.EqualTo(SinglePlayerDemoChapter.CoolingEmergency));
+            Assert.That(campaign.CoolingRunsCompleted, Is.EqualTo(1));
+            Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Active));
 
             CompleteIncident(incident);
             yield return null;

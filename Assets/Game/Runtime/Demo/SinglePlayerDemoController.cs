@@ -12,6 +12,7 @@ namespace FunGame.Demo
     /// </summary>
     public sealed class SinglePlayerDemoController : MonoBehaviour
     {
+        private const int RequiredCoolingRuns = 2;
         [SerializeField] private CoolingIncidentController coolingIncident;
         [SerializeField] private CombatEncounterController relayDefense;
         [SerializeField] private DemoRelayTarget[] relayTargets;
@@ -26,6 +27,8 @@ namespace FunGame.Demo
 
         public event Action StateChanged;
         public SinglePlayerDemoChapter Chapter => Rules.Chapter;
+        public int CoolingRunsCompleted => Rules.CoolingRunsCompleted;
+        public int RequiredCoolingRunCount => RequiredCoolingRuns;
         public int StabilizedRelayCount => Rules.StabilizedRelays;
         public int RequiredRelayCount => relayTargets?.Length ?? 0;
         public int CurrentStormWave => Rules.CurrentStormWave;
@@ -64,7 +67,8 @@ namespace FunGame.Demo
             {
                 if (Chapter == SinglePlayerDemoChapter.CoolingEmergency)
                 {
-                    return coolingIncident != null ? coolingIncident.CurrentGuidance : "完成冷却舱事故";
+                    int activeRun = Mathf.Min(CoolingRunsCompleted + 1, RequiredCoolingRunCount);
+                    return $"稳定冷却支路 {activeRun}/{RequiredCoolingRunCount}";
                 }
 
                 if (Chapter == SinglePlayerDemoChapter.RelaySurge)
@@ -90,6 +94,7 @@ namespace FunGame.Demo
         }
 
         private SinglePlayerDemoRules Rules => _rules ?? (_rules = new SinglePlayerDemoRules(
+            RequiredCoolingRuns,
             Mathf.Max(1, relayTargets?.Length ?? 0),
             Mathf.Max(1, stormWaves?.Length ?? 0)));
 
@@ -106,6 +111,7 @@ namespace FunGame.Demo
             stormWaves = configuredStormWaves;
             campaignConsole = configuredConsole;
             _rules = new SinglePlayerDemoRules(
+                RequiredCoolingRuns,
                 Mathf.Max(1, relayTargets?.Length ?? 0),
                 Mathf.Max(1, stormWaves?.Length ?? 0));
             campaignConsole?.Configure(this);
@@ -125,9 +131,19 @@ namespace FunGame.Demo
 
             if (Chapter == SinglePlayerDemoChapter.CoolingEmergency)
             {
-                if (coolingIncident != null && coolingIncident.RunState == CoolingIncidentRunState.Succeeded && Rules.CompleteCoolingChapter())
+                if (coolingIncident != null && coolingIncident.RunState == CoolingIncidentRunState.Succeeded &&
+                    Rules.CompleteCoolingChapter())
                 {
-                    BeginRelayChapter();
+                    if (Rules.Chapter == SinglePlayerDemoChapter.RelaySurge)
+                    {
+                        BeginRelayChapter();
+                    }
+                    else
+                    {
+                        Debug.Log($"[Demo] chapter=1 event=cooling-branch-complete run={CoolingRunsCompleted}/{RequiredCoolingRunCount}", this);
+                        coolingIncident.ResetIncident();
+                        StateChanged?.Invoke();
+                    }
                 }
 
                 return;

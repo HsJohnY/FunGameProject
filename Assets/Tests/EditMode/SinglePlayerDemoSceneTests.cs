@@ -33,9 +33,12 @@ namespace FunGame.Tests.EditMode
                     .FirstOrDefault(item => item.name == "Local First Person Player")?.transform;
 
                 Assert.That(campaign, Is.Not.Null);
-                Assert.That(relays.Length, Is.EqualTo(3));
-                Assert.That(encounters.Length, Is.EqualTo(4));
-                Assert.That(enemies.Length, Is.EqualTo(16));
+                Assert.That(campaign.RequiredCoolingRunCount, Is.EqualTo(2));
+                Assert.That(campaign.RequiredRelayCount, Is.EqualTo(5));
+                Assert.That(campaign.StormWaveCount, Is.EqualTo(5));
+                Assert.That(relays.Length, Is.EqualTo(5));
+                Assert.That(encounters.Length, Is.EqualTo(6));
+                Assert.That(enemies.Length, Is.EqualTo(27));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.Direct), Is.GreaterThan(0));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.FlankingAttach), Is.GreaterThan(0));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.RangedPulse), Is.GreaterThan(0));

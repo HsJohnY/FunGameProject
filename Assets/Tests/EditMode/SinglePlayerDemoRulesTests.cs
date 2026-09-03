@@ -6,6 +6,21 @@ namespace FunGame.Tests.EditMode
     public sealed class SinglePlayerDemoRulesTests
     {
         [Test]
+        public void 第一章完成两轮冷却支路后才进入第二章()
+        {
+            var rules = new SinglePlayerDemoRules(2, 5, 5);
+
+            Assert.That(rules.CompleteCoolingChapter(), Is.True);
+            Assert.That(rules.CoolingRunsCompleted, Is.EqualTo(1));
+            Assert.That(rules.Chapter, Is.EqualTo(SinglePlayerDemoChapter.CoolingEmergency));
+
+            Assert.That(rules.CompleteCoolingChapter(), Is.True);
+            Assert.That(rules.CoolingRunsCompleted, Is.EqualTo(2));
+            Assert.That(rules.Chapter, Is.EqualTo(SinglePlayerDemoChapter.RelaySurge));
+            Assert.That(rules.CompleteCoolingChapter(), Is.False);
+        }
+
+        [Test]
         public void 第二章必须同时完成三处继电器与防卫()
         {
             var rules = new SinglePlayerDemoRules(3, 3);
@@ -23,9 +38,9 @@ namespace FunGame.Tests.EditMode
         [Test]
         public void 第三章每波完成后必须写入一次校准()
         {
-            var rules = EnterStormChapter();
+            var rules = EnterStormChapter(5, 5);
 
-            for (int wave = 0; wave < 3; wave++)
+            for (int wave = 0; wave < 5; wave++)
             {
                 Assert.That(rules.CurrentStormWave, Is.EqualTo(wave));
                 Assert.That(rules.ConfirmCalibration(), Is.False);
@@ -52,14 +67,16 @@ namespace FunGame.Tests.EditMode
             Assert.That(rules.Chapter, Is.EqualTo(SinglePlayerDemoChapter.StormCalibration));
         }
 
-        private static SinglePlayerDemoRules EnterStormChapter()
+        private static SinglePlayerDemoRules EnterStormChapter(int relayCount = 3, int waveCount = 3)
         {
-            var rules = new SinglePlayerDemoRules(3, 3);
+            var rules = new SinglePlayerDemoRules(relayCount, waveCount);
             rules.CompleteCoolingChapter();
             rules.CompleteRelayDefense();
-            rules.RegisterRelayStabilized();
-            rules.RegisterRelayStabilized();
-            rules.RegisterRelayStabilized();
+            for (int index = 0; index < relayCount; index++)
+            {
+                rules.RegisterRelayStabilized();
+            }
+
             return rules;
         }
     }

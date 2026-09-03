@@ -67,7 +67,8 @@ namespace FunGame.Editor
                     EnemySpec.Strider("relay-strider", new Vector3(-2.8f, 1f, -6.5f)),
                     EnemySpec.Skitter("relay-skitter-left", new Vector3(3.8f, 1f, -5.6f)),
                     EnemySpec.Skitter("relay-skitter-right", new Vector3(-4.2f, 1f, -3.4f)),
-                    EnemySpec.Pulser("relay-pulser", new Vector3(2.4f, 1f, 0.5f))
+                    EnemySpec.Pulser("relay-pulser", new Vector3(2.4f, 1f, 0.5f)),
+                    EnemySpec.Bulwark("relay-bulwark", new Vector3(0f, 1f, 8f))
                 },
                 darkMaterial,
                 warningMaterial);
@@ -111,16 +112,48 @@ namespace FunGame.Editor
                     stormCoreTarget),
                 CreateEncounter(
                     root,
-                    "Chapter 3 Wave 3 - Armored Convergence",
+                    "Chapter 3 Wave 3 - Mixed Breach",
                     new Vector3(4.2f, 1f, 6.4f),
                     130,
                     new[]
                     {
-                        EnemySpec.Bulwark("wave3-bulwark", new Vector3(0f, 1f, 8f)),
-                        EnemySpec.Pulser("wave3-pulser-left", new Vector3(-5f, 1f, 4.8f)),
-                        EnemySpec.Pulser("wave3-pulser-right", new Vector3(5f, 1f, 4.8f)),
-                        EnemySpec.Skitter("wave3-skitter-left", new Vector3(-4.8f, 1f, -0.5f)),
-                        EnemySpec.Skitter("wave3-skitter-right", new Vector3(4.8f, 1f, -0.5f))
+                        EnemySpec.Strider("wave3-strider-left", new Vector3(-5f, 1f, -5f)),
+                        EnemySpec.Strider("wave3-strider-center", new Vector3(0f, 1f, -3f)),
+                        EnemySpec.Skitter("wave3-skitter", new Vector3(-4.8f, 1f, 1f)),
+                        EnemySpec.Pulser("wave3-pulser", new Vector3(5f, 1f, -2f))
+                    },
+                    darkMaterial,
+                    warningMaterial,
+                    stormCoreTarget),
+                CreateEncounter(
+                    root,
+                    "Chapter 3 Wave 4 - Armored Escort",
+                    new Vector3(4.2f, 1f, 6.4f),
+                    130,
+                    new[]
+                    {
+                        EnemySpec.Bulwark("wave4-bulwark", new Vector3(-4.5f, 1f, 7.8f)),
+                        EnemySpec.Strider("wave4-strider-left", new Vector3(-5f, 1f, 2.8f)),
+                        EnemySpec.Strider("wave4-strider-right", new Vector3(0f, 1f, 0.8f)),
+                        EnemySpec.Skitter("wave4-skitter-left", new Vector3(-4.8f, 1f, -3.5f)),
+                        EnemySpec.Skitter("wave4-skitter-right", new Vector3(4.8f, 1f, -3.5f))
+                    },
+                    darkMaterial,
+                    warningMaterial,
+                    stormCoreTarget),
+                CreateEncounter(
+                    root,
+                    "Chapter 3 Wave 5 - Final Convergence",
+                    new Vector3(4.2f, 1f, 6.4f),
+                    150,
+                    new[]
+                    {
+                        EnemySpec.Bulwark("wave5-bulwark-left", new Vector3(-5f, 1f, 8f)),
+                        EnemySpec.Bulwark("wave5-bulwark-center", new Vector3(0f, 1f, 8f)),
+                        EnemySpec.Pulser("wave5-pulser-left", new Vector3(-5.2f, 1f, 3.5f)),
+                        EnemySpec.Pulser("wave5-pulser-right", new Vector3(5.2f, 1f, 2.2f)),
+                        EnemySpec.Skitter("wave5-skitter-left", new Vector3(-4.8f, 1f, -1f)),
+                        EnemySpec.Skitter("wave5-skitter-right", new Vector3(4.8f, 1f, -1f))
                     },
                     darkMaterial,
                     warningMaterial,
@@ -171,7 +204,11 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Demo/构建三章单人 Windows 开发版本")]
         public static void BuildWindowsDevelopment()
         {
-            ConfigureCurrent();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
+            {
+                ConfigureCurrent();
+            }
+
             Directory.CreateDirectory("Builds/SinglePlayerDemo-Windows");
             var options = new BuildPlayerOptions
             {
@@ -194,8 +231,10 @@ namespace FunGame.Editor
             Vector3[] positions =
             {
                 new Vector3(-5.85f, 1.15f, -5.2f),
+                new Vector3(5.85f, 1.15f, -5.2f),
                 new Vector3(5.85f, 1.15f, 0.8f),
-                new Vector3(-5.85f, 1.15f, 6.5f)
+                new Vector3(-5.85f, 1.15f, 6.5f),
+                new Vector3(5.85f, 1.15f, 6.5f)
             };
             var relays = new DemoRelayTarget[positions.Length];
             for (int index = 0; index < positions.Length; index++)

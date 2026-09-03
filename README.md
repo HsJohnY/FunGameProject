@@ -1,6 +1,6 @@
 # Fun Game Project
 
-这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线、单机核心灰盒、首次玩法评审和 M3-1 网络会话已完成，正在制作一个约半小时的三章单人 Demo，用来验证内容节奏、事件组合和低模表现。
+这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线、单机核心灰盒、首次玩法评审和 M3-1 网络会话已完成，正在评审一个约半小时的三章单人 Demo：两轮异位冷却事故、五处继电器与五波怪物组合用于验证内容节奏、简单机制变式和低模表现。
 
 ## 从哪里开始
 
@@ -37,9 +37,10 @@
 .\Tools\Test-M0Build.ps1
 .\Tools\Build-SinglePlayerDemo.ps1
 .\Tools\Test-SinglePlayerDemoBuild.ps1
+.\Tools\Run-SinglePlayerDemoPlaytest.ps1
 ```
 
-脚本默认使用本机已确认的 Unity 路径，也接受 `-UnityEditorPath` 覆盖。生成包、日志和测试结果均被 Git 忽略。
+脚本默认使用本机已确认的 Unity 路径，也接受 `-UnityEditorPath` 覆盖。`Run-SinglePlayerDemoPlaytest.ps1` 会打开真实玩家窗口，并在退出后根据结算日志判定是否完整通关且处于 25–35 分钟目标区间。生成包、日志和测试结果均被 Git 忽略。
 
 ## 工作流
 
