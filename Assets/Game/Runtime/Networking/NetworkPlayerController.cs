@@ -58,6 +58,30 @@ namespace FunGame.Networking
             ApplyOwnershipPresentation(false);
         }
 
+        private void Update()
+        {
+            if (!IsSpawned || !IsOwner || transform.position.y >= NetworkPlayerSpawnLayout.FallResetHeight)
+            {
+                return;
+            }
+
+            // 验证场不应因一次跌落中断整轮双端测试；复位仍由拥有者写入并同步给其他客户端。
+            bool controllerWasEnabled = firstPersonController != null && firstPersonController.enabled;
+            if (firstPersonController != null)
+            {
+                firstPersonController.enabled = false;
+            }
+
+            transform.SetPositionAndRotation(
+                NetworkPlayerSpawnLayout.GetSpawnPosition(OwnerClientId),
+                Quaternion.identity);
+
+            if (firstPersonController != null)
+            {
+                firstPersonController.enabled = controllerWasEnabled;
+            }
+        }
+
         /// <summary>
         /// 独立封装所有权表现，方便自动测试验证输入、镜头和身体显隐边界。
         /// </summary>

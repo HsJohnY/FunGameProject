@@ -8,13 +8,17 @@ namespace FunGame.Networking
     /// </summary>
     public static class NetworkPlayerSpawnLayout
     {
-        private const float HorizontalSpacing = 2.5f;
+        public const float FallResetHeight = -8f;
+
+        private const float HorizontalSpacing = 4f;
+        private const float RowSpacing = 4f;
 
         public static Vector3 GetSpawnPosition(ulong clientId)
         {
-            // MVP 目标为 2–4 人；超过四人时继续沿 X 轴排列，避免意外重叠。
-            float centeredIndex = (float)clientId - 1.5f;
-            return new Vector3(centeredIndex * HorizontalSpacing, 1f, -3f);
+            // 2–4 人按两列排列；更大的客户端编号继续向后扩展行数，避免意外重叠。
+            float x = clientId % 2 == 0 ? -HorizontalSpacing * 0.5f : HorizontalSpacing * 0.5f;
+            float z = -4f + clientId / 2 * RowSpacing;
+            return new Vector3(x, 1.1f, z);
         }
     }
 }

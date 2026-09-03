@@ -59,10 +59,30 @@ namespace FunGame.Editor
 
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Network Test Floor";
+            floor.transform.localScale = new Vector3(3f, 1f, 3f);
 
             GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            marker.name = "M3 Scene Marker";
-            marker.transform.position = new Vector3(0f, 0.5f, 0f);
+            marker.name = "Central Orientation Marker";
+            marker.transform.position = new Vector3(0f, 1.5f, 4f);
+            marker.transform.localScale = new Vector3(2f, 3f, 2f);
+
+            // 围墙既提供清晰的空间参照，也防止玩家在同步测试时轻易离开地面。
+            CreateBlock("North Wall", new Vector3(0f, 1.5f, 15f), new Vector3(30f, 3f, 1f));
+            CreateBlock("South Wall", new Vector3(0f, 1.5f, -15f), new Vector3(30f, 3f, 1f));
+            CreateBlock("East Wall", new Vector3(15f, 1.5f, 0f), new Vector3(1f, 3f, 30f));
+            CreateBlock("West Wall", new Vector3(-15f, 1.5f, 0f), new Vector3(1f, 3f, 30f));
+
+            // 出生区标记用于快速判断双方是否生成在不同位置。
+            CreateBlock("Host Spawn Marker", new Vector3(-2f, 0.05f, -4f), new Vector3(2f, 0.1f, 2f));
+            CreateBlock("Client Spawn Marker", new Vector3(2f, 0.05f, -4f), new Vector3(2f, 0.1f, 2f));
+        }
+
+        private static void CreateBlock(string name, Vector3 position, Vector3 scale)
+        {
+            GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            block.name = name;
+            block.transform.position = position;
+            block.transform.localScale = scale;
         }
 
         private static GameObject CreatePlayerPrefab()
