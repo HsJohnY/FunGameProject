@@ -193,6 +193,9 @@ namespace FunGame.Editor
                 stormMaterial,
                 true);
             var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
+            BoxCollider consoleCollider = consoleObject.GetComponent<BoxCollider>();
+            consoleCollider.center = new Vector3(0f, 0f, -0.18f);
+            consoleCollider.size = new Vector3(1f, 1f, 1.4f);
             CreateLocalDecoration(consoleObject.transform, "Calibration Console Screen", PrimitiveType.Cube,
                 new Vector3(0f, 0.18f, -0.58f), new Vector3(0.62f, 0.24f, 0.08f), darkMaterial);
             CreateLocalDecoration(consoleObject.transform, "Calibration Console Lever", PrimitiveType.Cylinder,
@@ -400,6 +403,9 @@ namespace FunGame.Editor
             GameObject rack = CreateBlock(
                 parent, name, position, new Vector3(0.55f, 1.05f, 0.9f), bodyMaterial, true);
             rack.AddComponent<ToolRackInteractable>().Configure(name.ToLowerInvariant().Replace(' ', '-'), tool);
+            BoxCollider rackCollider = rack.GetComponent<BoxCollider>();
+            rackCollider.center = new Vector3(-0.25f, 0f, 0f);
+            rackCollider.size = new Vector3(1.7f, 1.2f, 1.25f);
             if (tool == ToolKind.CircuitBridger)
             {
                 CreateDecoration(parent, name + " Scanner", PrimitiveType.Cube,
@@ -444,6 +450,9 @@ namespace FunGame.Editor
                     true);
                 relays[index] = relayObject.AddComponent<DemoRelayTarget>();
                 relays[index].Configure($"storm-relay-{index + 1}", $"风暴继电器 {index + 1}");
+                BoxCollider relayCollider = relayObject.GetComponent<BoxCollider>();
+                relayCollider.center = new Vector3(0f, 0.275f, -0.07f);
+                relayCollider.size = new Vector3(1f, 1.6f, 1.15f);
                 CreateLocalDecoration(relayObject.transform, "Relay Phase Coil", PrimitiveType.Cylinder,
                     new Vector3(0f, 0.15f, 0f), new Vector3(0.62f, 0.45f, 0.62f), warning,
                     Quaternion.Euler(0f, 0f, 90f));
@@ -565,21 +574,21 @@ namespace FunGame.Editor
             if (spec.Archetype == "skitter")
             {
                 CreateLocalDecoration(enemy, "Left Fin", PrimitiveType.Cube,
-                    new Vector3(-0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent);
+                    new Vector3(-0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent, keepCollider: true);
                 CreateLocalDecoration(enemy, "Right Fin", PrimitiveType.Cube,
-                    new Vector3(0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent);
+                    new Vector3(0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent, keepCollider: true);
             }
             else if (spec.Archetype == "pulser")
             {
                 CreateLocalDecoration(enemy, "Pulse Crown", PrimitiveType.Sphere,
-                    new Vector3(0f, 0.72f, 0f), new Vector3(0.42f, 0.18f, 0.42f), accent);
+                    new Vector3(0f, 0.72f, 0f), new Vector3(0.42f, 0.18f, 0.42f), accent, keepCollider: true);
             }
             else if (spec.Archetype == "bulwark")
             {
                 CreateLocalDecoration(enemy, "Front Armor", PrimitiveType.Cube,
-                    new Vector3(0f, 0f, -0.55f), new Vector3(0.85f, 0.65f, 0.18f), accent);
+                    new Vector3(0f, 0f, -0.55f), new Vector3(0.85f, 0.65f, 0.18f), accent, keepCollider: true);
                 CreateLocalDecoration(enemy, "Armor Crown", PrimitiveType.Cube,
-                    new Vector3(0f, 0.8f, 0f), new Vector3(0.75f, 0.2f, 0.7f), accent);
+                    new Vector3(0f, 0.8f, 0f), new Vector3(0.75f, 0.2f, 0.7f), accent, keepCollider: true);
             }
         }
 
@@ -703,7 +712,8 @@ namespace FunGame.Editor
             Vector3 localPosition,
             Vector3 localScale,
             Material material,
-            Quaternion localRotation = default)
+            Quaternion localRotation = default,
+            bool keepCollider = false)
         {
             GameObject decoration = GameObject.CreatePrimitive(type);
             decoration.name = name;
@@ -712,7 +722,10 @@ namespace FunGame.Editor
             decoration.transform.localRotation = localRotation == default ? Quaternion.identity : localRotation;
             decoration.transform.localScale = localScale;
             decoration.GetComponent<Renderer>().sharedMaterial = material;
-            UnityEngine.Object.DestroyImmediate(decoration.GetComponent<Collider>());
+            if (!keepCollider)
+            {
+                UnityEngine.Object.DestroyImmediate(decoration.GetComponent<Collider>());
+            }
             return decoration;
         }
 

@@ -122,6 +122,39 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ContextInteractionProxy_泵体外壳命中后转发到检查面板()
+        {
+            var incidentObject = new GameObject("Proxy Cooling Incident");
+            var incident = incidentObject.AddComponent<CoolingIncidentController>();
+            incident.ConfigureExtendedIncident(true);
+            incident.ConfigureTemperature(65f, 100f, 0f);
+            Assert.That(incident.TryInspectPressure(), Is.True);
+
+            GameObject panelObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var panel = panelObject.AddComponent<CoolingDiagnosticInteractable>();
+            panel.Configure(incident, CoolingDiagnosticInteractable.DiagnosticKind.PumpHousing);
+            GameObject pumpBody = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var proxy = pumpBody.AddComponent<ContextInteractionProxy>();
+            proxy.Configure(panel);
+            CreateToolActor(out GameObject actor, out _, out _);
+            ContextInteractor interactor = actor.GetComponent<ContextInteractor>();
+
+            yield return null;
+
+            InteractionOption option = proxy.GetInteractionOption(interactor);
+            Assert.That(proxy.HasTarget, Is.True);
+            Assert.That(option.IsAvailable, Is.True);
+            Assert.That(option.ActionLabel, Is.EqualTo("检查泵体振动"));
+            Assert.That(proxy.ExecuteInteraction(interactor), Is.True);
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.RestoreControlPower));
+
+            Object.Destroy(actor);
+            Object.Destroy(pumpBody);
+            Object.Destroy(panelObject);
+            Object.Destroy(incidentObject);
+        }
+
+        [UnityTest]
         public IEnumerator ControlledLayout_每次重置轮换位置并找回手持任务物()
         {
             var incidentObject = new GameObject("Layout Incident");

@@ -76,6 +76,79 @@ namespace FunGame.Tests.EditMode
             }
         }
 
+        [Test]
+        public void 后续章节关键交互物与怪物外形均有可命中的碰撞范围()
+        {
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                GameObject root = scene.GetRootGameObjects().First(item => item.name == "Single Player Three Chapter Demo");
+                Transform relayCompartment = FindTransform(scene, "Chapter 2 - Power Relay Compartment");
+                Transform stormChamber = FindTransform(scene, "Chapter 3 - Storm Core Chamber");
+                relayCompartment.gameObject.SetActive(true);
+                stormChamber.gameObject.SetActive(true);
+
+                foreach (DemoRelayTarget relay in root.GetComponentsInChildren<DemoRelayTarget>(true))
+                {
+                    AssertRenderersCovered(relay.gameObject, relay.GetComponentsInChildren<Renderer>(true));
+                }
+
+                GameObject console = FindTransform(scene, "Ship Systems Command Console").gameObject;
+                AssertRenderersCovered(console, console.GetComponentsInChildren<Renderer>(true));
+
+                AssertSiblingDecorationsCovered(scene, "Relay Bridger Station");
+                AssertSiblingDecorationsCovered(scene, "Relay Wrench Station");
+                AssertSiblingDecorationsCovered(scene, "Storm Wrench Station");
+
+                foreach (InterferenceEnemy enemy in root.GetComponentsInChildren<InterferenceEnemy>(true))
+                {
+                    for (Transform current = enemy.transform; current != null; current = current.parent)
+                    {
+                        current.gameObject.SetActive(true);
+                    }
+                    foreach (MeshRenderer renderer in enemy.GetComponentsInChildren<MeshRenderer>(true))
+                    {
+                        Assert.That(renderer.GetComponent<Collider>(), Is.Not.Null,
+                            $"{enemy.name} / {renderer.name} 的可见外形缺少对应碰撞体。");
+                    }
+                }
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        private static void AssertSiblingDecorationsCovered(Scene scene, string rackName)
+        {
+            GameObject rack = FindTransform(scene, rackName).gameObject;
+            Collider collider = rack.GetComponent<Collider>();
+            Renderer[] renderers = rack.transform.parent.GetComponentsInChildren<Renderer>(true)
+                .Where(renderer => renderer.name.StartsWith(rackName)).ToArray();
+            foreach (Renderer renderer in renderers)
+            {
+                Assert.That(Contains(collider.bounds, renderer.bounds), Is.True,
+                    $"{rackName} / {renderer.name} 的可见范围超出工具架交互碰撞体。");
+            }
+        }
+
+        private static void AssertRenderersCovered(GameObject target, Renderer[] renderers)
+        {
+            Collider collider = target.GetComponent<Collider>();
+            Assert.That(collider, Is.Not.Null, $"{target.name} 缺少交互碰撞体。");
+            foreach (Renderer renderer in renderers)
+            {
+                Assert.That(Contains(collider.bounds, renderer.bounds), Is.True,
+                    $"{target.name} / {renderer.name} 的可见范围超出交互碰撞体。");
+            }
+        }
+
+        private static bool Contains(Bounds outer, Bounds inner)
+        {
+            outer.Expand(0.03f);
+            return outer.Contains(inner.min) && outer.Contains(inner.max);
+        }
+
         private static Transform FindTransform(Scene scene, string name)
         {
             return scene.GetRootGameObjects()
