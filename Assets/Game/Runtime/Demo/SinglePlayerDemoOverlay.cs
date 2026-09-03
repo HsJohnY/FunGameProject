@@ -12,6 +12,7 @@ namespace FunGame.Demo
         [SerializeField] private SinglePlayerDemoController campaign;
         private GUIStyle _titleStyle;
         private GUIStyle _objectiveStyle;
+        private GUIStyle _capabilityStyle;
 
         public void Configure(SinglePlayerDemoController configuredCampaign)
         {
@@ -34,6 +35,10 @@ namespace FunGame.Demo
                 new Rect(24f, 54f, Mathf.Min(Screen.width - 48f, 760f), 32f),
                 campaign.CurrentObjective,
                 _objectiveStyle);
+            GUI.Label(
+                new Rect(24f, 82f, Mathf.Min(Screen.width - 48f, 820f), 26f),
+                campaign.ShipCapabilityStatus,
+                _capabilityStyle);
             GUI.Label(
                 new Rect(Screen.width - 220f, 20f, 196f, 30f),
                 $"演示用时 {CoolingIncidentController.FormatDuration(campaign.ElapsedSeconds)}",
@@ -58,6 +63,12 @@ namespace FunGame.Demo
                 fontSize = 17,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
+            };
+            _capabilityStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = new Color(0.55f, 0.78f, 0.82f) }
             };
         }
     }

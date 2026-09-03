@@ -11,20 +11,34 @@ namespace FunGame.Demo
         [SerializeField] private Transform[] movingParts;
         [SerializeField] private Renderer[] signalRenderers;
         [SerializeField] private Light[] workLights;
+        [SerializeField] private GameObject relayCompartment;
+        [SerializeField] private GameObject stormChamber;
+        [SerializeField] private GameObject relayAccessDoor;
+        [SerializeField] private GameObject stormAccessDoor;
         private MaterialPropertyBlock _propertyBlock;
         private Vector3[] _baseScales;
+        private SinglePlayerDemoChapter _visibleChapter = (SinglePlayerDemoChapter)(-1);
 
         public void Configure(
             SinglePlayerDemoController configuredCampaign,
             Transform[] configuredMovingParts,
             Renderer[] configuredSignals,
-            Light[] configuredWorkLights)
+            Light[] configuredWorkLights,
+            GameObject configuredRelayCompartment,
+            GameObject configuredStormChamber,
+            GameObject configuredRelayAccessDoor,
+            GameObject configuredStormAccessDoor)
         {
             campaign = configuredCampaign;
             movingParts = configuredMovingParts;
             signalRenderers = configuredSignals;
             workLights = configuredWorkLights;
+            relayCompartment = configuredRelayCompartment;
+            stormChamber = configuredStormChamber;
+            relayAccessDoor = configuredRelayAccessDoor;
+            stormAccessDoor = configuredStormAccessDoor;
             CaptureBaseScales();
+            RefreshChapterVisibility(true);
         }
 
         private void Awake()
@@ -39,6 +53,8 @@ namespace FunGame.Demo
             {
                 return;
             }
+
+            RefreshChapterVisibility(false);
 
             float speed = campaign.Chapter == SinglePlayerDemoChapter.StormCalibration ? 95f : 32f;
             if (movingParts != null)
@@ -82,6 +98,22 @@ namespace FunGame.Demo
                     }
                 }
             }
+        }
+
+        public void RefreshChapterVisibility(bool force)
+        {
+            if (campaign == null || (!force && _visibleChapter == campaign.Chapter))
+            {
+                return;
+            }
+
+            _visibleChapter = campaign.Chapter;
+            bool relayUnlocked = campaign.Chapter >= SinglePlayerDemoChapter.RelaySurge;
+            bool stormUnlocked = campaign.Chapter >= SinglePlayerDemoChapter.StormCalibration;
+            if (relayCompartment != null) relayCompartment.SetActive(relayUnlocked);
+            if (stormChamber != null) stormChamber.SetActive(stormUnlocked);
+            if (relayAccessDoor != null) relayAccessDoor.SetActive(!relayUnlocked);
+            if (stormAccessDoor != null) stormAccessDoor.SetActive(relayUnlocked && !stormUnlocked);
         }
 
         private void CaptureBaseScales()

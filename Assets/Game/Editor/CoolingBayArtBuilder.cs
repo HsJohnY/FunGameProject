@@ -111,8 +111,17 @@ namespace FunGame.Editor
             Material glow)
         {
             SetRendererVisible(GameObject.Find("Cooling Pump Placeholder"), false);
+            Collider placeholderCollider = GameObject.Find("Cooling Pump Placeholder")?.GetComponent<Collider>();
+            if (placeholderCollider != null)
+            {
+                placeholderCollider.enabled = false;
+            }
+
             var pump = new GameObject("Modular Cooling Pump").transform;
             pump.SetParent(root);
+            var pumpCollider = pump.gameObject.AddComponent<BoxCollider>();
+            pumpCollider.center = new Vector3(0f, 1.05f, 5.8f);
+            pumpCollider.size = new Vector3(2.7f, 2.1f, 3.8f);
             CreateShape(pump, "Pump Drum", PrimitiveType.Cylinder,
                 new Vector3(0f, 1.05f, 5.8f), new Vector3(0.9f, 1.72f, 0.9f), machinery,
                 Quaternion.Euler(90f, 0f, 0f));

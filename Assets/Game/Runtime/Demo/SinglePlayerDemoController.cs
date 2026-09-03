@@ -65,6 +65,24 @@ namespace FunGame.Demo
             }
         }
 
+        public string ShipCapabilityStatus
+        {
+            get
+            {
+                switch (Chapter)
+                {
+                    case SinglePlayerDemoChapter.CoolingEmergency:
+                        return "舰船能力：冷却抢修中  ·  配电离线  ·  风暴核心离线";
+                    case SinglePlayerDemoChapter.RelaySurge:
+                        return "舰船能力：冷却在线  ·  配电恢复中  ·  风暴核心离线";
+                    case SinglePlayerDemoChapter.StormCalibration:
+                        return "舰船能力：冷却在线  ·  配电在线  ·  风暴核心校准中";
+                    default:
+                        return "舰船能力：冷却 / 配电 / 风暴核心全部在线";
+                }
+            }
+        }
+
         public string CurrentObjective
         {
             get

@@ -43,19 +43,45 @@ namespace FunGame.Tests.PlayMode
             var campaignObject = new GameObject("Demo Campaign");
             var campaign = campaignObject.AddComponent<SinglePlayerDemoController>();
             campaign.Configure(incident, relayDefense, relays, stormWaves, campaignConsole);
+            var relayCompartment = new GameObject("Relay Compartment");
+            var stormChamber = new GameObject("Storm Chamber");
+            var relayDoor = new GameObject("Relay Door");
+            var stormDoor = new GameObject("Storm Door");
+            var presentationObject = new GameObject("Demo Presentation");
+            var presentation = presentationObject.AddComponent<DemoChapterPresentation>();
+            presentation.Configure(
+                campaign,
+                new Transform[0],
+                new Renderer[0],
+                new Light[0],
+                relayCompartment,
+                stormChamber,
+                relayDoor,
+                stormDoor);
             CreateCircuitActor(out GameObject actor, out PlayerToolbelt toolbelt);
 
             yield return null;
+            Assert.That(relayCompartment.activeSelf, Is.False);
+            Assert.That(stormChamber.activeSelf, Is.False);
+            Assert.That(relayDoor.activeSelf, Is.True);
+            Assert.That(stormDoor.activeSelf, Is.False);
 
             CompleteIncident(incident);
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(SinglePlayerDemoChapter.CoolingEmergency));
             Assert.That(campaign.CoolingRunsCompleted, Is.EqualTo(1));
             Assert.That(incident.RunState, Is.EqualTo(CoolingIncidentRunState.Active));
+            Assert.That(campaign.ShipCapabilityStatus, Does.Contain("配电离线"));
 
             CompleteIncident(incident);
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(SinglePlayerDemoChapter.RelaySurge));
+            Assert.That(campaign.ShipCapabilityStatus, Does.Contain("冷却在线"));
+            presentation.RefreshChapterVisibility(true);
+            Assert.That(relayCompartment.activeSelf, Is.True);
+            Assert.That(stormChamber.activeSelf, Is.False);
+            Assert.That(relayDoor.activeSelf, Is.False);
+            Assert.That(stormDoor.activeSelf, Is.True);
 
             foreach (DemoRelayTarget relay in relays)
             {
@@ -67,6 +93,10 @@ namespace FunGame.Tests.PlayMode
             relayDefense.NotifyEnemyDefeated();
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(SinglePlayerDemoChapter.StormCalibration));
+            Assert.That(campaign.ShipCapabilityStatus, Does.Contain("配电在线"));
+            presentation.RefreshChapterVisibility(true);
+            Assert.That(stormChamber.activeSelf, Is.True);
+            Assert.That(stormDoor.activeSelf, Is.False);
 
             for (int wave = 0; wave < stormWaves.Length; wave++)
             {
@@ -78,9 +108,15 @@ namespace FunGame.Tests.PlayMode
             }
 
             Assert.That(campaign.IsCompleted, Is.True);
+            Assert.That(campaign.ShipCapabilityStatus, Does.Contain("全部在线"));
 
             Object.Destroy(actor);
             Object.Destroy(campaignObject);
+            Object.Destroy(presentationObject);
+            Object.Destroy(relayCompartment);
+            Object.Destroy(stormChamber);
+            Object.Destroy(relayDoor);
+            Object.Destroy(stormDoor);
             Object.Destroy(consoleObject);
             foreach (GameObject relayObject in relayObjects) Object.Destroy(relayObject);
             foreach (CombatEncounterController wave in stormWaves) Object.Destroy(wave.gameObject);

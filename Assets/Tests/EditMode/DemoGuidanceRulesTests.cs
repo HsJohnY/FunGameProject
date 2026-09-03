@@ -8,6 +8,27 @@ namespace FunGame.Tests.EditMode
     public sealed class DemoGuidanceRulesTests
     {
         [Test]
+        public void 正后方目标在死区内保持原边避免左右乱跳()
+        {
+            var safeRect = new UnityEngine.Rect(100f, 50f, 1000f, 500f);
+            DemoMarkerPlacement first = DemoMarkerLayout.Calculate(
+                new UnityEngine.Vector3(0.8f, 0f, -5f),
+                UnityEngine.Vector2.zero,
+                safeRect,
+                -1f);
+            DemoMarkerPlacement jitter = DemoMarkerLayout.Calculate(
+                new UnityEngine.Vector3(0.02f, 0f, -5f),
+                UnityEngine.Vector2.zero,
+                safeRect,
+                first.BehindSide);
+
+            Assert.That(first.IsEdge, Is.True);
+            Assert.That(first.BehindSide, Is.EqualTo(1f));
+            Assert.That(jitter.BehindSide, Is.EqualTo(1f));
+            Assert.That(jitter.Position.x, Is.EqualTo(safeRect.xMax).Within(0.01f));
+        }
+
+        [Test]
         public void 冷却诊断先标记压力表再标记泵检查面板()
         {
             DemoGuidanceInstruction first = DemoGuidanceRules.ResolveCooling(

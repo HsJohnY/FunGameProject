@@ -7,6 +7,7 @@ using FunGame.Demo;
 using FunGame.Diagnostics;
 using FunGame.Incident;
 using FunGame.Interaction;
+using FunGame.Tools;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -23,6 +24,8 @@ namespace FunGame.Editor
     {
         public const string ScenePath = "Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity";
         private const string MaterialFolder = "Assets/Game/Content/Graybox";
+        private static readonly Vector3 RelayCompartmentOffset = new Vector3(0f, 0f, 20f);
+        private static readonly Vector3 StormChamberOffset = new Vector3(0f, 0f, 40f);
 
         [MenuItem("FunGame/Demo/生成三章单人演示场景")]
         public static void ConfigureCurrent()
@@ -53,12 +56,34 @@ namespace FunGame.Editor
                 MaterialFolder + "/Demo_Dark.mat", new Color(0.08f, 0.12f, 0.18f));
 
             var root = new GameObject("Single Player Three Chapter Demo").transform;
-            DemoChapterPresentation presentation = CreateChapterArt(
-                root, relayMaterial, stormMaterial, warningMaterial, darkMaterial);
-
-            DemoRelayTarget[] relays = CreateRelayTargets(root, relayMaterial, warningMaterial);
-            CombatEncounterController relayDefense = CreateEncounter(
+            RemoveLegacyVisualClutter();
+            CreateExtendedShipCompartments(
                 root,
+                darkMaterial,
+                warningMaterial,
+                relayMaterial,
+                stormMaterial,
+                out GameObject relayAccessDoor,
+                out GameObject stormAccessDoor);
+            var relayCompartment = new GameObject("Chapter 2 - Power Relay Compartment").transform;
+            relayCompartment.SetParent(root);
+            var stormChamber = new GameObject("Chapter 3 - Storm Core Chamber").transform;
+            stormChamber.SetParent(root);
+            CreateCompartmentToolRack(
+                relayCompartment, "Relay Bridger Station", new Vector3(5.65f, 1f, -7f),
+                ToolKind.CircuitBridger, relayMaterial, warningMaterial);
+            CreateCompartmentToolRack(
+                relayCompartment, "Relay Wrench Station", new Vector3(5.65f, 1f, -5.6f),
+                ToolKind.ImpactWrench, warningMaterial, darkMaterial);
+            CreateCompartmentToolRack(
+                stormChamber, "Storm Wrench Station", new Vector3(5.65f, 1f, -6.4f),
+                ToolKind.ImpactWrench, warningMaterial, stormMaterial);
+            DemoChapterPresentation presentation = CreateChapterArt(
+                root, relayCompartment, stormChamber, relayMaterial, stormMaterial, warningMaterial, darkMaterial);
+
+            DemoRelayTarget[] relays = CreateRelayTargets(relayCompartment, relayMaterial, warningMaterial);
+            CombatEncounterController relayDefense = CreateEncounter(
+                relayCompartment,
                 "Chapter 2 Relay Surge",
                 new Vector3(-4.4f, 1f, 5.8f),
                 100,
@@ -74,7 +99,7 @@ namespace FunGame.Editor
                 warningMaterial);
 
             DefendableSystemTarget stormCoreTarget = CreateDefenseTarget(
-                root,
+                stormChamber,
                 "Shared Storm Calibration Core",
                 new Vector3(4.2f, 1f, 6.4f),
                 130,
@@ -82,7 +107,7 @@ namespace FunGame.Editor
             CombatEncounterController[] stormWaves =
             {
                 CreateEncounter(
-                    root,
+                    stormChamber,
                     "Chapter 3 Wave 1 - Skitter Rush",
                     new Vector3(4.2f, 1f, 6.4f),
                     90,
@@ -96,7 +121,7 @@ namespace FunGame.Editor
                     warningMaterial,
                     stormCoreTarget),
                 CreateEncounter(
-                    root,
+                    stormChamber,
                     "Chapter 3 Wave 2 - Pulse Crossfire",
                     new Vector3(4.2f, 1f, 6.4f),
                     110,
@@ -111,7 +136,7 @@ namespace FunGame.Editor
                     warningMaterial,
                     stormCoreTarget),
                 CreateEncounter(
-                    root,
+                    stormChamber,
                     "Chapter 3 Wave 3 - Mixed Breach",
                     new Vector3(4.2f, 1f, 6.4f),
                     130,
@@ -126,7 +151,7 @@ namespace FunGame.Editor
                     warningMaterial,
                     stormCoreTarget),
                 CreateEncounter(
-                    root,
+                    stormChamber,
                     "Chapter 3 Wave 4 - Armored Escort",
                     new Vector3(4.2f, 1f, 6.4f),
                     130,
@@ -142,7 +167,7 @@ namespace FunGame.Editor
                     warningMaterial,
                     stormCoreTarget),
                 CreateEncounter(
-                    root,
+                    stormChamber,
                     "Chapter 3 Wave 5 - Final Convergence",
                     new Vector3(4.2f, 1f, 6.4f),
                     150,
@@ -161,9 +186,9 @@ namespace FunGame.Editor
             };
 
             GameObject consoleObject = CreateBlock(
-                root,
-                "Storm Calibration Console",
-                new Vector3(0f, 1f, -8.55f),
+                relayCompartment,
+                "Ship Systems Command Console",
+                new Vector3(0f, 1f, 8.55f),
                 new Vector3(2.2f, 2f, 0.7f),
                 stormMaterial,
                 true);
@@ -180,6 +205,11 @@ namespace FunGame.Editor
                     index == 2 ? warningMaterial : relayMaterial);
             }
 
+            CreateZoneLight(relayCompartment, "Power Compartment Work Light", new Vector3(0f, 4.2f, 0.5f), relayMaterial);
+            CreateZoneLight(stormChamber, "Storm Chamber Work Light", new Vector3(0f, 4.2f, 1.8f), stormMaterial);
+            relayCompartment.position = RelayCompartmentOffset;
+            stormChamber.position = StormChamberOffset;
+
             var campaign = root.gameObject.AddComponent<SinglePlayerDemoController>();
             campaign.Configure(incident, relayDefense, relays, stormWaves, campaignConsole);
             root.gameObject.AddComponent<SinglePlayerDemoOverlay>().Configure(campaign);
@@ -192,12 +222,15 @@ namespace FunGame.Editor
             root.gameObject.AddComponent<DemoScreenshotCheckpoint>();
             presentation.Configure(
                 campaign,
-                presentation.GetComponentsInChildren<Transform>(true)
+                stormChamber.GetComponentsInChildren<Transform>(true)
                     .Where(item => item.name.StartsWith("Storm Ceiling Node", StringComparison.Ordinal)).ToArray(),
-                presentation.GetComponentsInChildren<Renderer>(true)
+                stormChamber.GetComponentsInChildren<Renderer>(true)
                     .Where(item => item.name.StartsWith("Storm Ceiling Node", StringComparison.Ordinal)).ToArray(),
-                UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None)
-                    .Where(item => item.type == LightType.Point).ToArray());
+                root.GetComponentsInChildren<Light>(true),
+                relayCompartment.gameObject,
+                stormChamber.gameObject,
+                relayAccessDoor,
+                stormAccessDoor);
             CreateEasterEgg325(root, campaign, warningMaterial, darkMaterial);
 
             ContextPromptOverlay prompt = UnityEngine.Object.FindFirstObjectByType<ContextPromptOverlay>();
@@ -241,6 +274,152 @@ namespace FunGame.Editor
             }
 
             Debug.Log($"[Demo] Windows 开发构建成功：{report.summary.totalSize} bytes。");
+        }
+
+        private static void RemoveLegacyVisualClutter()
+        {
+            GameObject routeMarkers = GameObject.Find("Silent Tutorial Route - Rack Enemy Device");
+            if (routeMarkers != null)
+            {
+                UnityEngine.Object.DestroyImmediate(routeMarkers);
+            }
+
+            GameObject scaleReference = GameObject.Find("Remote Maintenance Suit Scale Reference");
+            if (scaleReference != null)
+            {
+                UnityEngine.Object.DestroyImmediate(scaleReference);
+            }
+
+            GameObject rearWall = GameObject.Find("Rear Wall");
+            if (rearWall != null)
+            {
+                rearWall.SetActive(false);
+            }
+        }
+
+        private static void CreateExtendedShipCompartments(
+            Transform parent,
+            Material structure,
+            Material warning,
+            Material relay,
+            Material storm,
+            out GameObject relayAccessDoor,
+            out GameObject stormAccessDoor)
+        {
+            CreateBlock(parent, "Extended Ship Floor", new Vector3(0f, -0.25f, 30f),
+                new Vector3(14f, 0.5f, 40f), structure, true);
+            CreateBlock(parent, "Extended Ship Ceiling", new Vector3(0f, 5f, 30f),
+                new Vector3(14f, 0.5f, 40f), structure, true);
+            CreateBlock(parent, "Extended Ship Left Wall", new Vector3(-7f, 2.5f, 30f),
+                new Vector3(0.5f, 5f, 40f), structure, true);
+            CreateBlock(parent, "Extended Ship Right Wall", new Vector3(7f, 2.5f, 30f),
+                new Vector3(0.5f, 5f, 40f), structure, true);
+            CreateBlock(parent, "Extended Ship Rear Wall", new Vector3(0f, 2.5f, 50f),
+                new Vector3(14f, 5f, 0.5f), structure, true);
+
+            relayAccessDoor = CreateBulkheadGate(
+                parent, "Sealed Power Compartment Door", 9.72f, relay, warning, "POWER RELAY 02");
+            stormAccessDoor = CreateBulkheadGate(
+                parent, "Sealed Storm Chamber Door", 29.72f, storm, warning, "STORM CORE 03");
+            CreateOpenBulkheadFrame(parent, "Power Compartment Frame", 10f, warning);
+            CreateOpenBulkheadFrame(parent, "Storm Chamber Frame", 30f, warning);
+        }
+
+        private static GameObject CreateBulkheadGate(
+            Transform parent,
+            string name,
+            float z,
+            Material doorMaterial,
+            Material accentMaterial,
+            string label)
+        {
+            var gate = new GameObject(name);
+            gate.transform.SetParent(parent);
+            CreateBlock(gate.transform, "Left Door Panel", new Vector3(-3.05f, 2.15f, z),
+                new Vector3(5.9f, 4.3f, 0.3f), doorMaterial, true);
+            CreateBlock(gate.transform, "Right Door Panel", new Vector3(3.05f, 2.15f, z),
+                new Vector3(5.9f, 4.3f, 0.3f), doorMaterial, true);
+            CreateDecoration(gate.transform, "Door Warning Bar", PrimitiveType.Cube,
+                new Vector3(0f, 2.15f, z - 0.18f), new Vector3(1.1f, 0.16f, 0.08f), accentMaterial);
+            CreateWorldLabel(gate.transform, label + " Door Label", label,
+                new Vector3(0f, 3.55f, z - 0.2f), new Color(1f, 0.62f, 0.18f));
+            return gate;
+        }
+
+        private static void CreateOpenBulkheadFrame(Transform parent, string name, float z, Material material)
+        {
+            var frame = new GameObject(name).transform;
+            frame.SetParent(parent);
+            CreateBlock(frame, "Left Frame", new Vector3(-6.25f, 2.5f, z),
+                new Vector3(1f, 5f, 0.55f), material, true);
+            CreateBlock(frame, "Right Frame", new Vector3(6.25f, 2.5f, z),
+                new Vector3(1f, 5f, 0.55f), material, true);
+            CreateBlock(frame, "Top Frame", new Vector3(0f, 4.55f, z),
+                new Vector3(11.6f, 0.45f, 0.55f), material, true);
+        }
+
+        private static void CreateWorldLabel(
+            Transform parent,
+            string name,
+            string content,
+            Vector3 position,
+            Color color)
+        {
+            var labelObject = new GameObject(name);
+            labelObject.transform.SetParent(parent);
+            labelObject.transform.SetPositionAndRotation(position, Quaternion.identity);
+            var text = labelObject.AddComponent<TextMesh>();
+            text.text = content;
+            text.fontSize = 72;
+            text.characterSize = 0.075f;
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.color = color;
+        }
+
+        private static void CreateZoneLight(Transform parent, string name, Vector3 position, Material colorSource)
+        {
+            var lightObject = new GameObject(name);
+            lightObject.transform.SetParent(parent);
+            lightObject.transform.position = position;
+            var light = lightObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.range = 13f;
+            light.intensity = 5f;
+            light.color = colorSource.color;
+        }
+
+        private static void CreateCompartmentToolRack(
+            Transform parent,
+            string name,
+            Vector3 position,
+            ToolKind tool,
+            Material bodyMaterial,
+            Material accentMaterial)
+        {
+            GameObject rack = CreateBlock(
+                parent, name, position, new Vector3(0.55f, 1.05f, 0.9f), bodyMaterial, true);
+            rack.AddComponent<ToolRackInteractable>().Configure(name.ToLowerInvariant().Replace(' ', '-'), tool);
+            if (tool == ToolKind.CircuitBridger)
+            {
+                CreateDecoration(parent, name + " Scanner", PrimitiveType.Cube,
+                    position + new Vector3(-0.34f, 0.12f, 0f), new Vector3(0.16f, 0.3f, 0.38f), accentMaterial);
+                CreateDecoration(parent, name + " Probe Upper", PrimitiveType.Cylinder,
+                    position + new Vector3(-0.42f, 0.13f, 0.26f), new Vector3(0.04f, 0.16f, 0.04f),
+                    bodyMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateDecoration(parent, name + " Probe Lower", PrimitiveType.Cylinder,
+                    position + new Vector3(-0.42f, 0.13f, -0.26f), new Vector3(0.04f, 0.16f, 0.04f),
+                    bodyMaterial, Quaternion.Euler(90f, 0f, 0f));
+            }
+            else
+            {
+                CreateDecoration(parent, name + " Grip", PrimitiveType.Cylinder,
+                    position + new Vector3(-0.34f, -0.12f, 0f), new Vector3(0.08f, 0.32f, 0.08f),
+                    accentMaterial, Quaternion.Euler(90f, 0f, 0f));
+                CreateDecoration(parent, name + " Motor", PrimitiveType.Cylinder,
+                    position + new Vector3(-0.38f, 0.22f, 0f), new Vector3(0.17f, 0.13f, 0.17f),
+                    bodyMaterial, Quaternion.Euler(0f, 0f, 90f));
+            }
         }
 
         private static DemoRelayTarget[] CreateRelayTargets(Transform parent, Material relay, Material warning)
@@ -405,28 +584,30 @@ namespace FunGame.Editor
         }
 
         private static DemoChapterPresentation CreateChapterArt(
-            Transform parent,
+            Transform presentationParent,
+            Transform relayParent,
+            Transform stormParent,
             Material relay,
             Material storm,
             Material warning,
             Material dark)
         {
             var art = new GameObject("Demo Chapter Art").transform;
-            art.SetParent(parent);
-            CreateDecoration(art, "Relay Conduit Left", PrimitiveType.Cylinder,
+            art.SetParent(presentationParent);
+            CreateDecoration(relayParent, "Relay Conduit Left", PrimitiveType.Cylinder,
                 new Vector3(-5.45f, 3.25f, 0.5f), new Vector3(0.12f, 4.3f, 0.12f), relay, Quaternion.Euler(90f, 0f, 0f));
-            CreateDecoration(art, "Relay Conduit Right", PrimitiveType.Cylinder,
+            CreateDecoration(relayParent, "Relay Conduit Right", PrimitiveType.Cylinder,
                 new Vector3(5.45f, 3.25f, 0.5f), new Vector3(0.12f, 4.3f, 0.12f), relay, Quaternion.Euler(90f, 0f, 0f));
             for (int index = 0; index < 5; index++)
             {
-                CreateDecoration(art, $"Storm Ceiling Node {index + 1}", PrimitiveType.Sphere,
+                CreateDecoration(stormParent, $"Storm Ceiling Node {index + 1}", PrimitiveType.Sphere,
                     new Vector3(-4.8f + index * 2.4f, 4.45f, -5.8f + index * 2.6f),
                     new Vector3(0.22f, 0.16f, 0.22f), index % 2 == 0 ? storm : warning);
             }
 
-            CreateDecoration(art, "Storm Core Outer", PrimitiveType.Cylinder,
+            CreateDecoration(stormParent, "Storm Core Outer", PrimitiveType.Cylinder,
                 new Vector3(4.2f, 1f, 6.4f), new Vector3(1.2f, 1.35f, 1.2f), dark, Quaternion.Euler(90f, 0f, 0f));
-            CreateDecoration(art, "Storm Core Inner", PrimitiveType.Sphere,
+            CreateDecoration(stormParent, "Storm Core Inner", PrimitiveType.Sphere,
                 new Vector3(4.2f, 1f, 6.4f), new Vector3(0.55f, 0.55f, 0.55f), storm);
             return art.gameObject.AddComponent<DemoChapterPresentation>();
         }

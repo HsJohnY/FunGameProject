@@ -20,14 +20,20 @@ namespace FunGame.Demo
         private readonly Dictionary<DemoGuidanceTargetKind, Transform> _fixedTargets =
             new Dictionary<DemoGuidanceTargetKind, Transform>();
         private DemoRelayTarget[] _relays;
+        private ToolRackInteractable[] _toolRacks;
         private Camera _viewCamera;
         private Texture2D _panelTexture;
         private GUIStyle _panelStyle;
         private GUIStyle _headerStyle;
         private GUIStyle _instructionStyle;
+        private GUIStyle _progressStyle;
         private GUIStyle _controlsStyle;
         private GUIStyle _primaryMarkerStyle;
         private GUIStyle _secondaryMarkerStyle;
+        private float _primaryBehindSide = 1f;
+        private float _secondaryBehindSide = -1f;
+        private string _lastProgressSignature;
+        private float _lastProgressAt;
 
         public DemoGuidanceInstruction CurrentInstruction { get; private set; }
         public Transform CurrentTarget { get; private set; }
@@ -98,23 +104,7 @@ namespace FunGame.Demo
                 }
             }
 
-            foreach (ToolRackInteractable rack in
-                     FindObjectsByType<ToolRackInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                DemoGuidanceTargetKind kind = DemoGuidanceTargetKind.None;
-                switch (rack.OfferedTool)
-                {
-                    case ToolKind.ImpactWrench: kind = DemoGuidanceTargetKind.ImpactWrenchRack; break;
-                    case ToolKind.SealantGun: kind = DemoGuidanceTargetKind.SealantRack; break;
-                    case ToolKind.CircuitBridger: kind = DemoGuidanceTargetKind.CircuitBridgerRack; break;
-                }
-
-                if (kind != DemoGuidanceTargetKind.None)
-                {
-                    _fixedTargets[kind] = rack.transform;
-                }
-            }
-
+            _toolRacks = FindObjectsByType<ToolRackInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             _relays = FindObjectsByType<DemoRelayTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None);
         }
 
@@ -168,6 +158,12 @@ namespace FunGame.Demo
 
             CurrentTarget = ResolveTarget(CurrentInstruction.PrimaryTarget);
             SecondaryTarget = ResolveTarget(CurrentInstruction.SecondaryTarget);
+            string progressSignature = CurrentInstruction.PrimaryTarget + ":" + GetProgressStatus(false);
+            if (_lastProgressSignature != progressSignature)
+            {
+                _lastProgressSignature = progressSignature;
+                _lastProgressAt = Time.unscaledTime;
+            }
         }
 
         private Transform ResolveTarget(DemoGuidanceTargetKind kind)
@@ -180,6 +176,21 @@ namespace FunGame.Demo
             if (kind == DemoGuidanceTargetKind.Enemy)
             {
                 return FindNearestEnemy();
+            }
+
+            if (kind == DemoGuidanceTargetKind.ImpactWrenchRack)
+            {
+                return FindNearestToolRack(ToolKind.ImpactWrench);
+            }
+
+            if (kind == DemoGuidanceTargetKind.SealantRack)
+            {
+                return FindNearestToolRack(ToolKind.SealantGun);
+            }
+
+            if (kind == DemoGuidanceTargetKind.CircuitBridgerRack)
+            {
+                return FindNearestToolRack(ToolKind.CircuitBridger);
             }
 
             return _fixedTargets.TryGetValue(kind, out Transform target) ? target : null;
@@ -205,6 +216,33 @@ namespace FunGame.Demo
                 if (distance < nearestDistance)
                 {
                     nearest = relay.transform;
+                    nearestDistance = distance;
+                }
+            }
+
+            return nearest;
+        }
+
+        private Transform FindNearestToolRack(ToolKind tool)
+        {
+            Transform nearest = null;
+            float nearestDistance = float.MaxValue;
+            if (_toolRacks == null)
+            {
+                return null;
+            }
+
+            foreach (ToolRackInteractable rack in _toolRacks)
+            {
+                if (rack == null || rack.OfferedTool != tool || !rack.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                float distance = DistanceToPlayer(rack.transform);
+                if (distance < nearestDistance)
+                {
+                    nearest = rack.transform;
                     nearestDistance = distance;
                 }
             }
@@ -258,20 +296,30 @@ namespace FunGame.Demo
 
             EnsureStyles();
             float panelWidth = Mathf.Min(610f, Screen.width - 32f);
-            var panelRect = new Rect(16f, Screen.height - 142f, panelWidth, 126f);
+            var panelRect = new Rect(16f, Screen.height - 160f, panelWidth, 144f);
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
             GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 12f, panelWidth - 36f, 25f), "任务导航", _headerStyle);
-            GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 39f, panelWidth - 36f, 52f),
+            GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 39f, panelWidth - 36f, 48f),
                 CurrentInstruction.ActionText, _instructionStyle);
-            GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 96f, panelWidth - 36f, 22f),
+            GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 87f, panelWidth - 36f, 22f),
+                GetProgressStatus(true), _progressStyle);
+            GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 114f, panelWidth - 36f, 22f),
                 "WASD 移动  ·  鼠标观察  ·  E 交互  ·  左键使用工具  ·  Q 放下  ·  Esc 暂停",
                 _controlsStyle);
 
-            DrawTargetMarker(CurrentTarget, GetTargetLabel(CurrentInstruction.PrimaryTarget), _primaryMarkerStyle);
-            DrawTargetMarker(SecondaryTarget, GetTargetLabel(CurrentInstruction.SecondaryTarget), _secondaryMarkerStyle);
+            DrawTargetMarker(
+                CurrentTarget,
+                GetTargetLabel(CurrentInstruction.PrimaryTarget),
+                _primaryMarkerStyle,
+                ref _primaryBehindSide);
+            DrawTargetMarker(
+                SecondaryTarget,
+                GetTargetLabel(CurrentInstruction.SecondaryTarget),
+                _secondaryMarkerStyle,
+                ref _secondaryBehindSide);
         }
 
-        private void DrawTargetMarker(Transform target, string label, GUIStyle style)
+        private void DrawTargetMarker(Transform target, string label, GUIStyle style, ref float behindSide)
         {
             if (target == null || _viewCamera == null)
             {
@@ -279,16 +327,26 @@ namespace FunGame.Demo
             }
 
             Vector3 screen = _viewCamera.WorldToScreenPoint(target.position + Vector3.up * 0.65f);
-            if (screen.z < 0f)
-            {
-                screen.x = Screen.width - screen.x;
-                screen.y = Screen.height - screen.y;
-            }
+            Vector3 localTarget = _viewCamera.transform.InverseTransformPoint(target.position + Vector3.up * 0.65f);
+            var safeRect = new Rect(92f, 44f, Screen.width - 184f, Screen.height - 234f);
+            DemoMarkerPlacement placement = DemoMarkerLayout.Calculate(
+                localTarget,
+                new Vector2(screen.x, Screen.height - screen.y),
+                safeRect,
+                behindSide);
+            behindSide = placement.BehindSide;
+            string glyph = placement.IsEdge ? GetEdgeGlyph(placement.Position, safeRect) : "◆";
+            GUI.Label(new Rect(placement.Position.x - 90f, placement.Position.y - 19f, 180f, 38f),
+                $"{glyph} {label}  {DistanceToPlayer(target):0}m", style);
+        }
 
-            float x = Mathf.Clamp(screen.x, 92f, Screen.width - 92f);
-            float y = Mathf.Clamp(Screen.height - screen.y, 44f, Screen.height - 172f);
-            GUI.Label(new Rect(x - 90f, y - 19f, 180f, 38f),
-                $"◆ {label}  {DistanceToPlayer(target):0}m", style);
+        private static string GetEdgeGlyph(Vector2 position, Rect safeRect)
+        {
+            const float tolerance = 1.5f;
+            if (Mathf.Abs(position.x - safeRect.xMin) <= tolerance) return "◀";
+            if (Mathf.Abs(position.x - safeRect.xMax) <= tolerance) return "▶";
+            if (Mathf.Abs(position.y - safeRect.yMin) <= tolerance) return "▲";
+            return "▼";
         }
 
         private static string GetTargetLabel(DemoGuidanceTargetKind kind)
@@ -313,6 +371,39 @@ namespace FunGame.Demo
             }
         }
 
+        private string GetProgressStatus(bool includeRecoveryHint)
+        {
+            string status;
+            switch (CurrentInstruction.PrimaryTarget)
+            {
+                case DemoGuidanceTargetKind.CircuitInterlock:
+                    status = $"当前进度：联锁桥接 {incident.CircuitBridgeProgress}/3";
+                    break;
+                case DemoGuidanceTargetKind.Leak:
+                    status = $"当前进度：泄漏密封 {Mathf.RoundToInt(incident.SealProgress * 100f)}%";
+                    break;
+                case DemoGuidanceTargetKind.Relay:
+                    DemoRelayTarget relay = CurrentTarget != null ? CurrentTarget.GetComponent<DemoRelayTarget>() : null;
+                    status = relay != null ? $"当前继电器：相位稳定 {relay.CompletedSteps}/3" : "正在定位下一座继电器";
+                    break;
+                case DemoGuidanceTargetKind.Enemy:
+                    status = "紫色标记会锁定最近且尚未清除的干扰体";
+                    break;
+                default:
+                    status = string.IsNullOrEmpty(CurrentInstruction.SecondaryText)
+                        ? "橙色标记始终指向当前可推进主线的对象"
+                        : CurrentInstruction.SecondaryText;
+                    break;
+            }
+
+            if (includeRecoveryHint && Time.unscaledTime - _lastProgressAt > 40f)
+            {
+                return status + "  ·  卡住时确认准星提示：设备按 E，工具目标点左键";
+            }
+
+            return status;
+        }
+
         private void EnsureStyles()
         {
             if (_panelStyle != null)
@@ -335,6 +426,11 @@ namespace FunGame.Demo
                 fontSize = 17,
                 wordWrap = true,
                 normal = { textColor = Color.white }
+            };
+            _progressStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                normal = { textColor = new Color(1f, 0.72f, 0.32f) }
             };
             _controlsStyle = new GUIStyle(GUI.skin.label)
             {
