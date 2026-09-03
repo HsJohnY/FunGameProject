@@ -1,5 +1,6 @@
 using UnityEngine;
 using FunGame.UI;
+using FunGame.Demo;
 
 namespace FunGame.Combat
 {
@@ -9,6 +10,7 @@ namespace FunGame.Combat
     public sealed class CoolingCombatStatusOverlay : MonoBehaviour
     {
         [SerializeField] private CoolingCombatIntegrationController integration;
+        [SerializeField] private SinglePlayerDemoController demoCampaign;
         private GUIStyle _style;
 
         public void Configure(CoolingCombatIntegrationController configuredIntegration)
@@ -16,9 +18,16 @@ namespace FunGame.Combat
             integration = configuredIntegration;
         }
 
+        public void ConfigureDemoCampaign(SinglePlayerDemoController configuredCampaign)
+        {
+            demoCampaign = configuredCampaign;
+        }
+
         private void OnGUI()
         {
-            if (GameMenuController.IsAnyMenuOpen || integration == null ||
+            if (GameMenuController.IsAnyMenuOpen ||
+                (demoCampaign != null && demoCampaign.Chapter != SinglePlayerDemoChapter.CoolingEmergency) ||
+                integration == null ||
                 !integration.HasTriggered || integration.Encounter == null)
             {
                 return;

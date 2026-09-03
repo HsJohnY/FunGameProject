@@ -55,6 +55,19 @@ namespace FunGame.Combat
         public InterferenceEnemyBehavior Behavior => behavior;
         public DefendableSystemTarget DefenseTarget => defenseTarget;
 
+        public void ConfigureIdentity(string id, string displayName)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                targetId = id;
+            }
+
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                targetName = displayName;
+            }
+        }
+
         private void Awake()
         {
             _collider = GetComponent<Collider>();
@@ -226,7 +239,7 @@ namespace FunGame.Combat
 
         private Vector3 GetDestination()
         {
-            if (behavior == InterferenceEnemyBehavior.Direct)
+            if (behavior == InterferenceEnemyBehavior.Direct || behavior == InterferenceEnemyBehavior.RangedPulse)
             {
                 return defenseTarget.transform.position;
             }
@@ -454,9 +467,14 @@ namespace FunGame.Combat
             }
 
             float ratio = MaxHealth <= 0 ? 0f : (float)Health / MaxHealth;
+            Color healthyColor = behavior == InterferenceEnemyBehavior.FlankingAttach
+                ? new Color(0.95f, 0.18f, 0.6f)
+                : behavior == InterferenceEnemyBehavior.RangedPulse
+                    ? new Color(0.15f, 0.7f, 1f)
+                    : new Color(0.7f, 0.1f, 0.85f);
             Color stateColor = IsDefeated
                 ? new Color(0.08f, 0.08f, 0.08f)
-                : Color.Lerp(new Color(1f, 0.2f, 0.05f), new Color(0.7f, 0.1f, 0.85f), ratio);
+                : Color.Lerp(new Color(1f, 0.2f, 0.05f), healthyColor, ratio);
             if (IsTelegraphing)
             {
                 stateColor = Color.Lerp(stateColor, new Color(1f, 0.75f, 0.05f), 0.75f);

@@ -9,6 +9,7 @@ namespace FunGame.Tools
     {
         [SerializeField] private GameObject impactWrenchVisual;
         [SerializeField] private GameObject sealantGunVisual;
+        [SerializeField] private GameObject circuitBridgerVisual;
 
         public ToolKind EquippedTool { get; private set; }
 
@@ -17,8 +18,20 @@ namespace FunGame.Tools
         /// </summary>
         public void ConfigureVisuals(GameObject wrenchVisual, GameObject sealantVisual)
         {
+            ConfigureVisuals(wrenchVisual, sealantVisual, null);
+        }
+
+        /// <summary>
+        /// 绑定三种 MVP 主工具的互斥第一人称占位模型。
+        /// </summary>
+        public void ConfigureVisuals(
+            GameObject wrenchVisual,
+            GameObject sealantVisual,
+            GameObject bridgerVisual)
+        {
             impactWrenchVisual = wrenchVisual;
             sealantGunVisual = sealantVisual;
+            circuitBridgerVisual = bridgerVisual;
             RefreshVisuals();
         }
 
@@ -65,6 +78,11 @@ namespace FunGame.Tools
             if (sealantGunVisual != null)
             {
                 sealantGunVisual.SetActive(EquippedTool == ToolKind.SealantGun);
+            }
+
+            if (circuitBridgerVisual != null)
+            {
+                circuitBridgerVisual.SetActive(EquippedTool == ToolKind.CircuitBridger);
             }
         }
     }

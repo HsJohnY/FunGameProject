@@ -69,6 +69,14 @@ namespace FunGame.UI
             player = configuredPlayer;
         }
 
+        /// <summary>
+        /// 仅供开发构建的截图检查点进入玩法画面；普通玩家仍通过主菜单按钮开始。
+        /// </summary>
+        public void EnterGameplayForAutomation()
+        {
+            CloseMenu();
+        }
+
         private void Awake()
         {
             if (player == null)
