@@ -49,7 +49,7 @@ namespace FunGame.Combat
                     case CombatEncounterState.Failed:
                         return "防卫失败：辅助控制设备已离线";
                     default:
-                        return "保护辅助控制设备：切换冲击扳手，清除正在接近的干扰体";
+                        return "小怪可用任意工具清除：扳手重击、喷枪范围清群、桥接器瘫痪破盾";
                 }
             }
         }

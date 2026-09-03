@@ -12,7 +12,7 @@ namespace FunGame.Tests.PlayMode
     public sealed class CombatPlayModeTests
     {
         [UnityTest]
-        public IEnumerator ToolController_冲击扳手三次击退基础敌人并完成遭遇()
+        public IEnumerator ToolController_冲击扳手两次重击基础敌人并完成遭遇()
         {
             CreateEncounter(
                 new Vector3(0f, 100f, 6f),
@@ -30,11 +30,11 @@ namespace FunGame.Tests.PlayMode
 
             yield return null;
 
-            for (int hitIndex = 0; hitIndex < 3; hitIndex++)
+            for (int hitIndex = 0; hitIndex < 2; hitIndex++)
             {
                 controller.RefreshTarget();
                 Assert.That(controller.CurrentOption.HasValue, Is.True);
-                Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("击退"));
+                Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("重击"));
                 Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
                 yield return new WaitForSecondsRealtime(0.4f);
             }
@@ -54,7 +54,7 @@ namespace FunGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator InterferenceEnemy_错误工具不会造成伤害()
+        public IEnumerator InterferenceEnemy_密封喷枪范围喷覆会伤害减速并推离()
         {
             CreateEncounter(
                 new Vector3(0f, 110f, 6f),
@@ -74,10 +74,133 @@ namespace FunGame.Tests.PlayMode
             controller.RefreshTarget();
 
             Assert.That(controller.CurrentOption.HasValue, Is.True);
-            Assert.That(controller.CurrentOption.Value.IsAvailable, Is.False);
-            Assert.That(controller.CurrentOption.Value.BlockedReason, Is.EqualTo("需要冲击扳手"));
-            Assert.That(controller.ExecuteCurrentToolAction(), Is.False);
-            Assert.That(enemy.Health, Is.EqualTo(enemy.MaxHealth));
+            Assert.That(controller.CurrentOption.Value.IsAvailable, Is.True);
+            Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("范围喷覆"));
+            Rigidbody enemyBody = enemyObject.GetComponent<Rigidbody>();
+            float beforePositionZ = enemyBody.position.z;
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+            Assert.That(enemy.Health, Is.EqualTo(enemy.MaxHealth - 1));
+            Assert.That(enemy.IsSlowed, Is.True);
+            Assert.That(enemyBody.position.z, Is.GreaterThan(beforePositionZ));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator InterferenceEnemy_线路桥接器造成过载并中断攻击蓄力()
+        {
+            CreateEncounter(
+                new Vector3(0f, 112f, 3f),
+                new Vector3(0f, 112f, 2f),
+                out GameObject encounterObject,
+                out _,
+                out GameObject targetObject,
+                out _,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                attackRange: 2f,
+                knockbackDistance: 0f);
+            CreateToolActor(new Vector3(0f, 112f, 0f), out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            Physics.SyncTransforms();
+
+            yield return null;
+            controller.RefreshTarget();
+
+            Assert.That(controller.CurrentOption.HasValue, Is.True);
+            Assert.That(controller.CurrentOption.Value.ActionLabel, Is.EqualTo("电击瘫痪"));
+            Assert.That(controller.ExecuteCurrentToolAction(), Is.True);
+            Assert.That(enemy.IsStunned, Is.True);
+            Assert.That(enemy.Health, Is.EqualTo(enemy.MaxHealth - 1));
+            Assert.That(controller.CircuitBridgerCooldownRemaining, Is.GreaterThan(0f));
+
+            Object.Destroy(actor);
+            Object.Destroy(enemyObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator InterferenceEnemy_密封喷枪一次范围喷覆清除相邻虫群()
+        {
+            var encounterObject = new GameObject("Swarm Encounter");
+            var encounter = encounterObject.AddComponent<CombatEncounterController>();
+            GameObject targetObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            targetObject.transform.position = new Vector3(0f, 114f, 6f);
+            var target = targetObject.AddComponent<DefendableSystemTarget>();
+            target.Configure(60);
+
+            GameObject firstObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            firstObject.transform.position = new Vector3(-0.4f, 114f, 2f);
+            var first = firstObject.AddComponent<InterferenceEnemy>();
+            first.Configure(target, encounter, configuredMaxHealth: 1, configuredMoveSpeed: 0.1f);
+            GameObject secondObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            secondObject.transform.position = new Vector3(0.5f, 114f, 2.2f);
+            var second = secondObject.AddComponent<InterferenceEnemy>();
+            second.Configure(target, encounter, configuredMaxHealth: 1, configuredMoveSpeed: 0.1f);
+            encounter.Configure(target, new[] { first, second });
+
+            var actor = new GameObject("Swarm Tool Actor");
+            actor.transform.position = new Vector3(0f, 114f, 0f);
+            var toolbelt = actor.AddComponent<PlayerToolbelt>();
+            toolbelt.Equip(ToolKind.SealantGun);
+            Physics.SyncTransforms();
+            yield return null;
+
+            Assert.That(first.ApplyTool(toolbelt), Is.True);
+            Assert.That(first.IsDefeated, Is.True);
+            Assert.That(second.IsDefeated, Is.True);
+            Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
+
+            Object.Destroy(actor);
+            Object.Destroy(secondObject);
+            Object.Destroy(firstObject);
+            Object.Destroy(targetObject);
+            Object.Destroy(encounterObject);
+        }
+
+        [UnityTest]
+        public IEnumerator InterferenceEnemy_精英护盾要求桥接器先短路再接受重击()
+        {
+            CreateEncounter(
+                new Vector3(0f, 116f, 6f),
+                new Vector3(0f, 116f, 2f),
+                out GameObject encounterObject,
+                out CombatEncounterController encounter,
+                out GameObject targetObject,
+                out DefendableSystemTarget target,
+                out GameObject enemyObject,
+                out InterferenceEnemy enemy,
+                knockbackDistance: 0f);
+            enemy.Configure(
+                target,
+                encounter,
+                configuredMaxHealth: 6,
+                configuredMoveSpeed: 0.1f,
+                configuredKnockbackDistance: 0f,
+                configuredRequiresCircuitDisruption: true);
+            var actor = new GameObject("Elite Tool Actor");
+            var toolbelt = actor.AddComponent<PlayerToolbelt>();
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            yield return null;
+
+            ToolActionOption blocked = enemy.GetToolAction(toolbelt);
+            Assert.That(blocked.IsAvailable, Is.False);
+            Assert.That(blocked.BlockedReason, Is.EqualTo("需要线路桥接器"));
+            Assert.That(enemy.ApplyTool(toolbelt), Is.False);
+
+            toolbelt.Equip(ToolKind.CircuitBridger);
+            Assert.That(enemy.ApplyTool(toolbelt), Is.True);
+            Assert.That(enemy.IsStunned, Is.True);
+            Assert.That(enemy.IsDisruptionShieldActive, Is.False);
+            Assert.That(enemy.Health, Is.EqualTo(5));
+
+            toolbelt.Equip(ToolKind.ImpactWrench);
+            Assert.That(enemy.ApplyTool(toolbelt), Is.True);
+            Assert.That(enemy.Health, Is.EqualTo(3));
 
             Object.Destroy(actor);
             Object.Destroy(enemyObject);
@@ -106,7 +229,7 @@ namespace FunGame.Tests.PlayMode
 
             Collider targetCollider = targetObject.GetComponent<Collider>();
             Collider enemyCollider = enemyObject.GetComponent<Collider>();
-            for (int hitIndex = 0; hitIndex < 3; hitIndex++)
+            for (int hitIndex = 0; hitIndex < 2; hitIndex++)
             {
                 controller.RefreshTarget();
                 Assert.That(controller.CurrentOption.HasValue, Is.True, $"第 {hitIndex + 1} 次命中前敌人应保持可选中");
@@ -299,14 +422,14 @@ namespace FunGame.Tests.PlayMode
             toolbelt.Equip(ToolKind.ImpactWrench);
             yield return null;
 
-            for (int index = 0; index < 3; index++)
+            for (int index = 0; index < 2; index++)
             {
                 Assert.That(first.ApplyTool(toolbelt), Is.True);
             }
 
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Active));
             Assert.That(encounter.RemainingEnemyCount, Is.EqualTo(1));
-            for (int index = 0; index < 3; index++)
+            for (int index = 0; index < 2; index++)
             {
                 Assert.That(second.ApplyTool(toolbelt), Is.True);
             }
@@ -395,7 +518,7 @@ namespace FunGame.Tests.PlayMode
                 configuredAttackRange: attackRange,
                 configuredAttackIntervalSeconds: attackIntervalSeconds,
                 configuredInterferenceDamage: interferenceDamage,
-                configuredWrenchDamage: 1,
+                configuredWrenchDamage: 2,
                 configuredKnockbackDistance: knockbackDistance,
                 configuredAttackWindupSeconds: 0.02f);
         }

@@ -303,6 +303,7 @@ namespace FunGame.Editor
             var toolController = player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>().Configure(incident);
             player.AddComponent<CoolingIncidentMetricsTracker>().Configure(incident, interactor, toolController);
+            player.AddComponent<ToolbeltStatusOverlay>();
             return playerController;
         }
 

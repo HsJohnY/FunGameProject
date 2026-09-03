@@ -16,6 +16,7 @@ namespace FunGame.Interaction
         private Vector3 _worldScaleBeforePickup;
 
         public string TargetId => targetId;
+        public string DisplayName => targetName;
         public bool IsHeld { get; private set; }
 
         public void ConfigureIdentity(string id, string displayName)

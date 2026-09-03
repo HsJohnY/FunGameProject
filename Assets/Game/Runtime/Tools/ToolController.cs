@@ -18,12 +18,15 @@ namespace FunGame.Tools
         private InputAction _primaryAction;
         private IToolTarget _currentTarget;
         [SerializeField, Min(0.05f)] private float impactWrenchCooldownSeconds = 0.38f;
+        [SerializeField, Min(0.05f)] private float circuitBridgerCooldownSeconds = 0.8f;
         private float _nextImpactWrenchActionTime;
+        private float _nextCircuitBridgerActionTime;
 
         public ToolActionOption? CurrentOption { get; private set; }
         public event Action<ToolActionFeedback> ToolActionExecuted;
         public event Action<string, string> ToolActionRejected;
         public float ImpactWrenchCooldownRemaining => Mathf.Max(0f, _nextImpactWrenchActionTime - Time.unscaledTime);
+        public float CircuitBridgerCooldownRemaining => Mathf.Max(0f, _nextCircuitBridgerActionTime - Time.unscaledTime);
 
         private void Awake()
         {
@@ -93,6 +96,11 @@ namespace FunGame.Tools
                 return false;
             }
 
+            if (option.EquippedTool == ToolKind.CircuitBridger && CircuitBridgerCooldownRemaining > 0f)
+            {
+                return false;
+            }
+
             if (!option.IsAvailable)
             {
                 ToolActionRejected?.Invoke(option.TargetId, option.BlockedReason);
@@ -104,6 +112,10 @@ namespace FunGame.Tools
             if (option.EquippedTool == ToolKind.ImpactWrench)
             {
                 _nextImpactWrenchActionTime = Time.unscaledTime + impactWrenchCooldownSeconds;
+            }
+            else if (option.EquippedTool == ToolKind.CircuitBridger)
+            {
+                _nextCircuitBridgerActionTime = Time.unscaledTime + circuitBridgerCooldownSeconds;
             }
 
             ToolActionExecuted?.Invoke(new ToolActionFeedback(
@@ -118,6 +130,11 @@ namespace FunGame.Tools
         public void ConfigureImpactWrenchCooldown(float seconds)
         {
             impactWrenchCooldownSeconds = Mathf.Max(0.05f, seconds);
+        }
+
+        public void ConfigureCircuitBridgerCooldown(float seconds)
+        {
+            circuitBridgerCooldownSeconds = Mathf.Max(0.05f, seconds);
         }
     }
 }

@@ -1,4 +1,5 @@
 using FunGame.Combat;
+using FunGame.Tools;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -82,6 +83,15 @@ namespace FunGame.Tests.EditMode
                 Assert.That(enemyBody.useGravity, Is.False);
                 Assert.That(target.TryGetComponent(out BoxCollider targetCollider), Is.True);
                 Assert.That(targetCollider.isTrigger, Is.False);
+                GameObject guardian = FindRoot(scene, "Shielded Relay Guardian");
+                Assert.That(guardian, Is.Not.Null);
+                Assert.That(guardian.GetComponent<InterferenceEnemy>().IsDisruptionShieldActive, Is.True);
+                for (int index = 1; index <= 5; index++)
+                {
+                    GameObject swarmBug = FindRoot(scene, $"Swarm Bug {index}");
+                    Assert.That(swarmBug, Is.Not.Null, $"战斗沙盒应包含虫群单位 {index}");
+                    Assert.That(swarmBug.GetComponent<InterferenceEnemy>().MaxHealth, Is.EqualTo(1));
+                }
             }
             finally
             {
@@ -126,6 +136,17 @@ namespace FunGame.Tests.EditMode
                 Assert.That(walkwayB, Is.Not.Null);
                 Assert.That(walkwayA.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
                 Assert.That(walkwayB.GetComponent<Collider>(), Is.Null, "步道标记只能用于视觉引导，不应阻挡干扰体");
+                Assert.That(FindInScene(scene, "Impact Wrench Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Gun Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Circuit Bridger Rack"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Mechanical Fastener Demo"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Leak Demo"), Is.Not.Null);
+                // 单人三章流程已将旧演示节点升级为正式的冷却控制联锁，
+                // 战斗集成测试应验证正式任务对象，而不是重新引入重复占位物。
+                GameObject circuitTask = FindInScene(scene, "Cooling Control Circuit Interlock");
+                Assert.That(circuitTask, Is.Not.Null);
+                Assert.That(circuitTask.GetComponent<CircuitBridgeTarget>(), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Circuit Bridger Visual"), Is.Not.Null);
             }
             finally
             {

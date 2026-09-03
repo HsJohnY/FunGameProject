@@ -171,7 +171,7 @@ namespace FunGame.Editor
                 configuredAttackRange: 1.15f,
                 configuredAttackIntervalSeconds: 1.5f,
                 configuredInterferenceDamage: 10,
-                configuredWrenchDamage: 1,
+                configuredWrenchDamage: 2,
                 configuredKnockbackDistance: 1.1f,
                 configuredBehavior: behavior,
                 configuredAttackWindupSeconds: 0.55f);
@@ -211,7 +211,7 @@ namespace FunGame.Editor
             tutorial.SetParent(parent);
             Vector3[] points =
             {
-                new Vector3(5.1f, 0.035f, -3.3f),
+                new Vector3(5.1f, 0.035f, -4f),
                 new Vector3(4.2f, 0.035f, -2.0f),
                 new Vector3(3.4f, 0.035f, -0.5f),
                 new Vector3(3.5f, 0.035f, 1.2f),
@@ -242,12 +242,14 @@ namespace FunGame.Editor
 
             Camera viewCamera = player.GetComponentInChildren<Camera>(true);
             Transform wrenchVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Impact Wrench Visual");
+            Transform sealantVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Sealant Gun Visual");
+            Transform bridgerVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Circuit Bridger Visual");
             var cameraFeedback = player.AddComponent<CombatCameraFeedback>();
             cameraFeedback.Configure(viewCamera != null ? viewCamera.transform : null);
             var hitStop = player.AddComponent<LocalHitStopFeedback>();
             player.AddComponent<AudioSource>();
             var presenter = player.AddComponent<WrenchFeedbackPresenter>();
-            presenter.Configure(wrenchVisual, cameraFeedback, hitStop);
+            presenter.Configure(wrenchVisual, sealantVisual, bridgerVisual, cameraFeedback, hitStop);
             player.AddComponent<CoolingCombatStatusOverlay>().Configure(integration);
         }
 
