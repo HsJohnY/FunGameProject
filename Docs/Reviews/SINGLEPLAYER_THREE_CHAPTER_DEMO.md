@@ -11,6 +11,7 @@
 - Windows 构建及真实播放器检查点：通过；
 - 1600×900 玩法画面自动截图：通过；第一章无旧路线碎片和未来章节悬浮装置，配电舱门、任务操作句和压力表距离标记清晰可见；
 - 960×900 设置页截图：通过；选项区独立滚动，恢复默认、应用并保存和返回按钮固定在面板底端；
+- 正式 Windows 构建贯通：通过；2/2 冷却、5/5 继电器、5/5 波次、最终结算与 325 均由正式场景运行时对象完成，详见 `SINGLEPLAYER_BUILD_PLAYTHROUGH.md`；
 - 首次玩家时长、章节节奏、美术可读性和趣味性：待人工评审。
 
 ## 体验目标
@@ -117,6 +118,7 @@
 ```powershell
 .\Tools\Run-UnityTests.ps1 -Mode All -UnityEditorPath 'D:\Unity\Hub\Editor\6000.0.82f1\Editor\Unity.exe'
 .\Tools\Build-SinglePlayerDemo.ps1
+.\Tools\Test-SinglePlayerDemoCompletion.ps1
 .\Tools\Test-SinglePlayerDemoBuild.ps1
 ```
 
