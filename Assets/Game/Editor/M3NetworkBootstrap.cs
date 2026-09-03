@@ -20,6 +20,7 @@ namespace FunGame.Editor
     {
         private const string ScenePath = "Assets/Game/Scenes/M3_NetworkSlice.unity";
         private const string PlayerPrefabPath = "Assets/Game/Content/Networking/M3_NetworkPlayer.prefab";
+        private const string CarryablePrefabPath = "Assets/Game/Content/Networking/M3_SharedTaskPart.prefab";
 
         [MenuItem("FunGame/M3/生成网络验证场景")]
         public static void ConfigureCurrent()
@@ -29,6 +30,8 @@ namespace FunGame.Editor
 
             CreateEnvironment();
             GameObject playerPrefab = CreatePlayerPrefab();
+            GameObject carryablePrefab = CreateCarryablePrefab();
+            RegisterNetworkPrefab(carryablePrefab);
 
             var sessionObject = new GameObject("M3 Network Session");
             var networkManager = sessionObject.AddComponent<NetworkManager>();
@@ -40,6 +43,8 @@ namespace FunGame.Editor
 
             var sessionController = sessionObject.AddComponent<NetworkSessionController>();
             sessionController.Configure(networkManager, transport);
+            var itemSpawner = sessionObject.AddComponent<NetworkSharedItemSpawner>();
+            itemSpawner.Configure(networkManager, carryablePrefab);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
@@ -161,6 +166,7 @@ namespace FunGame.Editor
             player.AddComponent<NetworkPlayerToolbelt>();
             var contextInteractor = player.AddComponent<ContextInteractor>();
             contextInteractor.enabled = false;
+            player.AddComponent<NetworkPlayerCarryController>();
             var promptOverlay = player.AddComponent<ContextPromptOverlay>();
             promptOverlay.enabled = false;
             NetworkPlayerController networkPlayer = player.AddComponent<NetworkPlayerController>();
@@ -181,6 +187,38 @@ namespace FunGame.Editor
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);
             Object.DestroyImmediate(player);
             return prefab;
+        }
+
+        private static GameObject CreateCarryablePrefab()
+        {
+            EnsureFolder("Assets/Game/Content", "Networking");
+
+            GameObject item = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            item.name = "M3 Shared Task Part";
+            item.transform.localScale = new Vector3(0.6f, 0.6f, 1.5f);
+            item.AddComponent<NetworkObject>();
+            var networkTransform = item.AddComponent<NetworkTransform>();
+            networkTransform.AuthorityMode = NetworkTransform.AuthorityModes.Server;
+            networkTransform.Interpolate = true;
+            item.AddComponent<Rigidbody>();
+            item.AddComponent<NetworkRigidbody>();
+            item.AddComponent<NetworkCarryableItem>()
+                .ConfigureIdentity("m3-shared-task-part", "共享替换管件");
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(item, CarryablePrefabPath);
+            Object.DestroyImmediate(item);
+            return prefab;
+        }
+
+        private static void RegisterNetworkPrefab(GameObject prefab)
+        {
+            const string defaultListPath = "Assets/DefaultNetworkPrefabs.asset";
+            NetworkPrefabsList prefabList = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>(defaultListPath);
+            if (prefabList != null && !prefabList.Contains(prefab))
+            {
+                prefabList.Add(new NetworkPrefab { Prefab = prefab });
+                EditorUtility.SetDirty(prefabList);
+            }
         }
 
         private static void EnsureFolder(string parent, string child)
