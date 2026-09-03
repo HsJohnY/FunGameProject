@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8078304320081721509}
   - component: {fileID: 1786423630919706173}
   - component: {fileID: 8995419756342822388}
+  - component: {fileID: 1325898092922907997}
   m_Layer: 0
   m_Name: M3_NetworkIncident
   m_TagString: Untagged
@@ -88,3 +89,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   incident: {fileID: 1786423630919706173}
+--- !u!114 &1325898092922907997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6698310948827054887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c89ebef3ac29e4f4a870ed8259f2f30f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1

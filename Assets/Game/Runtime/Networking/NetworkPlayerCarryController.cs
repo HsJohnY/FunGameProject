@@ -23,6 +23,7 @@ namespace FunGame.Networking
             NetworkVariableWritePermission.Server);
 
         private InputAction _dropAction;
+        private bool _gameplayInputAllowed = true;
 
         public bool HasHeldItem => heldItem.Value.TryGet(out _, NetworkManager);
 
@@ -38,7 +39,7 @@ namespace FunGame.Networking
 
         public override void OnNetworkSpawn()
         {
-            if (IsOwner)
+            if (IsOwner && _gameplayInputAllowed)
             {
                 _dropAction.Enable();
             }
@@ -60,7 +61,7 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (IsOwner && _dropAction.WasPressedThisFrame())
+            if (IsOwner && _gameplayInputAllowed && _dropAction.WasPressedThisFrame())
             {
                 RequestDrop();
             }
@@ -79,13 +80,26 @@ namespace FunGame.Networking
 
         public bool RequestDrop()
         {
-            if (!IsSpawned || !IsOwner || !HasHeldItem || viewCamera == null)
+            if (!IsSpawned || !IsOwner || !_gameplayInputAllowed || !HasHeldItem || viewCamera == null)
             {
                 return false;
             }
 
             RequestDropRpc(viewCamera.transform.forward);
             return true;
+        }
+
+        public void SetGameplayInputEnabled(bool enabledInput)
+        {
+            _gameplayInputAllowed = enabledInput;
+            if (enabledInput && IsSpawned && IsOwner)
+            {
+                _dropAction?.Enable();
+            }
+            else
+            {
+                _dropAction?.Disable();
+            }
         }
 
         public bool IsHoldingItem(string requiredTargetId)

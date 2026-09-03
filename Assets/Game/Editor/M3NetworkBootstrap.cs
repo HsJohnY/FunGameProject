@@ -7,6 +7,8 @@ using Unity.Netcode;
 using Unity.Netcode.Components;
 using Unity.Netcode.Transports.UTP;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -46,6 +48,7 @@ namespace FunGame.Editor
 
             var sessionController = sessionObject.AddComponent<NetworkSessionController>();
             sessionController.Configure(networkManager, transport);
+            sessionObject.AddComponent<NetworkDiagnosticsOverlay>().Configure(networkManager, transport);
             var itemSpawner = sessionObject.AddComponent<NetworkSharedItemSpawner>();
             itemSpawner.Configure(networkManager, carryablePrefab);
             var incidentSpawner = sessionObject.AddComponent<NetworkIncidentSpawner>();
@@ -61,7 +64,33 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M3-3A] 玩家同步与联网工具位验证场景生成成功。");
+            Debug.Log("[M3-6] 完整网络切片验证场景生成成功。");
+        }
+
+        /// <summary>
+        /// 生成 M3 网络切片的 Windows x64 开发构建，供双进程和最终冒烟验证使用。
+        /// </summary>
+        [MenuItem("FunGame/M3/构建 Windows 开发版本")]
+        public static void BuildWindowsDevelopment()
+        {
+            ConfigureCurrent();
+            Directory.CreateDirectory("Builds/M3-Network-Windows");
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = "Builds/M3-Network-Windows/FunGame-M3-Network.exe",
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.Development | BuildOptions.AllowDebugging
+            };
+
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                throw new BuildFailedException($"M3 网络切片构建失败：{report.summary.result}");
+            }
+
+            Debug.Log($"[M3-6] Windows 开发构建成功：{report.summary.totalSize} bytes。");
         }
 
         private static void CreateEnvironment()
@@ -203,6 +232,7 @@ namespace FunGame.Editor
             incidentObject.AddComponent<NetworkObject>();
             var incident = incidentObject.AddComponent<NetworkCoolingIncidentController>();
             incidentObject.AddComponent<NetworkIncidentOverlay>().Configure(incident);
+            incidentObject.AddComponent<NetworkChatController>();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(incidentObject, IncidentPrefabPath);
             Object.DestroyImmediate(incidentObject);

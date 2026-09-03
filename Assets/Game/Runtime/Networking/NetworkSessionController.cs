@@ -108,11 +108,12 @@ namespace FunGame.Networking
             shutdownRequested = false;
             if (networkManager != null && networkManager.IsListening)
             {
-                networkManager.Shutdown();
+                // 保留一帧消息队列，让房主退出原因和最后的 Despawn 有机会送达客户端。
+                networkManager.Shutdown(false);
+                return;
             }
 
-            sessionState = SessionState.Idle;
-            panelVisible = true;
+            CompleteShutdown();
         }
 
         private void OnGUI()
@@ -276,10 +277,14 @@ namespace FunGame.Networking
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
             networkManager.OnTransportFailure -= HandleTransportFailure;
+            networkManager.OnClientStopped -= HandleClientStopped;
+            networkManager.OnServerStopped -= HandleServerStopped;
             networkManager.ConnectionApprovalCallback -= HandleConnectionApproval;
             networkManager.OnClientConnectedCallback += HandleClientConnected;
             networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
             networkManager.OnTransportFailure += HandleTransportFailure;
+            networkManager.OnClientStopped += HandleClientStopped;
+            networkManager.OnServerStopped += HandleServerStopped;
             networkManager.ConnectionApprovalCallback += HandleConnectionApproval;
         }
 
@@ -293,6 +298,8 @@ namespace FunGame.Networking
             networkManager.OnClientConnectedCallback -= HandleClientConnected;
             networkManager.OnClientDisconnectCallback -= HandleClientDisconnected;
             networkManager.OnTransportFailure -= HandleTransportFailure;
+            networkManager.OnClientStopped -= HandleClientStopped;
+            networkManager.OnServerStopped -= HandleServerStopped;
             networkManager.ConnectionApprovalCallback -= HandleConnectionApproval;
         }
 
@@ -340,6 +347,30 @@ namespace FunGame.Networking
                 : "网络传输失败，请检查地址和端口后重试";
             sessionState = SessionState.Stopping;
             shutdownRequested = true;
+        }
+
+        private void HandleClientStopped(bool wasServer)
+        {
+            CompleteShutdown();
+        }
+
+        private void HandleServerStopped(bool wasClient)
+        {
+            CompleteShutdown();
+        }
+
+        private void CompleteShutdown()
+        {
+            shutdownRequested = false;
+            sessionState = SessionState.Idle;
+            panelVisible = true;
+            SetCursorAvailable();
+        }
+
+        private static void SetCursorAvailable()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
     }
 }

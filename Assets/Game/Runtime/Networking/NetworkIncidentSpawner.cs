@@ -31,7 +31,9 @@ namespace FunGame.Networking
             }
 
             networkManager.OnServerStarted -= HandleServerStarted;
+            networkManager.OnServerStopped -= HandleServerStopped;
             networkManager.OnServerStarted += HandleServerStarted;
+            networkManager.OnServerStopped += HandleServerStopped;
         }
 
         private void Unsubscribe()
@@ -39,6 +41,7 @@ namespace FunGame.Networking
             if (networkManager != null)
             {
                 networkManager.OnServerStarted -= HandleServerStarted;
+                networkManager.OnServerStopped -= HandleServerStopped;
             }
         }
 
@@ -52,6 +55,11 @@ namespace FunGame.Networking
             GameObject instance = Instantiate(incidentPrefab, Vector3.zero, Quaternion.identity);
             _spawnedIncident = instance.GetComponent<NetworkObject>();
             _spawnedIncident.Spawn(true);
+        }
+
+        private void HandleServerStopped(bool wasClient)
+        {
+            _spawnedIncident = null;
         }
     }
 }
