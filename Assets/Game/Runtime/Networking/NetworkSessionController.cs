@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace FunGame.Networking
 {
@@ -85,6 +86,12 @@ namespace FunGame.Networking
 
         private void Update()
         {
+            // 网络玩家生成后鼠标会被第一人称视角锁定；Esc 始终保留为技术验证场景的安全退出键。
+            if (sessionState != SessionState.Idle && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            {
+                StopSession();
+            }
+
             // NGO 的断开回调可能发生在其内部事件分发期间。延迟到下一帧清理，
             // 避免在回调栈中再次关闭传输层，同时确保失败客户端回到可编辑状态。
             if (!shutdownRequested)
@@ -137,6 +144,7 @@ namespace FunGame.Networking
             GUI.enabled = true;
             GUILayout.Space(8f);
             GUILayout.Label($"状态：{statusText}");
+            GUILayout.Label("会话中按 Esc 可停止 / 断开");
             if (networkManager != null && networkManager.IsHost)
             {
                 GUILayout.Label($"已连接玩家：{networkManager.ConnectedClientsIds.Count}");
