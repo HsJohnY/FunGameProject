@@ -88,6 +88,45 @@ namespace FunGame.Networking
             return true;
         }
 
+        public bool IsHoldingItem(string requiredTargetId)
+        {
+            return heldItem.Value.TryGet(out NetworkObject itemObject, NetworkManager)
+                && itemObject.TryGetComponent(out NetworkCarryableItem item)
+                && item.TargetId == requiredTargetId;
+        }
+
+        public bool TryInstallHeldItemServer(string requiredTargetId, Vector3 installPosition)
+        {
+            if (!IsServer
+                || !heldItem.Value.TryGet(out NetworkObject itemObject, NetworkManager)
+                || !itemObject.TryGetComponent(out NetworkCarryableItem item)
+                || item.TargetId != requiredTargetId)
+            {
+                return false;
+            }
+
+            if (!item.InstallServer(installPosition))
+            {
+                return false;
+            }
+
+            heldItem.Value = new NetworkObjectReference((NetworkObject)null);
+            return true;
+        }
+
+        public void ClearHeldItemServer(NetworkObject expectedItem)
+        {
+            if (!IsServer || !heldItem.Value.TryGet(out NetworkObject currentItem, NetworkManager))
+            {
+                return;
+            }
+
+            if (expectedItem == null || currentItem == expectedItem)
+            {
+                heldItem.Value = new NetworkObjectReference((NetworkObject)null);
+            }
+        }
+
         public static bool IsValidThrowDirection(Vector3 direction)
         {
             return float.IsFinite(direction.x)

@@ -129,11 +129,52 @@ namespace FunGame.Networking
             _body.AddForce(impulse, ForceMode.Impulse);
         }
 
-        private void RecoverServer()
+        public bool InstallServer(Vector3 worldPosition)
         {
-            transform.SetPositionAndRotation(_spawnPosition, Quaternion.identity);
+            if (!IsServer || !IsHeld)
+            {
+                return false;
+            }
+
+            holder.Value = new NetworkObjectReference((NetworkObject)null);
+            _body.isKinematic = true;
             _body.linearVelocity = Vector3.zero;
             _body.angularVelocity = Vector3.zero;
+            _interactionCollider.enabled = false;
+            NetworkObject.TryRemoveParent(true);
+            transform.SetPositionAndRotation(worldPosition, Quaternion.identity);
+            transform.localScale = _worldScale;
+            return true;
+        }
+
+        public void ResetToSpawnServer()
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            if (holder.Value.TryGet(out NetworkObject playerObject, NetworkManager))
+            {
+                playerObject.GetComponent<NetworkPlayerCarryController>()?.ClearHeldItemServer(NetworkObject);
+            }
+
+            holder.Value = new NetworkObjectReference((NetworkObject)null);
+            if (transform.parent != null)
+            {
+                NetworkObject.TryRemoveParent(true);
+            }
+            transform.SetPositionAndRotation(_spawnPosition, Quaternion.identity);
+            transform.localScale = _worldScale;
+            _interactionCollider.enabled = true;
+            _body.isKinematic = false;
+            _body.linearVelocity = Vector3.zero;
+            _body.angularVelocity = Vector3.zero;
+        }
+
+        private void RecoverServer()
+        {
+            ResetToSpawnServer();
         }
 
         private void HandleHolderChanged(NetworkObjectReference previous, NetworkObjectReference current)

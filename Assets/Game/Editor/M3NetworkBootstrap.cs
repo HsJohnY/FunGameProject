@@ -21,6 +21,7 @@ namespace FunGame.Editor
         private const string ScenePath = "Assets/Game/Scenes/M3_NetworkSlice.unity";
         private const string PlayerPrefabPath = "Assets/Game/Content/Networking/M3_NetworkPlayer.prefab";
         private const string CarryablePrefabPath = "Assets/Game/Content/Networking/M3_SharedTaskPart.prefab";
+        private const string IncidentPrefabPath = "Assets/Game/Content/Networking/M3_NetworkIncident.prefab";
 
         [MenuItem("FunGame/M3/生成网络验证场景")]
         public static void ConfigureCurrent()
@@ -31,7 +32,9 @@ namespace FunGame.Editor
             CreateEnvironment();
             GameObject playerPrefab = CreatePlayerPrefab();
             GameObject carryablePrefab = CreateCarryablePrefab();
+            GameObject incidentPrefab = CreateIncidentPrefab();
             RegisterNetworkPrefab(carryablePrefab);
+            RegisterNetworkPrefab(incidentPrefab);
 
             var sessionObject = new GameObject("M3 Network Session");
             var networkManager = sessionObject.AddComponent<NetworkManager>();
@@ -45,6 +48,10 @@ namespace FunGame.Editor
             sessionController.Configure(networkManager, transport);
             var itemSpawner = sessionObject.AddComponent<NetworkSharedItemSpawner>();
             itemSpawner.Configure(networkManager, carryablePrefab);
+            var incidentSpawner = sessionObject.AddComponent<NetworkIncidentSpawner>();
+            incidentSpawner.Configure(networkManager, incidentPrefab);
+
+            CreateNetworkIncidentStations();
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
@@ -167,6 +174,7 @@ namespace FunGame.Editor
             var contextInteractor = player.AddComponent<ContextInteractor>();
             contextInteractor.enabled = false;
             player.AddComponent<NetworkPlayerCarryController>();
+            player.AddComponent<NetworkPlayerIncidentAgent>();
             var promptOverlay = player.AddComponent<ContextPromptOverlay>();
             promptOverlay.enabled = false;
             NetworkPlayerController networkPlayer = player.AddComponent<NetworkPlayerController>();
@@ -187,6 +195,62 @@ namespace FunGame.Editor
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);
             Object.DestroyImmediate(player);
             return prefab;
+        }
+
+        private static GameObject CreateIncidentPrefab()
+        {
+            var incidentObject = new GameObject("M3 Network Cooling Incident");
+            incidentObject.AddComponent<NetworkObject>();
+            var incident = incidentObject.AddComponent<NetworkCoolingIncidentController>();
+            incidentObject.AddComponent<NetworkIncidentOverlay>().Configure(incident);
+
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(incidentObject, IncidentPrefabPath);
+            Object.DestroyImmediate(incidentObject);
+            return prefab;
+        }
+
+        private static void CreateNetworkIncidentStations()
+        {
+            CreateIncidentStation(
+                "Network Leak Station",
+                NetworkIncidentLayout.GetStationPosition(NetworkIncidentAction.SealLeak),
+                new Vector3(2f, 2f, 1f),
+                "network-leak",
+                "联网泄漏点",
+                NetworkIncidentAction.SealLeak);
+            CreateIncidentStation(
+                "Network Fastener Station",
+                NetworkIncidentLayout.GetStationPosition(NetworkIncidentAction.OperateFastener),
+                new Vector3(2f, 2f, 1f),
+                "network-fastener",
+                "联网管件连接",
+                NetworkIncidentAction.OperateFastener);
+            CreateIncidentStation(
+                "Network Pump Console",
+                NetworkIncidentLayout.GetStationPosition(NetworkIncidentAction.OperatePump),
+                new Vector3(2f, 2f, 1f),
+                "network-pump-console",
+                "联网冷却控制台",
+                NetworkIncidentAction.OperatePump);
+            CreateIncidentStation(
+                "Network Pipe Install Socket",
+                NetworkIncidentLayout.GetStationPosition(NetworkIncidentAction.InstallPipe),
+                new Vector3(2.5f, 2f, 1f),
+                "network-pipe-install-socket",
+                "联网管件安装接口",
+                NetworkIncidentAction.InstallPipe);
+        }
+
+        private static void CreateIncidentStation(
+            string objectName,
+            Vector3 position,
+            Vector3 scale,
+            string id,
+            string displayName,
+            NetworkIncidentAction action)
+        {
+            GameObject station = CreateBlock(objectName, position, scale);
+            station.AddComponent<NetworkIncidentStation>().Configure(id, displayName, action);
         }
 
         private static GameObject CreateCarryablePrefab()
