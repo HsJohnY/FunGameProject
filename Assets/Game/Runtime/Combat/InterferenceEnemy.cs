@@ -31,6 +31,7 @@ namespace FunGame.Combat
         private Collider _collider;
         private Rigidbody _rigidbody;
         private Renderer _renderer;
+        private MeshRenderer[] _modelRenderers;
         private MaterialPropertyBlock _propertyBlock;
         [SerializeField, HideInInspector] private Vector3 spawnPosition;
         [SerializeField, HideInInspector] private Vector3 baseScale;
@@ -226,15 +227,17 @@ namespace FunGame.Combat
                 _collider = GetComponent<Collider>();
             }
 
-            if (_collider != null)
+            Collider[] hitColliders = GetComponentsInChildren<Collider>(true);
+            foreach (Collider hitCollider in hitColliders)
             {
-                _collider.enabled = active;
+                if (hitCollider != null)
+                {
+                    hitCollider.enabled = active;
+                }
             }
 
-            if (_renderer != null)
-            {
-                _renderer.enabled = active || IsDefeated;
-            }
+            _modelRenderers = GetComponentsInChildren<MeshRenderer>(true);
+            SetModelVisibility(active || (IsDefeated && _defeatedVisualRemaining > 0f));
         }
 
         private Vector3 GetDestination()
@@ -421,10 +424,7 @@ namespace FunGame.Combat
                     baseScale,
                     new Vector3(horizontalScale, verticalScale, horizontalScale));
                 RefreshVisual();
-                if (_renderer != null)
-                {
-                    _renderer.enabled = _defeatedVisualRemaining > 0f;
-                }
+                SetModelVisibility(_defeatedVisualRemaining > 0f);
 
                 return;
             }
@@ -447,6 +447,22 @@ namespace FunGame.Combat
             spawnPosition = transform.position;
             baseScale = transform.localScale;
             hasSpawnPose = true;
+        }
+
+        private void SetModelVisibility(bool visible)
+        {
+            if (_modelRenderers == null)
+            {
+                _modelRenderers = GetComponentsInChildren<MeshRenderer>(true);
+            }
+
+            foreach (MeshRenderer modelRenderer in _modelRenderers)
+            {
+                if (modelRenderer != null)
+                {
+                    modelRenderer.enabled = visible;
+                }
+            }
         }
 
         private void RefreshVisual()

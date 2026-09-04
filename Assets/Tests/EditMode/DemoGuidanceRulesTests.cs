@@ -138,12 +138,15 @@ namespace FunGame.Tests.EditMode
         public void 第二章和第三章的门禁都有明确操作目标()
         {
             DemoGuidanceInstruction relay = DemoGuidanceRules.ResolveRelay(false, 3, 2, ToolKind.CircuitBridger);
+            DemoGuidanceInstruction relayFailure = DemoGuidanceRules.ResolveRelay(true, 3, 2, ToolKind.CircuitBridger);
             DemoGuidanceInstruction calibration = DemoGuidanceRules.ResolveStorm(false, true, 0, ToolKind.ImpactWrench, false);
             DemoGuidanceInstruction completed = DemoGuidanceRules.ResolveStorm(false, false, 0, ToolKind.ImpactWrench, true);
 
             Assert.That(relay.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.Relay));
             Assert.That(relay.SecondaryTarget, Is.EqualTo(DemoGuidanceTargetKind.Enemy));
+            Assert.That(relayFailure.ActionText, Does.Contain("配电舱恢复终端"));
             Assert.That(calibration.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.CampaignConsole));
+            Assert.That(calibration.ActionText, Does.Contain("核心校准终端"));
             Assert.That(completed.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.SecretPlate));
         }
     }

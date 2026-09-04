@@ -41,6 +41,7 @@ $requiredCaptures = @(
     '01-cooling-start.png',
     '02-relay-chapter.png',
     '03-storm-chapter.png',
+    '03b-storm-calibration-console.png',
     '04-demo-completed.png'
 )
 $missingCaptures = @($requiredCaptures | Where-Object {

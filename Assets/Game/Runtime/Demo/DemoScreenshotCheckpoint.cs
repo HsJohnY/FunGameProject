@@ -169,8 +169,23 @@ namespace FunGame.Demo
                 }
 
                 yield return null;
+                if (wave == 0)
+                {
+                    yield return new WaitForSecondsRealtime(0.9f);
+                    yield return CaptureVerificationStep(
+                        interactor,
+                        "03b-storm-calibration-console.png",
+                        new Vector3(0f, 0.05f, 45.6f),
+                        Vector3.forward);
+                }
+
+                interactor.RefreshTarget();
                 if (!Require(campaign.IsAwaitingCalibration, $"storm-wave-{wave + 1}-calibration-not-requested") ||
-                    !Require(campaign.ExecuteCampaignConsole(), $"storm-wave-{wave + 1}-calibration-rejected"))
+                    !Require(interactor.CurrentOption.HasValue &&
+                             interactor.CurrentOption.Value.TargetId == "demo-storm-calibration-console" &&
+                             interactor.CurrentOption.Value.IsAvailable,
+                        $"storm-wave-{wave + 1}-calibration-not-aimable") ||
+                    !Require(interactor.ExecuteCurrentInteraction(), $"storm-wave-{wave + 1}-calibration-rejected"))
                 {
                     yield break;
                 }
@@ -226,6 +241,7 @@ namespace FunGame.Demo
 
             yield return null;
             yield return null;
+            yield return new WaitForSecondsRealtime(0.2f);
 
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "VerificationCaptures"));
             Directory.CreateDirectory(directory);

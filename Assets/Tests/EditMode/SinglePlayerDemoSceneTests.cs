@@ -24,6 +24,7 @@ namespace FunGame.Tests.EditMode
                 SinglePlayerDemoController campaign = root.GetComponent<SinglePlayerDemoController>();
                 DemoObjectiveGuidancePresenter guidance = root.GetComponent<DemoObjectiveGuidancePresenter>();
                 DemoRelayTarget[] relays = root.GetComponentsInChildren<DemoRelayTarget>(true);
+                DemoCalibrationConsole[] consoles = root.GetComponentsInChildren<DemoCalibrationConsole>(true);
                 CombatEncounterController[] encounters = root.GetComponentsInChildren<CombatEncounterController>(true);
                 InterferenceEnemy[] enemies = root.GetComponentsInChildren<InterferenceEnemy>(true);
                 DemoEasterEgg325Interactable secret = root.GetComponentInChildren<DemoEasterEgg325Interactable>(true);
@@ -43,6 +44,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(campaign.RequiredRelayCount, Is.EqualTo(5));
                 Assert.That(campaign.StormWaveCount, Is.EqualTo(5));
                 Assert.That(relays.Length, Is.EqualTo(5));
+                Assert.That(consoles.Length, Is.EqualTo(2));
                 Assert.That(encounters.Length, Is.EqualTo(6));
                 Assert.That(enemies.Length, Is.EqualTo(27));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.Direct), Is.GreaterThan(0));
@@ -55,6 +57,10 @@ namespace FunGame.Tests.EditMode
                 Assert.That(stormChamber, Is.Not.Null);
                 Assert.That(player, Is.Not.Null);
                 Assert.That(relays.All(item => item.transform.IsChildOf(relayCompartment)), Is.True);
+                Assert.That(consoles.Single(item => item.Role == DemoCalibrationConsoleRole.RelayRecovery)
+                    .transform.IsChildOf(relayCompartment), Is.True);
+                Assert.That(consoles.Single(item => item.Role == DemoCalibrationConsoleRole.StormCalibration)
+                    .transform.IsChildOf(stormChamber), Is.True);
                 Assert.That(stormCore.IsChildOf(stormChamber), Is.True);
                 Assert.That(relayCompartment.gameObject.activeSelf, Is.False, "第二章舱室不应在第一章提前显示。");
                 Assert.That(stormChamber.gameObject.activeSelf, Is.False, "第三章舱室不应在第一章提前显示。");
@@ -93,8 +99,10 @@ namespace FunGame.Tests.EditMode
                     AssertRenderersCovered(relay.gameObject, relay.GetComponentsInChildren<Renderer>(true));
                 }
 
-                GameObject console = FindTransform(scene, "Ship Systems Command Console").gameObject;
-                AssertRenderersCovered(console, console.GetComponentsInChildren<Renderer>(true));
+                foreach (DemoCalibrationConsole console in root.GetComponentsInChildren<DemoCalibrationConsole>(true))
+                {
+                    AssertRenderersCovered(console.gameObject, console.GetComponentsInChildren<Renderer>(true));
+                }
 
                 AssertSiblingDecorationsCovered(scene, "Relay Bridger Station");
                 AssertSiblingDecorationsCovered(scene, "Relay Wrench Station");

@@ -4,6 +4,7 @@ using FunGame.Combat;
 using FunGame.Incident;
 using FunGame.UI;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FunGame.Demo
 {
@@ -17,7 +18,9 @@ namespace FunGame.Demo
         [SerializeField] private CombatEncounterController relayDefense;
         [SerializeField] private DemoRelayTarget[] relayTargets;
         [SerializeField] private CombatEncounterController[] stormWaves;
-        [SerializeField] private DemoCalibrationConsole campaignConsole;
+        [FormerlySerializedAs("campaignConsole")]
+        [SerializeField] private DemoCalibrationConsole relayRecoveryConsole;
+        [SerializeField] private DemoCalibrationConsole stormCalibrationConsole;
         private SinglePlayerDemoRules _rules;
         private bool _relayChapterStarted;
         private bool _stormChapterStarted;
@@ -50,6 +53,12 @@ namespace FunGame.Demo
         public bool IsCurrentChapterFailed => _relayChapterFailed || _stormChapterFailed;
         public CombatEncounterController RelayDefenseEncounter => relayDefense;
         public CombatEncounterController CurrentStormEncounter => GetCurrentStormWave();
+        public DemoCalibrationConsole CurrentCampaignConsole =>
+            Chapter == SinglePlayerDemoChapter.RelaySurge
+                ? relayRecoveryConsole
+                : Chapter == SinglePlayerDemoChapter.StormCalibration
+                    ? stormCalibrationConsole
+                    : null;
         public bool IsCampaignConsoleAvailable =>
             _relayChapterFailed || _stormChapterFailed ||
             (Chapter == SinglePlayerDemoChapter.StormCalibration && Rules.IsAwaitingCalibration);
@@ -104,15 +113,15 @@ namespace FunGame.Demo
 
                 if (Chapter == SinglePlayerDemoChapter.RelaySurge)
                 {
-                    if (_relayChapterFailed) return "辅助设备离线 · 前往风暴控制台重启第二章";
+                    if (_relayChapterFailed) return "辅助设备离线 · 前往配电舱恢复终端重启第二章";
                     int enemies = relayDefense != null ? relayDefense.RemainingEnemyCount : 0;
                     return $"稳定继电器 {StabilizedRelayCount}/{RequiredRelayCount} · 剩余干扰体 {enemies}";
                 }
 
                 if (Chapter == SinglePlayerDemoChapter.StormCalibration)
                 {
-                    if (_stormChapterFailed) return "风暴核心离线 · 前往控制台重启第三章";
-                    if (Rules.IsAwaitingCalibration) return $"第 {CurrentStormWave + 1} 波已清除 · 前往控制台写入校准";
+                    if (_stormChapterFailed) return "风暴核心离线 · 前往核心校准终端重启第三章";
+                    if (Rules.IsAwaitingCalibration) return $"第 {CurrentStormWave + 1} 波已清除 · 前往核心校准终端写入校准";
                     CombatEncounterController wave = GetCurrentStormWave();
                     int enemies = wave != null ? wave.RemainingEnemyCount : 0;
                     return $"抵御第 {CurrentStormWave + 1}/{StormWaveCount} 波 · 剩余干扰体 {enemies}";
@@ -136,11 +145,45 @@ namespace FunGame.Demo
             CombatEncounterController[] configuredStormWaves,
             DemoCalibrationConsole configuredConsole)
         {
+            ConfigureState(
+                configuredIncident,
+                configuredRelayDefense,
+                configuredRelays,
+                configuredStormWaves);
+            relayRecoveryConsole = configuredConsole;
+            stormCalibrationConsole = configuredConsole;
+            configuredConsole?.Configure(this, DemoCalibrationConsoleRole.Shared);
+        }
+
+        public void Configure(
+            CoolingIncidentController configuredIncident,
+            CombatEncounterController configuredRelayDefense,
+            DemoRelayTarget[] configuredRelays,
+            CombatEncounterController[] configuredStormWaves,
+            DemoCalibrationConsole configuredRelayRecoveryConsole,
+            DemoCalibrationConsole configuredStormCalibrationConsole)
+        {
+            ConfigureState(
+                configuredIncident,
+                configuredRelayDefense,
+                configuredRelays,
+                configuredStormWaves);
+            relayRecoveryConsole = configuredRelayRecoveryConsole;
+            stormCalibrationConsole = configuredStormCalibrationConsole;
+            relayRecoveryConsole?.Configure(this, DemoCalibrationConsoleRole.RelayRecovery);
+            stormCalibrationConsole?.Configure(this, DemoCalibrationConsoleRole.StormCalibration);
+        }
+
+        private void ConfigureState(
+            CoolingIncidentController configuredIncident,
+            CombatEncounterController configuredRelayDefense,
+            DemoRelayTarget[] configuredRelays,
+            CombatEncounterController[] configuredStormWaves)
+        {
             coolingIncident = configuredIncident;
             relayDefense = configuredRelayDefense;
             relayTargets = configuredRelays;
             stormWaves = configuredStormWaves;
-            campaignConsole = configuredConsole;
             _rules = new SinglePlayerDemoRules(
                 RequiredCoolingRuns,
                 Mathf.Max(1, relayTargets?.Length ?? 0),
@@ -150,7 +193,6 @@ namespace FunGame.Demo
             _coolingChapterSeconds = 0f;
             _relayChapterSeconds = 0f;
             _stormChapterSeconds = 0f;
-            campaignConsole?.Configure(this);
         }
 
         private void Start()
