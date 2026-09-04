@@ -125,7 +125,8 @@ namespace FunGame.Demo
                     if (Rules.IsAwaitingCalibration) return $"第 {CurrentStormWave + 1} 波已清除 · 前往核心校准终端写入校准";
                     CombatEncounterController wave = GetCurrentStormWave();
                     int enemies = wave != null ? wave.RemainingEnemyCount : 0;
-                    return $"抵御第 {CurrentStormWave + 1}/{StormWaveCount} 波 · 剩余干扰体 {enemies}";
+                    string incoming = wave != null && wave.PendingEnemyCount > 0 ? $" · 增援 {wave.NextDeploymentSeconds:0}秒" : string.Empty;
+                    return $"第 {CurrentStormWave + 1}/{StormWaveCount} 波 · {wave?.Briefing} · 剩余 {enemies}" + incoming;
                 }
 
                 return EasterEgg325Discovered

@@ -19,6 +19,7 @@ namespace FunGame.Networking
         private readonly NetworkVariable<double> stunnedUntil = new NetworkVariable<double>();
         private readonly NetworkVariable<int> templateIndex = new NetworkVariable<int>(-1);
         private readonly NetworkVariable<bool> telegraphing = new NetworkVariable<bool>();
+        private readonly NetworkVariable<double> deploymentAt = new NetworkVariable<double>();
         private InterferenceEnemy _template;
         private InterferenceEnemyRules _attackRules;
         private bool _reachedWaypoint;
@@ -36,6 +37,8 @@ namespace FunGame.Networking
         public bool IsStunned => IsSpawned && NetworkManager.ServerTime.Time < stunnedUntil.Value;
         public InterferenceEnemy Template => _template;
         public bool IsTelegraphing => telegraphing.Value;
+        public bool IsDeployed => IsSpawned && NetworkManager.ServerTime.Time >= deploymentAt.Value;
+        public float DeploymentRemaining => IsSpawned ? Mathf.Max(0f, (float)(deploymentAt.Value - NetworkManager.ServerTime.Time)) : 0f;
 
         public static InterferenceEnemy[] SceneTemplates() => FindObjectsByType<InterferenceEnemy>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .OrderBy(e => e.TargetId, System.StringComparer.Ordinal).ToArray();
@@ -48,6 +51,7 @@ namespace FunGame.Networking
                 : source.MaxHealth <= 1 ? NetworkEnemyKind.Swarm : NetworkEnemyKind.Direct;
             InitializeServer(campaign, source.DefenseTarget.transform.position, source.MaxHealth,
                 source.MoveSpeed, source.RequiresCircuitDisruption, enemyKind);
+            deploymentAt.Value = NetworkManager.ServerTime.Time + source.DeploymentDelay;
             templateIndex.Value = System.Array.IndexOf(SceneTemplates(), source);
         }
 
@@ -84,7 +88,7 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (!IsServer || health.Value <= 0) return;
+            if (!IsServer || health.Value <= 0 || !IsDeployed) return;
             if (_template != null)
             {
                 UpdateAuthoredCombat();
@@ -180,7 +184,7 @@ namespace FunGame.Networking
             ToolKind tool = toolbelt != null ? toolbelt.EquippedTool : ToolKind.None;
             bool supported = tool == ToolKind.ImpactWrench || tool == ToolKind.SealantGun || tool == ToolKind.CircuitBridger;
             return new ToolActionOption("m4-network-enemy", _template != null ? _template.DisplayName : IsShielded ? "护盾精英" : "线路干扰体",
-                IsShielded ? "破盾 / 攻击" : "攻击", tool, tool, supported && health.Value > 0,
+                IsShielded ? "破盾 / 攻击" : "攻击", tool, tool, supported && health.Value > 0 && IsDeployed,
                 supported ? "目标已被清除" : "需要装备任意核心工具");
         }
 
@@ -192,7 +196,7 @@ namespace FunGame.Networking
 
         public void ApplyToolServer(ToolKind tool, Vector3 source)
         {
-            if (!IsServer || health.Value <= 0 || !NetworkPlayerToolbelt.IsSupportedTool(tool)) return;
+            if (!IsServer || health.Value <= 0 || !IsDeployed || !NetworkPlayerToolbelt.IsSupportedTool(tool)) return;
             if (tool == ToolKind.CircuitBridger)
             {
                 stunnedUntil.Value = NetworkManager.ServerTime.Time + 1.4;
@@ -239,7 +243,7 @@ namespace FunGame.Networking
 
         private void ApplySealantPulse(Vector3 source)
         {
-            if (!IsServer || health.Value <= 0 || Time.time < _nextSealantPulse) return;
+            if (!IsServer || health.Value <= 0 || !IsDeployed || Time.time < _nextSealantPulse) return;
             _nextSealantPulse = Time.time + 0.15f;
             slowedUntil.Value = NetworkManager.ServerTime.Time + 2.25;
             Vector3 away = transform.position - source;
@@ -273,6 +277,9 @@ namespace FunGame.Networking
         {
             if (_template != null)
             {
+                bool visible = health.Value > 0 && IsDeployed;
+                foreach (MeshRenderer part in GetComponentsInChildren<MeshRenderer>()) part.enabled = visible;
+                foreach (Collider collider in GetComponentsInChildren<Collider>()) collider.enabled = visible;
                 float healthRatio = (float)health.Value / Mathf.Max(1, maxHealth.Value);
                 float pulse = telegraphing.Value ? 1f + Mathf.Sin(Time.unscaledTime * 30f) * 0.12f : 1f;
                 transform.localScale = Vector3.Scale(_template.AuthoredScale,

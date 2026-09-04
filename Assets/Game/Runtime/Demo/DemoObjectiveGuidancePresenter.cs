@@ -288,7 +288,7 @@ namespace FunGame.Demo
 
             foreach (InterferenceEnemy enemy in encounter.Enemies)
             {
-                if (enemy == null || enemy.IsDefeated || !enemy.gameObject.activeInHierarchy)
+                if (enemy == null || enemy.IsDefeated || !enemy.IsDeployed || !enemy.gameObject.activeInHierarchy)
                 {
                     continue;
                 }

@@ -17,7 +17,7 @@ namespace FunGame.Tests.EditMode
 {
     public sealed class M4CoopIntegrationSceneTests
     {
-        private const string ScenePath = "Assets/Game/Scenes/M4_CoopThreeChapterDemo.unity";
+        private const string ScenePath = "Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity";
 
         [Test]
         public void M4场景包含三舱网络会话且不保留本地玩家()
@@ -54,7 +54,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<NetworkChatController>(true)), Is.Empty,
                     "关闭 NGO 场景管理时，聊天不能作为未注册的场景内 NetworkObject 存在。 ");
                 Assert.That(menu, Is.Not.Null);
-                Assert.That(menu.UsesNetworkSessionFlow, Is.True);
+                Assert.That(roots.SelectMany(r => r.GetComponentsInChildren<SharedMapModeController>(true)).Single(), Is.Not.Null);
                 Assert.That(session.EscapeStopsSession, Is.False, "M4 的 Esc 应由暂停菜单处理，不能同时断开会话。 ");
                 Assert.That(manager.NetworkConfig.PlayerPrefab, Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerController>(), Is.Not.Null);
@@ -69,9 +69,9 @@ namespace FunGame.Tests.EditMode
                 ContextInteractionProxy proxy = FindTransform(roots, "Modular Cooling Pump").GetComponent<ContextInteractionProxy>();
                 Assert.That(proxy.enabled, Is.True);
                 var proxyData = new SerializedObject(proxy);
-                Assert.That(proxyData.FindProperty("targetBehaviour").objectReferenceValue, Is.TypeOf<NetworkIncidentStation>());
-                Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<FirstPersonController>(true)), Is.Empty,
-                    "场景不能同时保留本地玩家和由 NetworkManager 生成的联网玩家。 ");
+                Assert.That(proxyData.FindProperty("targetBehaviour").objectReferenceValue, Is.Not.Null);
+                Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<FirstPersonController>(true)).Count(), Is.EqualTo(1),
+                    "共享地图保留一个单人玩家，由模式控制器切换所有权。 ");
                 Assert.That(FindTransform(roots, "Chapter 2 - Power Relay Compartment"), Is.Not.Null);
                 Assert.That(FindTransform(roots, "Chapter 3 - Storm Core Chamber"), Is.Not.Null);
                 NetworkIncidentStation[] stations = roots
@@ -80,7 +80,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(stations.Select(item => item.Action).Distinct().Count(), Is.EqualTo(7));
                 NetworkToolRackInteractable[] racks = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkToolRackInteractable>(true)).ToArray();
-                Assert.That(racks.Length, Is.EqualTo(6));
+                Assert.That(racks.Length, Is.EqualTo(8));
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<PlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<ToolController>(), Is.Not.Null);
@@ -105,9 +105,9 @@ namespace FunGame.Tests.EditMode
                 MonoBehaviour[] behaviours = scene.GetRootGameObjects()
                     .SelectMany(item => item.GetComponentsInChildren<MonoBehaviour>(true)).ToArray();
 
-                Assert.That(behaviours.OfType<SinglePlayerDemoController>().Single().enabled, Is.False);
-                Assert.That(behaviours.OfType<CombatEncounterController>().All(item => !item.enabled), Is.True);
-                Assert.That(behaviours.OfType<InterferenceEnemy>().All(item => !item.enabled), Is.True);
+                Assert.That(behaviours.OfType<SharedMapModeController>().Single().MapRoot.activeSelf, Is.False);
+                Assert.That(behaviours.OfType<CombatEncounterController>().All(item => item.enabled), Is.True);
+                Assert.That(behaviours.OfType<InterferenceEnemy>().All(item => item.enabled), Is.True);
             }
             finally
             {

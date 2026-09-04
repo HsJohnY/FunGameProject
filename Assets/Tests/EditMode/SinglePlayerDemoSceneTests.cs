@@ -18,7 +18,7 @@ namespace FunGame.Tests.EditMode
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
             try
             {
-                GameObject root = scene.GetRootGameObjects().FirstOrDefault(item => item.name == "Single Player Three Chapter Demo");
+                GameObject root = FindTransform(scene, "Single Player Three Chapter Demo")?.gameObject;
                 Assert.That(root, Is.Not.Null);
 
                 SinglePlayerDemoController campaign = root.GetComponent<SinglePlayerDemoController>();
@@ -35,8 +35,7 @@ namespace FunGame.Tests.EditMode
                     .FirstOrDefault(item => item.name == "Chapter 2 - Power Relay Compartment");
                 Transform stormChamber = root.GetComponentsInChildren<Transform>(true)
                     .FirstOrDefault(item => item.name == "Chapter 3 - Storm Core Chamber");
-                Transform player = scene.GetRootGameObjects()
-                    .FirstOrDefault(item => item.name == "Local First Person Player")?.transform;
+                Transform player = FindTransform(scene, "Local First Person Player");
 
                 Assert.That(campaign, Is.Not.Null);
                 Assert.That(guidance, Is.Not.Null);
@@ -46,7 +45,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(relays.Length, Is.EqualTo(5));
                 Assert.That(consoles.Length, Is.EqualTo(2));
                 Assert.That(encounters.Length, Is.EqualTo(6));
-                Assert.That(enemies.Length, Is.EqualTo(27));
+                Assert.That(enemies.Length, Is.EqualTo(28));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.Direct), Is.GreaterThan(0));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.FlankingAttach), Is.GreaterThan(0));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.RangedPulse), Is.GreaterThan(0));
@@ -88,7 +87,8 @@ namespace FunGame.Tests.EditMode
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
             try
             {
-                GameObject root = scene.GetRootGameObjects().First(item => item.name == "Single Player Three Chapter Demo");
+                GameObject root = FindTransform(scene, "Single Player Three Chapter Demo").gameObject;
+                FindTransform(scene, "Shared Expedition Map").gameObject.SetActive(true);
                 Transform relayCompartment = FindTransform(scene, "Chapter 2 - Power Relay Compartment");
                 Transform stormChamber = FindTransform(scene, "Chapter 3 - Storm Core Chamber");
                 relayCompartment.gameObject.SetActive(true);

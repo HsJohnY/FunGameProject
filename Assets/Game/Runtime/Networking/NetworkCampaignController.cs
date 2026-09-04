@@ -1,6 +1,7 @@
 using FunGame.Incident;
 using FunGame.Combat;
 using FunGame.Demo;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -36,6 +37,10 @@ namespace FunGame.Networking
         public int CoolingRunsCompleted => coolingRunsCompleted.Value;
         public int RequiredCoolingRuns => _map != null ? _map.RequiredCoolingRunCount : 2;
         public bool IsCurrentChapterFailed => chapterFailed.Value;
+        public int PendingEnemyCount => FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Count(e => e.Health > 0 && !e.IsDeployed);
+        public float NextDeploymentSeconds => FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None)
+            .Where(e => e.Health > 0 && !e.IsDeployed).Select(e => e.DeploymentRemaining).DefaultIfEmpty(0f).Min();
+        public string WaveBriefing => _map != null && CurrentStormWave < _map.StormEncounters.Count ? _map.StormEncounters[CurrentStormWave].Briefing : string.Empty;
         public bool CanConfirmStormWave => !chapterFailed.Value && chapter.Value == NetworkCampaignChapter.StormDefense && awaitingCalibration.Value;
         public string CurrentObjective => chapterFailed.Value ? "设备离线：前往本舱恢复终端重启当前章节" : chapter.Value switch
         {
@@ -43,7 +48,8 @@ namespace FunGame.Networking
             NetworkCampaignChapter.RelaySurge => $"第二章：继电器 {relayTotalProgress.Value}/{RelayCount * RelaySteps} · 敌人 {enemiesRemaining.Value}",
             NetworkCampaignChapter.StormDefense => awaitingCalibration.Value
                 ? $"第三章：第 {stormWave.Value + 1}/{StormWaveCount} 波已清除，前往校准终端"
-                : $"第三章：防卫第 {stormWave.Value + 1}/{StormWaveCount} 波 · 敌人 {enemiesRemaining.Value} · 核心 {coreIntegrity.Value}",
+                : $"第 {stormWave.Value + 1}/{StormWaveCount} 波 · {WaveBriefing} · 剩余 {enemiesRemaining.Value}" +
+                    (PendingEnemyCount > 0 ? $" · 增援 {NextDeploymentSeconds:0}秒" : string.Empty),
             _ => "远征切片完成：冷却、配电与风暴核心全部在线"
         };
 

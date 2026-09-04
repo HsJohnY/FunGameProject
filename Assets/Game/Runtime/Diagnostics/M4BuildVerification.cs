@@ -37,6 +37,7 @@ namespace FunGame.Diagnostics
             Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
             yield return new WaitForSecondsRealtime(4f);
             GameMenuController menu = FindFirstObjectByType<GameMenuController>();
+            Require(SceneManager.sceneCountInBuildSettings == 1, "Only the canonical solo map is packaged");
             Require(menu != null && menu.CanStartSinglePlayer, "Single-player button must be available in the built menu");
             yield return Capture("01-mode-menu.png");
             menu.EnterGameplayForAutomation();
@@ -77,6 +78,7 @@ namespace FunGame.Diagnostics
             yield return new WaitForSecondsRealtime(0.8f);
             Require(SceneManager.GetActiveScene().name == GameMenuController.SinglePlayerScene, "Single-player scene loaded");
             Require(FindFirstObjectByType<SinglePlayerDemoController>()?.enabled == true, "Original solo campaign active");
+            Require(FindFirstObjectByType<SharedMapModeController>().Mode == ExpeditionMode.Solo, "Same scene selected solo logic");
             Require(FindFirstObjectByType<NetworkSessionController>() == null, "Solo requires no network session");
             Require(FindFirstObjectByType<DemoObjectiveGuidancePresenter>()?.CurrentTarget != null, "Solo guidance active");
             yield return Capture("05-solo-guidance.png");
@@ -89,6 +91,18 @@ namespace FunGame.Diagnostics
                 encounter.Enemies.Select(e => e.AttackPosition).ToArray());
             yield return new WaitForSecondsRealtime(1.2f);
             yield return Capture("08-solo-combat.png");
+            foreach (InterferenceEnemy enemy in encounter.Enemies) enemy.SetEncounterActive(false);
+            var soloPlayer = FindFirstObjectByType<FunGame.Player.FirstPersonController>();
+            Transform plate = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(t => t.name == "Hidden Maintenance Plate 325");
+            PoseCamera(soloPlayer.gameObject, plate.position + Vector3.right * 2.5f, plate.position);
+            yield return new WaitForSecondsRealtime(0.2f);
+            yield return Capture("09-plate-325.png");
+            FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .First(t => t.name == "Chapter 2 - Power Relay Compartment").gameObject.SetActive(true);
+            Transform rack = FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(t => t.name == "Relay Bridger Station");
+            PoseCamera(soloPlayer.gameObject, new Vector3(2.5f, 1f, 15.5f), rack.position);
+            yield return new WaitForSecondsRealtime(0.2f);
+            yield return Capture("10-relay-rack-clearance.png");
             FindFirstObjectByType<GameMenuController>().ReturnToModeSelection();
             yield return new WaitForSecondsRealtime(0.5f);
             Require(SceneManager.GetActiveScene().name == GameMenuController.CooperativeScene, "Return to mode menu");
@@ -115,6 +129,16 @@ namespace FunGame.Diagnostics
             view.transform.rotation = Quaternion.LookRotation(center - view.transform.position);
             body.enabled = true;
             Physics.SyncTransforms();
+        }
+
+        private static void PoseCamera(GameObject player, Vector3 position, Vector3 target)
+        {
+            var controller = player.GetComponent<FunGame.Player.FirstPersonController>();
+            controller.enabled = false;
+            player.GetComponent<CharacterController>().enabled = false;
+            player.transform.position = position;
+            Camera view = player.GetComponentInChildren<Camera>();
+            view.transform.rotation = Quaternion.LookRotation(target - view.transform.position);
         }
 
         private void Require(bool condition, string message)

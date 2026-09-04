@@ -70,14 +70,20 @@ namespace FunGame.Editor
             var stormChamber = new GameObject("Chapter 3 - Storm Core Chamber").transform;
             stormChamber.SetParent(root);
             CreateCompartmentToolRack(
-                relayCompartment, "Relay Bridger Station", new Vector3(5.65f, 1f, -7f),
+                relayCompartment, "Relay Bridger Station", new Vector3(4.6f, 1f, -7.6f),
                 ToolKind.CircuitBridger, relayMaterial, warningMaterial);
             CreateCompartmentToolRack(
-                relayCompartment, "Relay Wrench Station", new Vector3(5.65f, 1f, -5.6f),
+                relayCompartment, "Relay Wrench Station", new Vector3(2.8f, 1f, -7.6f),
                 ToolKind.ImpactWrench, warningMaterial, darkMaterial);
             CreateCompartmentToolRack(
                 stormChamber, "Storm Wrench Station", new Vector3(5.65f, 1f, -6.4f),
                 ToolKind.ImpactWrench, warningMaterial, stormMaterial);
+            CreateCompartmentToolRack(
+                stormChamber, "Storm Bridger Station", new Vector3(4.2f, 1f, -7.6f),
+                ToolKind.CircuitBridger, relayMaterial, warningMaterial);
+            CreateCompartmentToolRack(
+                stormChamber, "Storm Sealant Station", new Vector3(2.4f, 1f, -7.6f),
+                ToolKind.SealantGun, stormMaterial, warningMaterial);
             DemoChapterPresentation presentation = CreateChapterArt(
                 root, relayCompartment, stormChamber, relayMaterial, stormMaterial, warningMaterial, darkMaterial);
 
@@ -113,7 +119,7 @@ namespace FunGame.Editor
                     90,
                     new[]
                     {
-                        EnemySpec.Skitter("wave1-skitter-a", new Vector3(-5f, 1f, 5.5f)),
+                        EnemySpec.Strider("wave1-strider-a", new Vector3(-5f, 1f, 5.5f)),
                         EnemySpec.Skitter("wave1-skitter-b", new Vector3(5f, 1f, 5.5f)),
                         EnemySpec.Strider("wave1-strider", new Vector3(0f, 1f, 7.8f))
                     },
@@ -127,8 +133,8 @@ namespace FunGame.Editor
                     110,
                     new[]
                     {
-                        EnemySpec.Pulser("wave2-pulser-a", new Vector3(-5.2f, 1f, 4.8f)),
-                        EnemySpec.Pulser("wave2-pulser-b", new Vector3(5.2f, 1f, 4.8f)),
+                        EnemySpec.Strider("wave2-strider-a", new Vector3(-5.2f, 1f, 4.8f)),
+                        EnemySpec.Skitter("wave2-skitter-b", new Vector3(5.2f, 1f, 4.8f)),
                         EnemySpec.Strider("wave2-strider", new Vector3(0f, 1f, 7.8f)),
                         EnemySpec.Skitter("wave2-skitter", new Vector3(4.6f, 1f, 0.8f))
                     },
@@ -145,7 +151,8 @@ namespace FunGame.Editor
                         EnemySpec.Strider("wave3-strider-left", new Vector3(-5f, 1f, -5f)),
                         EnemySpec.Strider("wave3-strider-center", new Vector3(0f, 1f, -3f)),
                         EnemySpec.Skitter("wave3-skitter", new Vector3(-4.8f, 1f, 1f)),
-                        EnemySpec.Pulser("wave3-pulser", new Vector3(5f, 1f, -2f))
+                        EnemySpec.Pulser("wave3-pulser", new Vector3(5f, 1f, -2f)),
+                        EnemySpec.Skitter("wave3-skitter-right", new Vector3(3f, 1f, -3f))
                     },
                     darkMaterial,
                     warningMaterial,
@@ -158,8 +165,8 @@ namespace FunGame.Editor
                     new[]
                     {
                         EnemySpec.Bulwark("wave4-bulwark", new Vector3(-4.5f, 1f, 7.8f)),
-                        EnemySpec.Strider("wave4-strider-left", new Vector3(-5f, 1f, 2.8f)),
-                        EnemySpec.Strider("wave4-strider-right", new Vector3(0f, 1f, 0.8f)),
+                        EnemySpec.Pulser("wave4-pulser-left", new Vector3(-5f, 1f, 2.8f)),
+                        EnemySpec.Pulser("wave4-pulser-right", new Vector3(0f, 1f, 0.8f)),
                         EnemySpec.Skitter("wave4-skitter-left", new Vector3(-4.8f, 1f, -3.5f)),
                         EnemySpec.Skitter("wave4-skitter-right", new Vector3(4.8f, 1f, -3.5f))
                     },
@@ -174,8 +181,8 @@ namespace FunGame.Editor
                     new[]
                     {
                         EnemySpec.Bulwark("wave5-bulwark-left", new Vector3(-5f, 1f, 8f)),
-                        EnemySpec.Bulwark("wave5-bulwark-center", new Vector3(0f, 1f, 8f)),
-                        EnemySpec.Pulser("wave5-pulser-left", new Vector3(-5.2f, 1f, 3.5f)),
+                        EnemySpec.Strider("wave5-strider-center", new Vector3(0f, 1f, 8f)),
+                        EnemySpec.Strider("wave5-strider-left", new Vector3(-5.2f, 1f, 3.5f)),
                         EnemySpec.Pulser("wave5-pulser-right", new Vector3(5.2f, 1f, 2.2f)),
                         EnemySpec.Skitter("wave5-skitter-left", new Vector3(-4.8f, 1f, -1f)),
                         EnemySpec.Skitter("wave5-skitter-right", new Vector3(4.8f, 1f, -1f))
@@ -184,6 +191,16 @@ namespace FunGame.Editor
                     warningMaterial,
                     stormCoreTarget)
             };
+
+            string[] waveBriefings = { "基础拦截", "侧翼突袭", "远程支援", "破盾与护送", "混合总攻" };
+            for (int wave = 0; wave < stormWaves.Length; wave++)
+            {
+                stormWaves[wave].ConfigureBriefing(waveBriefings[wave]);
+                var roster = stormWaves[wave].Enemies.OrderBy(e => e.RequiresCircuitDisruption ? 2
+                    : e.Behavior == InterferenceEnemyBehavior.RangedPulse ? 1 : 0).ToList();
+                for (int index = 0; index < roster.Count; index++)
+                    roster[index].ConfigureDeployment(wave == 0 || index < (roster.Count + 1) / 2 ? 4f : 8f);
+            }
 
             DemoCalibrationConsole relayRecoveryConsole = CreateCampaignConsole(
                 relayCompartment,
@@ -699,12 +716,13 @@ namespace FunGame.Editor
                 configuredMaxHealth: spec.Health,
                 configuredMoveSpeed: spec.Speed,
                 configuredAttackRange: spec.AttackRange,
-                configuredAttackIntervalSeconds: spec.AttackInterval,
-                configuredInterferenceDamage: spec.Damage,
-                configuredWrenchDamage: 1,
+                configuredAttackIntervalSeconds: spec.AttackInterval * (spec.Id.StartsWith("wave") ? 1.4f : 1f),
+                configuredInterferenceDamage: spec.Id.StartsWith("wave") ? Mathf.Max(2, Mathf.RoundToInt(spec.Damage * 0.65f)) : spec.Damage,
+                configuredWrenchDamage: 2,
                 configuredKnockbackDistance: spec.Knockback,
                 configuredBehavior: spec.Behavior,
-                configuredAttackWindupSeconds: spec.Windup);
+                configuredAttackWindupSeconds: spec.Windup,
+                configuredRequiresCircuitDisruption: spec.Id.StartsWith("wave") && spec.Archetype == "bulwark");
 
             var line = enemyObject.AddComponent<LineRenderer>();
             line.startColor = spec.Behavior == InterferenceEnemyBehavior.RangedPulse
@@ -786,11 +804,11 @@ namespace FunGame.Editor
             var textObject = new GameObject("Engraved Number 325");
             textObject.transform.SetParent(plate.transform, false);
             textObject.transform.localPosition = new Vector3(0.56f, 0f, 0f);
-            textObject.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+            textObject.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
             var text = textObject.AddComponent<TextMesh>();
             text.text = "325";
             text.fontSize = 64;
-            text.characterSize = 0.12f;
+            text.characterSize = 0.09f;
             text.anchor = TextAnchor.MiddleCenter;
             text.alignment = TextAlignment.Center;
             text.color = textMaterial.color;

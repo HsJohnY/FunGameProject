@@ -1,7 +1,9 @@
 using System.Linq;
 using FunGame.Combat;
-using FunGame.Player;
+using FunGame.Demo;
+using FunGame.UI;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,44 +13,63 @@ namespace FunGame.Tests.EditMode
     public sealed class SharedMapLayoutTests
     {
         [Test]
-        public void BothModesHaveIdenticalMapGeometryAndAuthoredEncounters()
+        public void BothModesLoadOnlyTheCanonicalSoloMap()
         {
-            Scene solo = EditorSceneManager.OpenScene("Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity", OpenSceneMode.Additive);
-            Scene coop = EditorSceneManager.OpenScene("Assets/Game/Scenes/M4_CoopThreeChapterDemo.unity", OpenSceneMode.Additive);
+            Assert.That(GameMenuController.CooperativeScene, Is.EqualTo(GameMenuController.SinglePlayerScene));
+            Assert.That(EditorBuildSettings.scenes.Count(s => s.enabled), Is.EqualTo(1));
+            Assert.That(EditorBuildSettings.scenes.Single(s => s.enabled).path, Does.EndWith("SinglePlayer_ThreeChapterDemo.unity"));
+            Scene scene = EditorSceneManager.OpenScene("Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity", OpenSceneMode.Additive);
             try
             {
-                MeshFilter[] source = solo.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<MeshFilter>(true))
-                    .Where(m => m.GetComponentInParent<FirstPersonController>() == null && m.GetComponentInParent<InterferenceEnemy>() == null).ToArray();
-                var destination = coop.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<MeshFilter>(true))
-                    .Where(m => m.GetComponentInParent<InterferenceEnemy>() == null)
-                    .ToDictionary(m => Path(m.transform));
-                Assert.That(source.Length, Is.GreaterThan(200));
-                foreach (MeshFilter mesh in source)
+                var mode = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<SharedMapModeController>(true)).Single();
+                Assert.That(mode.MapRoot, Is.Not.Null);
+                Assert.That(mode.SoloPlayer, Is.Not.Null);
+                var campaign = mode.MapRoot.GetComponentInChildren<SinglePlayerDemoController>(true);
+                int previousHealth = 0;
+                foreach (CombatEncounterController wave in campaign.StormEncounters)
                 {
-                    Assert.That(destination.TryGetValue(Path(mesh.transform), out MeshFilter matching), Is.True, Path(mesh.transform));
-                    Assert.That(matching.sharedMesh, Is.EqualTo(mesh.sharedMesh));
-                    Assert.That(Vector3.Distance(mesh.transform.position, matching.transform.position), Is.LessThan(0.001f), Path(mesh.transform));
-                    Assert.That(mesh.transform.lossyScale, Is.EqualTo(matching.transform.lossyScale));
-                    Assert.That(Quaternion.Angle(mesh.transform.rotation, matching.transform.rotation), Is.LessThan(0.01f));
+                    Assert.That(wave.Briefing, Is.Not.Empty);
+                    Assert.That(wave.Enemies.All(e => e.HasCombatPosition && e.DeploymentDelay >= 4f), Is.True);
+                    int health = wave.Enemies.Sum(e => e.MaxHealth);
+                    Assert.That(health, Is.GreaterThan(previousHealth));
+                    previousHealth = health;
                 }
-                var copies = coop.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<InterferenceEnemy>(true)).ToDictionary(e => e.TargetId);
-                foreach (InterferenceEnemy enemy in solo.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<InterferenceEnemy>(true)))
-                {
-                    InterferenceEnemy copy = copies[enemy.TargetId];
-                    Assert.That(enemy.HasCombatPosition, Is.True, enemy.TargetId);
-                    Assert.That(copy.AttackPosition, Is.EqualTo(enemy.AttackPosition));
-                    Assert.That(copy.ApproachPosition, Is.EqualTo(enemy.ApproachPosition));
-                    Assert.That(copy.transform.position, Is.EqualTo(enemy.transform.position));
-                    Assert.That(copy.MaxHealth, Is.EqualTo(enemy.MaxHealth));
-                }
+                Assert.That(campaign.StormEncounters.Last().Enemies.Select(e => e.DeploymentDelay).Distinct().Count(), Is.EqualTo(2));
+                Assert.That(campaign.StormEncounters.SelectMany(w => w.Enemies).Where(e => e.RequiresCircuitDisruption)
+                    .All(e => e.DeploymentDelay == 8f), Is.True);
+                var stormRoom = mode.MapRoot.GetComponentsInChildren<Transform>(true).Single(t => t.name == "Chapter 3 - Storm Core Chamber");
+                Assert.That(stormRoom.GetComponentsInChildren<FunGame.Tools.ToolRackInteractable>(true)
+                    .Select(r => r.OfferedTool).Distinct().Count(), Is.EqualTo(3));
             }
-            finally
-            {
-                EditorSceneManager.CloseScene(coop, true);
-                EditorSceneManager.CloseScene(solo, true);
-            }
+            finally { EditorSceneManager.CloseScene(scene, true); }
         }
 
-        private static string Path(Transform item) => item.parent == null ? item.name : Path(item.parent) + "/" + item.name + "[" + item.GetSiblingIndex() + "]";
+        [Test]
+        public void RelayRacksAreSeparatedAndPlateFacesTheWalkway()
+        {
+            Scene scene = EditorSceneManager.OpenScene("Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity", OpenSceneMode.Additive);
+            try
+            {
+                Transform[] transforms = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<Transform>(true)).ToArray();
+                transforms.Single(t => t.name == "Shared Expedition Map").gameObject.SetActive(true);
+                transforms.Single(t => t.name == "Chapter 2 - Power Relay Compartment").gameObject.SetActive(true);
+                Physics.SyncTransforms();
+                var relays = transforms.Where(t => t.GetComponent<DemoRelayTarget>() != null).Select(t => t.GetComponent<Collider>()).ToArray();
+                foreach (string name in new[] { "Relay Bridger Station", "Relay Wrench Station" })
+                {
+                    Bounds rack = transforms.Single(t => t.name == name).GetComponent<Collider>().bounds;
+                    foreach (Collider relay in relays)
+                    {
+                        Bounds safe = relay.bounds;
+                        safe.Expand(1f);
+                        Assert.That(rack.Intersects(safe), Is.False, name + " / " + relay.name);
+                    }
+                }
+                Transform text = transforms.Single(t => t.name == "Engraved Number 325");
+                Assert.That(Vector3.Dot(-text.forward, Vector3.right), Is.GreaterThan(0.99f));
+                Assert.That(text.GetComponent<TextMesh>().text, Is.EqualTo("325"));
+            }
+            finally { EditorSceneManager.CloseScene(scene, true); }
+        }
     }
 }

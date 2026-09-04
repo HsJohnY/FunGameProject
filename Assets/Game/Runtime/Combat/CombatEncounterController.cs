@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace FunGame.Combat
@@ -12,6 +13,11 @@ namespace FunGame.Combat
         [SerializeField] private DefendableSystemTarget defenseTarget;
         [SerializeField] private InterferenceEnemy enemy;
         [SerializeField] private List<InterferenceEnemy> additionalEnemies = new List<InterferenceEnemy>();
+        [SerializeField] private string briefing;
+        public string Briefing => briefing;
+        public int PendingEnemyCount => Enemies.Count(e => !e.IsDefeated && !e.IsDeployed);
+        public float NextDeploymentSeconds => Enemies.Where(e => !e.IsDefeated && !e.IsDeployed).Select(e => e.DeploymentRemaining).DefaultIfEmpty(0f).Min();
+        public void ConfigureBriefing(string value) => briefing = value;
 
         public event Action<CombatEncounterState> StateChanged;
         public CombatEncounterState State { get; private set; } = CombatEncounterState.Active;

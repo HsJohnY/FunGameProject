@@ -16,7 +16,7 @@ namespace FunGame.UI
     {
         private const string OpenAsMainKey = "FunGame.Menu.OpenAsMain";
         public const string SinglePlayerScene = "SinglePlayer_ThreeChapterDemo";
-        public const string CooperativeScene = "M4_CoopThreeChapterDemo";
+        public const string CooperativeScene = SinglePlayerScene;
         private static readonly Color Cyan = new Color(0.2f, 0.92f, 0.88f);
         private static readonly Color Amber = new Color(1f, 0.56f, 0.18f);
         private static readonly Color MutedText = new Color(0.52f, 0.68f, 0.74f);
@@ -73,6 +73,7 @@ namespace FunGame.UI
         public void StartSinglePlayerMode()
         {
             if (!CanStartSinglePlayer) return;
+            FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             StartCoroutine(ChangeScene(SinglePlayerScene, false));
         }
 
@@ -90,6 +91,12 @@ namespace FunGame.UI
         {
             networkSessionFlow = true;
             BindPlayer(null);
+        }
+
+        public void ConfigureForSinglePlayer(FirstPersonController localPlayer)
+        {
+            networkSessionFlow = false;
+            BindPlayer(localPlayer);
         }
 
         /// <summary>
@@ -569,6 +576,8 @@ namespace FunGame.UI
 
         private void ReloadAs(MenuPage page)
         {
+            FunGame.Demo.SharedMapModeController.NextMode = page == MenuPage.Main || networkSessionFlow
+                ? FunGame.Demo.ExpeditionMode.Cooperative : FunGame.Demo.ExpeditionMode.Solo;
             string scene = page == MenuPage.Main && Application.CanStreamedLevelBeLoaded(CooperativeScene)
                 ? CooperativeScene : SceneManager.GetActiveScene().name;
             StartCoroutine(ChangeScene(scene, page == MenuPage.Main));

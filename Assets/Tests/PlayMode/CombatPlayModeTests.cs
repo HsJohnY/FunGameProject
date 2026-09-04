@@ -292,7 +292,9 @@ namespace FunGame.Tests.PlayMode
                 attackIntervalSeconds: 0.05f,
                 interferenceDamage: 10);
 
-            yield return new WaitForSeconds(0.12f);
+            // 攻击蓄力和冷却跨多帧推进；低帧率时固定 120ms 可能只完成第一击。
+            float deadline = Time.time + 1f;
+            while (!target.IsOffline && Time.time < deadline) yield return null;
 
             Assert.That(target.IsOffline, Is.True);
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Failed));

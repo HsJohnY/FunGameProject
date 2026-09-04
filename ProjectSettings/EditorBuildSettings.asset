@@ -6,9 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Game/Scenes/M4_CoopThreeChapterDemo.unity
-    guid: 298a15fa4b3366d4ca4a57fecc6831ba
-  - enabled: 1
     path: Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity
     guid: 3c962ee4ae5e7f44cb01932637b6ce33
   m_configObjects: {}

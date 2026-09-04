@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using FunGame.Combat;
 using FunGame.Demo;
 using FunGame.Incident;
@@ -25,7 +26,7 @@ namespace FunGame.Editor
     /// </summary>
     public static class M4CoopIntegrationBootstrap
     {
-        public const string ScenePath = "Assets/Game/Scenes/M4_CoopThreeChapterDemo.unity";
+        public const string ScenePath = SinglePlayerDemoBootstrap.ScenePath;
         private const string BuildFolder = "Builds/M4-Coop-Windows";
         private const string BuildPath = BuildFolder + "/FunGame-M4-Coop.exe";
         private const string CommunicationPrefabPath =
@@ -38,39 +39,33 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M4/生成多人三舱整合场景")]
         public static void ConfigureCurrent()
         {
-            // 从已经验收的三章场景生成，而不是每次重写其源场景。
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SinglePlayerDemoBootstrap.ScenePath) == null)
-            {
-                SinglePlayerDemoBootstrap.ConfigureCurrent();
-            }
-            Scene scene = EditorSceneManager.OpenScene(SinglePlayerDemoBootstrap.ScenePath, OpenSceneMode.Single);
-            if (!EditorSceneManager.SaveScene(scene, ScenePath, false))
-            {
-                throw new IOException($"无法复制 M4 多人三舱场景：{ScenePath}");
-            }
-
-            RemoveLocalPlayer(scene);
-            FreezeUnsynchronizedGameplay(scene);
-            ConfigureNetworkRepairStations();
+            SinglePlayerDemoBootstrap.ConfigureCurrent();
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            GameObject[] sourceRoots = scene.GetRootGameObjects();
+            var localPlayer = UnityEngine.Object.FindFirstObjectByType<FirstPersonController>(FindObjectsInactive.Include);
+            Behaviour[] localBehaviours = sourceRoots.SelectMany(r => r.GetComponentsInChildren<MonoBehaviour>(true))
+                .Where(b => b.enabled && ShouldFreeze(b) && !(b is DemoChapterPresentation) && !(b is DemoEasterEgg325Interactable)).Cast<Behaviour>().ToArray();
             var pumpProxy = FindRequired("Modular Cooling Pump").GetComponent<ContextInteractionProxy>();
-            pumpProxy.Configure(FindRequired("Cooling Pump Inspection Panel").GetComponent<NetworkIncidentStation>());
-            pumpProxy.enabled = true;
-            // 铭牌只记录本地发现，不控制任务；保留原来的彩蛋交互。
-            foreach (DemoEasterEgg325Interactable plate in
-                     UnityEngine.Object.FindObjectsByType<DemoEasterEgg325Interactable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-            {
-                plate.Configure(null);
-                plate.enabled = true;
-            }
-            foreach (FunGame.Diagnostics.DevelopmentCheckpoint checkpoint in
-                     UnityEngine.Object.FindObjectsByType<FunGame.Diagnostics.DevelopmentCheckpoint>(FindObjectsSortMode.None))
-                checkpoint.Configure("m4-coop-three-chapter-demo", "--m4-coop-smoke");
-            ConfigureMenuForNetworkSession();
+            var originalPump = (MonoBehaviour)new SerializedObject(pumpProxy).FindProperty("targetBehaviour").objectReferenceValue;
+            ConfigureNetworkRepairStations();
             var menuCamera = new GameObject("M4 Menu Camera");
             menuCamera.transform.SetPositionAndRotation(new Vector3(-2f, 1.65f, -4f), Quaternion.Euler(0f, 15f, 0f));
             menuCamera.AddComponent<Camera>();
             menuCamera.AddComponent<NetworkMenuCamera>();
             CreateNetworkSession();
+
+            GameObject networkRoot = FindRequired("M4 Network Session");
+            networkRoot.SetActive(false);
+            var mapRoot = new GameObject("Shared Expedition Map");
+            foreach (GameObject root in sourceRoots) root.transform.SetParent(mapRoot.transform, true);
+            Behaviour[] networkBehaviours = mapRoot.GetComponentsInChildren<MonoBehaviour>(true)
+                .Where(b => b.GetType().Namespace == typeof(NetworkIncidentStation).Namespace).Cast<Behaviour>().ToArray();
+            GameObject pipe = FindRequired("Replacement Pipe");
+            pipe.SetActive(true);
+            new GameObject("Expedition Mode").AddComponent<SharedMapModeController>().Configure(
+                mapRoot, networkRoot, menuCamera, localPlayer, localBehaviours, networkBehaviours, pipe,
+                pumpProxy, originalPump, FindRequired("Cooling Pump Inspection Panel").GetComponent<NetworkIncidentStation>());
+            mapRoot.SetActive(false);
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
@@ -80,8 +75,7 @@ namespace FunGame.Editor
 
             EditorBuildSettings.scenes = new[]
             {
-                new EditorBuildSettingsScene(ScenePath, true),
-                new EditorBuildSettingsScene(SinglePlayerDemoBootstrap.ScenePath, true)
+                new EditorBuildSettingsScene(ScenePath, true)
             };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -92,12 +86,11 @@ namespace FunGame.Editor
         public static void BuildWindowsDevelopment()
         {
             // 两种模式都从已合并的生成器重建，避免场景快照仍保留旧工具模型。
-            SinglePlayerDemoBootstrap.ConfigureCurrent();
             ConfigureCurrent();
             Directory.CreateDirectory(BuildFolder);
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { ScenePath, SinglePlayerDemoBootstrap.ScenePath },
+                scenes = new[] { ScenePath },
                 locationPathName = BuildPath,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.Development | BuildOptions.AllowDebugging
@@ -110,45 +103,6 @@ namespace FunGame.Editor
             }
 
             Debug.Log($"[M4] Windows 完整整合开发构建成功：{report.summary.totalSize} bytes。 ");
-        }
-
-        private static void RemoveLocalPlayer(Scene scene)
-        {
-            foreach (GameObject root in scene.GetRootGameObjects())
-            {
-                FirstPersonController controller = root.GetComponentInChildren<FirstPersonController>(true);
-                if (controller != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(controller.gameObject);
-                    return;
-                }
-            }
-
-            throw new InvalidDataException("三章源场景缺少本地第一人称玩家，无法建立明确的联网所有权边界。 ");
-        }
-
-        private static void FreezeUnsynchronizedGameplay(Scene scene)
-        {
-            foreach (GameObject root in scene.GetRootGameObjects())
-            {
-                foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
-                {
-                    if (behaviour is InterferenceEnemy dormantEnemy)
-                    {
-                        // 原单人敌人仅作为联网敌人的布置参考，运行时不能重复显示或碰撞。
-                        dormantEnemy.SetEncounterActive(false);
-                    }
-                    if (behaviour is DemoChapterPresentation presentation)
-                    {
-                        presentation.ConfigureNetworkMode();
-                        continue;
-                    }
-                    if (ShouldFreeze(behaviour))
-                    {
-                        behaviour.enabled = false;
-                    }
-                }
-            }
         }
 
         private static bool ShouldFreeze(MonoBehaviour behaviour)
@@ -284,6 +238,8 @@ namespace FunGame.Editor
             AddToolRack("Relay Bridger Station", "m4-relay-bridger", ToolKind.CircuitBridger);
             AddToolRack("Relay Wrench Station", "m4-relay-wrench", ToolKind.ImpactWrench);
             AddToolRack("Storm Wrench Station", "m4-storm-wrench", ToolKind.ImpactWrench);
+            AddToolRack("Storm Bridger Station", "m4-storm-bridger", ToolKind.CircuitBridger);
+            AddToolRack("Storm Sealant Station", "m4-storm-sealant", ToolKind.SealantGun);
 
             for (int index = 0; index < 5; index++)
             {

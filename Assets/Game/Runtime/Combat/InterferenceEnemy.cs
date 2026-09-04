@@ -49,6 +49,9 @@ namespace FunGame.Combat
         [SerializeField] private bool hasCombatPosition;
         [SerializeField] private Vector3 attackLocalPoint;
         [SerializeField] private Vector3 approachLocalPoint;
+        [SerializeField, Min(0f)] private float deploymentDelay;
+        private float _deploymentEndsAt;
+        private bool _deploymentShown;
         private float _hitFlashRemaining;
         private float _defeatedVisualRemaining;
         private float _slowedUntil;
@@ -85,6 +88,10 @@ namespace FunGame.Combat
         public bool RequiresCircuitDisruption => requiresCircuitDisruption;
         public Vector3 AuthoredScale => baseScale;
         public bool HasCombatPosition => hasCombatPosition;
+        public float DeploymentDelay => deploymentDelay;
+        public bool IsDeployed => _encounterActive && Time.time >= _deploymentEndsAt;
+        public float DeploymentRemaining => Mathf.Max(0f, _deploymentEndsAt - Time.time);
+        public void ConfigureDeployment(float delay) => deploymentDelay = Mathf.Max(0f, delay);
         public Vector3 AttackPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(attackLocalPoint) : defenseTarget.transform.position;
         public Vector3 ApproachPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(approachLocalPoint) : AttackPosition;
 
@@ -141,8 +148,9 @@ namespace FunGame.Combat
 
         private void Update()
         {
+            if (_encounterActive && !_deploymentShown && IsDeployed) SetEncounterActive(true);
             UpdateFeedback(Time.unscaledDeltaTime);
-            if (!_encounterActive || IsDefeated || defenseTarget == null || defenseTarget.IsOffline)
+            if (!IsDeployed || IsDefeated || defenseTarget == null || defenseTarget.IsOffline)
             {
                 return;
             }
@@ -239,7 +247,7 @@ namespace FunGame.Combat
 
         public ToolActionOption GetToolAction(PlayerToolbelt toolbelt)
         {
-            bool canDefend = _encounterActive && !IsDefeated && defenseTarget != null && !defenseTarget.IsOffline;
+            bool canDefend = IsDeployed && !IsDefeated && defenseTarget != null && !defenseTarget.IsOffline;
             ToolKind equippedTool = toolbelt.EquippedTool;
             if (canDefend && IsDisruptionShieldActive && equippedTool != ToolKind.CircuitBridger)
             {
@@ -336,7 +344,7 @@ namespace FunGame.Combat
 
         private bool TryApplySealantEffect(Vector3 sourcePosition, string action)
         {
-            if (!_encounterActive || IsDefeated || Time.time < _nextSealantPulseTime)
+            if (!IsDeployed || IsDefeated || Time.time < _nextSealantPulseTime)
             {
                 return false;
             }
@@ -393,6 +401,7 @@ namespace FunGame.Combat
             _slowedUntil = 0f;
             _stunnedUntil = 0f;
             _nextSealantPulseTime = 0f;
+            _deploymentEndsAt = Time.time + deploymentDelay;
             SetEncounterActive(true);
             RefreshVisual();
         }
@@ -400,6 +409,8 @@ namespace FunGame.Combat
         public void SetEncounterActive(bool active)
         {
             _encounterActive = active;
+            bool visible = active && IsDeployed;
+            _deploymentShown = visible;
             if (_collider == null)
             {
                 _collider = GetComponent<Collider>();
@@ -410,12 +421,12 @@ namespace FunGame.Combat
             {
                 if (hitCollider != null)
                 {
-                    hitCollider.enabled = active;
+                    hitCollider.enabled = visible;
                 }
             }
 
             _modelRenderers = GetComponentsInChildren<MeshRenderer>(true);
-            SetModelVisibility(active || (IsDefeated && _defeatedVisualRemaining > 0f));
+            SetModelVisibility(visible || (IsDefeated && _defeatedVisualRemaining > 0f));
         }
 
         private Vector3 GetDestination()

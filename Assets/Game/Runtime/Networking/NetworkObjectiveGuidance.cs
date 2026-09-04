@@ -65,7 +65,7 @@ namespace FunGame.Networking
             if (kind == DemoGuidanceTargetKind.None) return null;
             if (kind == DemoGuidanceTargetKind.Enemy)
                 return Nearest(FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None)
-                    .Where(e => e.Health > 0).Select(e => e.transform));
+                    .Where(e => e.Health > 0 && e.IsDeployed).Select(e => e.transform));
             if (kind == DemoGuidanceTargetKind.Relay)
                 return Nearest(FindObjectsByType<NetworkCampaignStation>(FindObjectsSortMode.None)
                     .Where(s => !s.IsCalibrationConsole && _campaign.CanOperateRelay(s.StationIndex)).Select(s => s.transform));

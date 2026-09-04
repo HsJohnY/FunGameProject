@@ -12,13 +12,38 @@ namespace FunGame.Tests.PlayMode
     public sealed class CombatPositionPlayModeTests
     {
         [UnityTest]
+        public IEnumerator StormWaveProvidesPreparationAndSeparateReinforcements()
+        {
+            FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
+            yield return SceneManager.LoadSceneAsync(GameMenuController.SinglePlayerScene, LoadSceneMode.Additive);
+            Scene scene = SceneManager.GetSceneByName(GameMenuController.SinglePlayerScene);
+            Object.FindFirstObjectByType<GameMenuController>().EnterGameplayForAutomation();
+            var campaign = Object.FindFirstObjectByType<FunGame.Demo.SinglePlayerDemoController>();
+            campaign.enabled = false;
+            Object.FindFirstObjectByType<FunGame.Demo.DemoChapterPresentation>().enabled = false;
+            CombatEncounterController wave = campaign.StormEncounters.Last();
+            for (Transform parent = wave.transform; parent != null; parent = parent.parent) parent.gameObject.SetActive(true);
+            wave.DefenseTarget.Configure(10000);
+            wave.BeginEncounter();
+            Assert.That(wave.PendingEnemyCount, Is.EqualTo(6));
+            Assert.That(wave.Enemies.All(e => !e.GetComponent<Collider>().enabled), Is.True);
+            yield return new WaitForSeconds(4.2f);
+            Assert.That(wave.PendingEnemyCount, Is.EqualTo(3));
+            Assert.That(wave.Enemies.Count(e => e.GetComponent<Collider>().enabled), Is.EqualTo(3));
+            yield return new WaitForSeconds(4.2f);
+            Assert.That(wave.PendingEnemyCount, Is.Zero);
+            yield return SceneManager.UnloadSceneAsync(scene);
+        }
+
+        [UnityTest]
         public IEnumerator EnemiesResetInTheirOwnCompartmentAndRemainExposed()
         {
+            FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             yield return SceneManager.LoadSceneAsync("SinglePlayer_ThreeChapterDemo", LoadSceneMode.Additive);
             Scene scene = SceneManager.GetSceneByName("SinglePlayer_ThreeChapterDemo");
             Object.FindFirstObjectByType<GameMenuController>()?.EnterGameplayForAutomation();
             var all = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<InterferenceEnemy>(true)).ToArray();
-            foreach (InterferenceEnemy enemy in all) enemy.enabled = false;
+            foreach (InterferenceEnemy enemy in all) { enemy.enabled = false; enemy.ConfigureDeployment(0f); }
             Object.FindFirstObjectByType<FunGame.Demo.SinglePlayerDemoController>().enabled = false;
             Object.FindFirstObjectByType<FunGame.Demo.DemoChapterPresentation>().enabled = false;
             foreach (InterferenceEnemy enemy in all)

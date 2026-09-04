@@ -17,7 +17,7 @@ namespace FunGame.Demo
         [SerializeField] private GameObject stormAccessDoor;
         [SerializeField] private bool networkMode;
         private FunGame.Networking.NetworkCampaignController _networkCampaign;
-        public void ConfigureNetworkMode() { networkMode = true; enabled = true; }
+        public void ConfigureNetworkMode(bool value = true) { networkMode = value; enabled = true; }
         private SinglePlayerDemoChapter VisibleChapter => networkMode
             ? _networkCampaign != null ? (SinglePlayerDemoChapter)(int)_networkCampaign.Chapter : SinglePlayerDemoChapter.CoolingEmergency
             : campaign.Chapter;

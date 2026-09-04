@@ -19,13 +19,13 @@ namespace FunGame.Tests.PlayMode
         [UnityTest]
         public IEnumerator 启动M4主机后生成已注册的通信与维修对象()
         {
-            AsyncOperation load = SceneManager.LoadSceneAsync("M4_CoopThreeChapterDemo", LoadSceneMode.Additive);
+            AsyncOperation load = SceneManager.LoadSceneAsync(GameMenuController.CooperativeScene, LoadSceneMode.Additive);
             while (load != null && !load.isDone)
             {
                 yield return null;
             }
 
-            Scene scene = SceneManager.GetSceneByName("M4_CoopThreeChapterDemo");
+            Scene scene = SceneManager.GetSceneByName(GameMenuController.CooperativeScene);
             Assert.That(scene.IsValid(), Is.True);
             GameMenuController menu = Object.FindFirstObjectByType<GameMenuController>();
             menu?.EnterGameplayForAutomation();
@@ -118,13 +118,14 @@ namespace FunGame.Tests.PlayMode
             for (int relay = 0; relay < 5; relay++)
             for (int step = 0; step < 3; step++)
                 campaign.TryOperateRelayServer(relay);
-            DefeatAllEnemies();
+            yield return DefeatAllEnemies();
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.StormDefense));
+            Assert.That(campaign.PendingEnemyCount, Is.EqualTo(campaign.EnemiesRemaining));
 
             for (int wave = 0; wave < campaign.StormWaveCount; wave++)
             {
-                DefeatAllEnemies();
+                yield return DefeatAllEnemies();
                 yield return null;
                 Assert.That(campaign.CanConfirmStormWave, Is.True);
                 campaign.ConfirmStormWaveServer();
@@ -161,7 +162,7 @@ namespace FunGame.Tests.PlayMode
             int before = campaign.EnemiesRemaining;
             primary.ApplyToolServer(ToolKind.SealantGun, primary.transform.position + Vector3.back);
             Assert.That(before - campaign.EnemiesRemaining, Is.GreaterThan(1), "Spray must clear nearby swarm members");
-            DefeatAllEnemies();
+            yield return DefeatAllEnemies();
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.OperateFastener, ToolKind.ImpactWrench), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InstallPipe, ToolKind.None, true), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.OperateFastener, ToolKind.ImpactWrench), Is.True);
@@ -170,15 +171,22 @@ namespace FunGame.Tests.PlayMode
             yield return null;
         }
 
-        private static void DefeatAllEnemies()
+        private static IEnumerator DefeatAllEnemies()
         {
             NetworkCombatEnemy[] enemies = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None);
-            foreach (NetworkCombatEnemy enemy in enemies)
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while (enemies.Any(e => e != null && e.Health > 0) && Time.realtimeSinceStartup < deadline)
             {
-                if (enemy.IsShielded) enemy.ApplyToolServer(ToolKind.CircuitBridger, Vector3.zero);
-                for (int hit = 0; hit < 8 && enemy != null && enemy.Health > 0; hit++)
-                    enemy.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
+                foreach (NetworkCombatEnemy enemy in enemies)
+                {
+                    if (enemy == null || enemy.Health <= 0 || !enemy.IsDeployed) continue;
+                    if (enemy.IsShielded) enemy.ApplyToolServer(ToolKind.CircuitBridger, Vector3.zero);
+                    for (int hit = 0; hit < 8 && enemy != null && enemy.Health > 0; hit++)
+                        enemy.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
+                }
+                yield return null;
             }
+            Assert.That(enemies.All(e => e == null || e.Health == 0), Is.True);
         }
 
         private static void AimAt(GameObject player, Vector3 target, Vector3 outward)
