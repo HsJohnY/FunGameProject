@@ -26,6 +26,7 @@ namespace FunGame.Networking
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
         [SerializeField] private string panelTitle = "M3-2 双人会话验证";
+        [SerializeField] private bool escapeStopsSession = true;
 
         private string addressText = NetworkEndpointRules.DefaultAddress;
         private string portText = NetworkEndpointRules.DefaultPort.ToString();
@@ -37,6 +38,7 @@ namespace FunGame.Networking
 
         public string StatusText => statusText;
         public bool IsEndpointEditable => sessionState == SessionState.Idle;
+        public bool EscapeStopsSession => escapeStopsSession;
 
         /// <summary>
         /// 为后续正式大厅界面和自动测试提供统一的地址输入入口。
@@ -60,7 +62,11 @@ namespace FunGame.Networking
             return true;
         }
 
-        public void Configure(NetworkManager manager, UnityTransport networkTransport, string configuredPanelTitle = null)
+        public void Configure(
+            NetworkManager manager,
+            UnityTransport networkTransport,
+            string configuredPanelTitle = null,
+            bool configuredEscapeStopsSession = true)
         {
             Unsubscribe();
             networkManager = manager;
@@ -69,6 +75,7 @@ namespace FunGame.Networking
             {
                 panelTitle = configuredPanelTitle;
             }
+            escapeStopsSession = configuredEscapeStopsSession;
             Subscribe();
         }
 
@@ -98,7 +105,9 @@ namespace FunGame.Networking
             }
 
             // 网络玩家生成后鼠标会被第一人称视角锁定；Esc 始终保留为技术验证场景的安全退出键。
-            if (sessionState != SessionState.Idle && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            if (escapeStopsSession
+                && sessionState != SessionState.Idle
+                && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
                 StopSession();
             }
@@ -165,7 +174,9 @@ namespace FunGame.Networking
             GUI.enabled = true;
             GUILayout.Space(8f);
             GUILayout.Label($"状态：{statusText}");
-            GUILayout.Label("会话中按 Esc 可停止 / 断开");
+            GUILayout.Label(escapeStopsSession
+                ? "会话中按 Esc 可停止 / 断开"
+                : "会话中按 F1 打开面板并选择停止 / 断开");
             if (networkManager != null && networkManager.IsHost)
             {
                 GUILayout.Label($"已连接玩家：{networkManager.ConnectedClientsIds.Count}");

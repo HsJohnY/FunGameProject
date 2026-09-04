@@ -7,6 +7,7 @@ using FunGame.Interaction;
 using FunGame.Networking;
 using FunGame.Player;
 using FunGame.Tools;
+using FunGame.UI;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEditor;
@@ -27,6 +28,8 @@ namespace FunGame.Editor
         public const string ScenePath = "Assets/Game/Scenes/M4_CoopThreeChapterDemo.unity";
         private const string BuildFolder = "Builds/M4-Coop-Windows";
         private const string BuildPath = BuildFolder + "/FunGame-M4-Coop.exe";
+        private const string CommunicationPrefabPath =
+            "Assets/Game/Content/Networking/M4_NetworkCommunication.prefab";
 
         [MenuItem("FunGame/M4/生成多人三舱整合场景")]
         public static void ConfigureCurrent()
@@ -44,6 +47,7 @@ namespace FunGame.Editor
 
             RemoveLocalPlayer(scene);
             FreezeUnsynchronizedGameplay(scene);
+            ConfigureMenuForNetworkSession();
             CreateNetworkSession();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -131,6 +135,8 @@ namespace FunGame.Editor
             {
                 playerPrefab = M3NetworkBootstrap.CreateOrUpdatePlayerPrefab();
             }
+            GameObject communicationPrefab = CreateOrUpdateCommunicationPrefab();
+            M3NetworkBootstrap.RegisterNetworkPrefab(communicationPrefab);
             var sessionObject = new GameObject("M4 Network Session");
             var networkManager = sessionObject.AddComponent<NetworkManager>();
             var transport = sessionObject.AddComponent<UnityTransport>();
@@ -140,13 +146,31 @@ namespace FunGame.Editor
             networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
 
             sessionObject.AddComponent<NetworkSessionController>()
-                .Configure(networkManager, transport, "M4-1 多人三舱验证");
+                .Configure(networkManager, transport, "M4-1 多人三舱验证", false);
             sessionObject.AddComponent<NetworkDiagnosticsOverlay>().Configure(networkManager, transport);
+            sessionObject.AddComponent<NetworkCommunicationSpawner>()
+                .Configure(networkManager, communicationPrefab);
+        }
 
-            // 聊天是会话级能力，不应继续依附于 M3 事故对象。
+        private static GameObject CreateOrUpdateCommunicationPrefab()
+        {
             var communicationObject = new GameObject("M4 Network Communication");
             communicationObject.AddComponent<NetworkObject>();
             communicationObject.AddComponent<NetworkChatController>();
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(communicationObject, CommunicationPrefabPath);
+            UnityEngine.Object.DestroyImmediate(communicationObject);
+            return prefab;
+        }
+
+        private static void ConfigureMenuForNetworkSession()
+        {
+            GameMenuController menu = UnityEngine.Object.FindFirstObjectByType<GameMenuController>(FindObjectsInactive.Include);
+            if (menu == null)
+            {
+                throw new InvalidDataException("三章源场景缺少主菜单，无法接入联网会话流程。 ");
+            }
+
+            menu.ConfigureForNetworkSession();
         }
     }
 }

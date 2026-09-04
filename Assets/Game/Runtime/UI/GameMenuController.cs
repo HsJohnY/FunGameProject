@@ -29,6 +29,7 @@ namespace FunGame.UI
 
         [SerializeField] private FirstPersonController player;
         [SerializeField] private bool showMainMenuOnStart = true;
+        [SerializeField] private bool networkSessionFlow;
         private ContextInteractor _interactor;
         private ToolController _toolController;
         private GameSettingsValues _pendingSettings;
@@ -63,10 +64,20 @@ namespace FunGame.UI
 
         public static bool IsAnyMenuOpen { get; private set; }
         public bool IsMenuOpen => _menuOpen;
+        public bool UsesNetworkSessionFlow => networkSessionFlow;
 
         public void Configure(FirstPersonController configuredPlayer)
         {
-            player = configuredPlayer;
+            BindPlayer(configuredPlayer);
+        }
+
+        /// <summary>
+        /// 联机场景的玩家在启动会话后才生成，因此菜单需要延迟绑定本地拥有者。
+        /// </summary>
+        public void ConfigureForNetworkSession()
+        {
+            networkSessionFlow = true;
+            BindPlayer(null);
         }
 
         /// <summary>
@@ -112,6 +123,11 @@ namespace FunGame.UI
 
         private void Update()
         {
+            if (player == null)
+            {
+                TryBindSpawnedPlayer();
+            }
+
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 if (!_menuOpen)
@@ -218,7 +234,9 @@ namespace FunGame.UI
             float buttonY = right.y;
             if (_page == MenuPage.Main)
             {
-                if (DrawTechButton(right, ref buttonY, "开始维修任务", "INITIALIZE EXPEDITION", Amber))
+                string startTitle = networkSessionFlow ? "进入联机终端" : "开始维修任务";
+                string startSubtitle = networkSessionFlow ? "HOST OR JOIN SESSION" : "INITIALIZE EXPEDITION";
+                if (DrawTechButton(right, ref buttonY, startTitle, startSubtitle, Amber))
                 {
                     CloseMenu();
                 }
@@ -475,6 +493,33 @@ namespace FunGame.UI
             {
                 _toolController.enabled = enabled;
             }
+        }
+
+        private void TryBindSpawnedPlayer()
+        {
+            foreach (FirstPersonController candidate in
+                     Object.FindObjectsByType<FirstPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (candidate.enabled)
+                {
+                    BindPlayer(candidate);
+                    return;
+                }
+            }
+        }
+
+        private void BindPlayer(FirstPersonController configuredPlayer)
+        {
+            player = configuredPlayer;
+            _interactor = player != null ? player.GetComponent<ContextInteractor>() : null;
+            _toolController = player != null ? player.GetComponent<ToolController>() : null;
+            if (player == null)
+            {
+                return;
+            }
+
+            GameSettingsStore.Apply(GameSettingsStore.Current, player, false);
+            SetGameplayEnabled(!_menuOpen);
         }
 
         private void ReloadAs(MenuPage page)

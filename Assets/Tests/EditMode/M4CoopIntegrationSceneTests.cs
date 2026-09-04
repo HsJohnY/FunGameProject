@@ -3,6 +3,7 @@ using FunGame.Combat;
 using FunGame.Demo;
 using FunGame.Networking;
 using FunGame.Player;
+using FunGame.UI;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEditor.SceneManagement;
@@ -26,12 +27,21 @@ namespace FunGame.Tests.EditMode
                     .SingleOrDefault();
                 NetworkSessionController session = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkSessionController>(true)).SingleOrDefault();
-                NetworkChatController chat = roots
-                    .SelectMany(item => item.GetComponentsInChildren<NetworkChatController>(true)).SingleOrDefault();
+                NetworkCommunicationSpawner communicationSpawner = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkCommunicationSpawner>(true)).SingleOrDefault();
+                GameMenuController menu = roots
+                    .SelectMany(item => item.GetComponentsInChildren<GameMenuController>(true)).SingleOrDefault();
 
                 Assert.That(manager, Is.Not.Null);
                 Assert.That(session, Is.Not.Null);
-                Assert.That(chat, Is.Not.Null);
+                Assert.That(communicationSpawner, Is.Not.Null);
+                Assert.That(communicationSpawner.CommunicationPrefab, Is.Not.Null);
+                Assert.That(communicationSpawner.CommunicationPrefab.GetComponent<NetworkChatController>(), Is.Not.Null);
+                Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<NetworkChatController>(true)), Is.Empty,
+                    "关闭 NGO 场景管理时，聊天不能作为未注册的场景内 NetworkObject 存在。 ");
+                Assert.That(menu, Is.Not.Null);
+                Assert.That(menu.UsesNetworkSessionFlow, Is.True);
+                Assert.That(session.EscapeStopsSession, Is.False, "M4 的 Esc 应由暂停菜单处理，不能同时断开会话。 ");
                 Assert.That(manager.NetworkConfig.PlayerPrefab, Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerController>(), Is.Not.Null);
                 Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<FirstPersonController>(true)), Is.Empty,

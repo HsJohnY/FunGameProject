@@ -307,7 +307,7 @@ namespace FunGame.Editor
             return prefab;
         }
 
-        private static void RegisterNetworkPrefab(GameObject prefab)
+        public static void RegisterNetworkPrefab(GameObject prefab)
         {
             const string defaultListPath = "Assets/DefaultNetworkPrefabs.asset";
             NetworkPrefabsList prefabList = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>(defaultListPath);
