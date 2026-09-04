@@ -10,11 +10,13 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $executable = Join-Path $projectRoot 'Builds\M4-Coop-Windows\FunGame-M4-Coop.exe'
+$helperPath = Join-Path (Split-Path -Parent $executable) 'FunGame.Firewall.exe'
 $output = Join-Path $projectRoot ('Logs\FirewallSession-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $output | Out-Null
-if (-not ('FunGame.Networking.WindowsHostFirewall' -as [type])) {
-    Add-Type -Path (Join-Path $projectRoot 'Assets\Game\Runtime\Networking\WindowsHostFirewall.cs')
+if (-not ('FunGame.Networking.HostFirewallIdentity' -as [type])) {
+    Add-Type -Path (Join-Path $projectRoot 'Assets\Game\Runtime\Networking\HostFirewallIdentity.cs')
 }
+if (-not (Test-Path -LiteralPath $helperPath)) { throw 'Build the bundled firewall helper first.' }
 
 # This test intentionally requests UAC. The game stays unelevated; only its scoped helper is elevated.
 $player = Start-Process -FilePath $executable -ArgumentList @('-batchmode', '-nographics',
@@ -23,15 +25,9 @@ $helper = $null
 $ruleName = $null
 try {
     $ticks = $player.StartTime.ToUniversalTime().Ticks
-    $ruleName = [FunGame.Networking.WindowsHostFirewall]::RuleName($executable, $Port, $player.Id, $ticks)
-    $script = [FunGame.Networking.WindowsHostFirewall]::BuildScript($executable, $Port, $player.Id, $ticks, $true)
-    $tokens = $null
-    $parseErrors = $null
-    $null = [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$tokens, [ref]$parseErrors)
-    if ($parseErrors.Count -ne 0) { throw "Invalid helper syntax: $parseErrors" }
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
-    $helper = Start-Process -FilePath "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
-        -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded) `
+    $ruleName = [FunGame.Networking.HostFirewallIdentity]::RuleName($executable, $Port, $player.Id, $ticks)
+    $arguments = [FunGame.Networking.HostFirewallIdentity]::Arguments($true, $Port, $player.Id, $ticks)
+    $helper = Start-Process -FilePath $helperPath -ArgumentList $arguments `
         -Verb RunAs -WindowStyle Hidden -PassThru
 
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -49,10 +45,10 @@ try {
     }
     $rule | Select-Object Name,PolicyStoreSourceType,Profile,Action,Direction |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'Rule.json') -Encoding utf8
-    $check = [FunGame.Networking.WindowsHostFirewall]::BuildScript($executable, $Port, $player.Id, $ticks, $false)
-    $checkEncoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($check))
-    & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -EncodedCommand $checkEncoded
-    if ($LASTEXITCODE -ne 0) { throw "Production rule check failed: $LASTEXITCODE" }
+    $checkArguments = [FunGame.Networking.HostFirewallIdentity]::Arguments($false, $Port, $player.Id, $ticks)
+    $checkError = Join-Path $output 'CheckError.log'
+    $check = Start-Process -FilePath $helperPath -ArgumentList $checkArguments -WindowStyle Hidden -PassThru -Wait -RedirectStandardError $checkError
+    if ($check.ExitCode -ne 0) { throw "Production rule check failed: $($check.ExitCode). $(Get-Content -Raw $checkError)" }
 
     # Force termination also covers the case where Unity cannot run its own exit callbacks.
     $player.Kill()

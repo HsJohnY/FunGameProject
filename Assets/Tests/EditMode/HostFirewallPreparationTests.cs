@@ -96,6 +96,15 @@ namespace FunGame.Tests.EditMode
         }
 
         [Test]
+        public void HelperArguments_ContainOnlyActionAndNumericSessionIdentity()
+        {
+            Assert.That(HostFirewallIdentity.Arguments(true, 4848, 100, 500), Is.EqualTo("--grant 100 500 4848"));
+            Assert.That(HostFirewallIdentity.Arguments(false, 4848, 100, 500), Is.EqualTo("--check 100 500 4848"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => HostFirewallIdentity.Arguments(true, 4848, -1, 500));
+            Assert.Throws<ArgumentOutOfRangeException>(() => HostFirewallIdentity.Arguments(true, 4848, 100, 0));
+        }
+
+        [Test]
         public void RuleIdentity_IsScopedToExecutablePortAndProcessStart()
         {
             const string path = @"C:\Games\FunGame.exe";

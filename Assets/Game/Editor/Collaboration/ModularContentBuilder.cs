@@ -86,6 +86,7 @@ namespace FunGame.Editor
             });
             if (report.summary.result != BuildResult.Succeeded)
                 throw new BuildFailedException("Modular build failed: " + report.summary.result);
+            WindowsFirewallHelperBuilder.Build(executable);
             Debug.Log("[Modules] Windows build succeeded: " + report.summary.totalSize + " bytes.");
         }
     }
