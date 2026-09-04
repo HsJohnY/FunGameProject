@@ -25,6 +25,7 @@ namespace FunGame.Networking
 
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
+        [SerializeField] private string panelTitle = "M3-2 双人会话验证";
 
         private string addressText = NetworkEndpointRules.DefaultAddress;
         private string portText = NetworkEndpointRules.DefaultPort.ToString();
@@ -59,11 +60,15 @@ namespace FunGame.Networking
             return true;
         }
 
-        public void Configure(NetworkManager manager, UnityTransport networkTransport)
+        public void Configure(NetworkManager manager, UnityTransport networkTransport, string configuredPanelTitle = null)
         {
             Unsubscribe();
             networkManager = manager;
             transport = networkTransport;
+            if (!string.IsNullOrWhiteSpace(configuredPanelTitle))
+            {
+                panelTitle = configuredPanelTitle;
+            }
             Subscribe();
         }
 
@@ -128,7 +133,7 @@ namespace FunGame.Networking
 
             const float width = 420f;
             GUILayout.BeginArea(new Rect(20f, 20f, width, 300f), GUI.skin.box);
-            GUILayout.Label("M3-2 双人会话验证（F1 隐藏）");
+            GUILayout.Label($"{panelTitle}（F1 隐藏）");
             GUILayout.Space(8f);
 
             bool idle = networkManager != null && sessionState == SessionState.Idle;

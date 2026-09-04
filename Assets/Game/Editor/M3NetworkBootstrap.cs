@@ -21,7 +21,7 @@ namespace FunGame.Editor
     public static class M3NetworkBootstrap
     {
         private const string ScenePath = "Assets/Game/Scenes/M3_NetworkSlice.unity";
-        private const string PlayerPrefabPath = "Assets/Game/Content/Networking/M3_NetworkPlayer.prefab";
+        public const string PlayerPrefabPath = "Assets/Game/Content/Networking/M3_NetworkPlayer.prefab";
         private const string CarryablePrefabPath = "Assets/Game/Content/Networking/M3_SharedTaskPart.prefab";
         private const string IncidentPrefabPath = "Assets/Game/Content/Networking/M3_NetworkIncident.prefab";
 
@@ -32,7 +32,7 @@ namespace FunGame.Editor
             scene.name = "M3_NetworkSlice";
 
             CreateEnvironment();
-            GameObject playerPrefab = CreatePlayerPrefab();
+            GameObject playerPrefab = CreateOrUpdatePlayerPrefab();
             GameObject carryablePrefab = CreateCarryablePrefab();
             GameObject incidentPrefab = CreateIncidentPrefab();
             RegisterNetworkPrefab(carryablePrefab);
@@ -144,7 +144,10 @@ namespace FunGame.Editor
             return block;
         }
 
-        private static GameObject CreatePlayerPrefab()
+        /// <summary>
+        /// 创建或更新共享的联网玩家预制体，供后续整合场景复用同一所有权实现。
+        /// </summary>
+        public static GameObject CreateOrUpdatePlayerPrefab()
         {
             EnsureFolder("Assets/Game/Content", "Networking");
 
