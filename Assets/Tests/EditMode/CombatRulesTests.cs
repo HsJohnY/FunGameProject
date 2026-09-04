@@ -92,6 +92,10 @@ namespace FunGame.Tests.EditMode
                     Assert.That(swarmBug, Is.Not.Null, $"战斗沙盒应包含虫群单位 {index}");
                     Assert.That(swarmBug.GetComponent<InterferenceEnemy>().MaxHealth, Is.EqualTo(1));
                 }
+                Assert.That(FindInScene(scene, "Wrench Socket Anvil"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Spray Shroud"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Left"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Right"), Is.Not.Null);
             }
             finally
             {
@@ -100,7 +104,7 @@ namespace FunGame.Tests.EditMode
         }
 
         [Test]
-        public void CombatRepairScene_包含双行为敌人和维修联动组件()
+        public void CombatRepairScene_包含虫群护盾精英双行为敌人和维修联动组件()
         {
             Scene scene = EditorSceneManager.OpenScene(
                 "Assets/Game/Scenes/Combat_CoolingBayIntegration.unity",
@@ -127,9 +131,18 @@ namespace FunGame.Tests.EditMode
 
                 Assert.That(integration, Is.Not.Null);
                 Assert.That(indicator, Is.Not.Null);
-                Assert.That(enemyCount, Is.EqualTo(2));
+                Assert.That(enemyCount, Is.EqualTo(7));
                 Assert.That(hasDirect, Is.True);
                 Assert.That(hasFlanking, Is.True);
+                GameObject guardian = FindInScene(scene, "Shielded Relay Guardian");
+                Assert.That(guardian, Is.Not.Null);
+                Assert.That(guardian.GetComponent<InterferenceEnemy>().IsDisruptionShieldActive, Is.True);
+                for (int index = 1; index <= 5; index++)
+                {
+                    GameObject swarmBug = FindInScene(scene, $"Swarm Bug {index}");
+                    Assert.That(swarmBug, Is.Not.Null, $"维修防卫集成场景应包含虫群单位 {index}");
+                    Assert.That(swarmBug.GetComponent<InterferenceEnemy>().MaxHealth, Is.EqualTo(1));
+                }
                 GameObject walkwayA = FindInScene(scene, "Walkway A");
                 GameObject walkwayB = FindInScene(scene, "Walkway B");
                 Assert.That(walkwayA, Is.Not.Null);
@@ -147,6 +160,10 @@ namespace FunGame.Tests.EditMode
                 Assert.That(circuitTask, Is.Not.Null);
                 Assert.That(circuitTask.GetComponent<CircuitBridgeTarget>(), Is.Not.Null);
                 Assert.That(FindInScene(scene, "Circuit Bridger Visual"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Wrench Socket Anvil"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Sealant Spray Shroud"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Left"), Is.Not.Null);
+                Assert.That(FindInScene(scene, "Bridger Probe Right"), Is.Not.Null);
             }
             finally
             {

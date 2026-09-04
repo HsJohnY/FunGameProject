@@ -111,6 +111,7 @@ namespace FunGame.Editor
             resetConsole.AddComponent<CombatResetConsoleInteractable>().Configure(encounter);
 
             CreatePlayer(warningMaterial, systemMaterial, encounter);
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(systemMaterial, warningMaterial, structureMaterial);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath))
             {
