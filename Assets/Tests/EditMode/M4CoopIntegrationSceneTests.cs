@@ -34,6 +34,8 @@ namespace FunGame.Tests.EditMode
                     .SelectMany(item => item.GetComponentsInChildren<NetworkIncidentSpawner>(true)).SingleOrDefault();
                 NetworkSharedItemSpawner itemSpawner = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkSharedItemSpawner>(true)).SingleOrDefault();
+                NetworkCampaignSpawner campaignSpawner = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkCampaignSpawner>(true)).SingleOrDefault();
                 GameMenuController menu = roots
                     .SelectMany(item => item.GetComponentsInChildren<GameMenuController>(true)).SingleOrDefault();
 
@@ -44,6 +46,9 @@ namespace FunGame.Tests.EditMode
                 Assert.That(communicationSpawner.CommunicationPrefab.GetComponent<NetworkChatController>(), Is.Not.Null);
                 Assert.That(incidentSpawner, Is.Not.Null);
                 Assert.That(itemSpawner, Is.Not.Null);
+                Assert.That(campaignSpawner, Is.Not.Null);
+                Assert.That(campaignSpawner.CampaignPrefab, Is.Not.Null);
+                Assert.That(campaignSpawner.CampaignPrefab.GetComponent<NetworkCampaignController>(), Is.Not.Null);
                 Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<NetworkChatController>(true)), Is.Empty,
                     "关闭 NGO 场景管理时，聊天不能作为未注册的场景内 NetworkObject 存在。 ");
                 Assert.That(menu, Is.Not.Null);
@@ -61,10 +66,15 @@ namespace FunGame.Tests.EditMode
                 Assert.That(stations.Select(item => item.Action).Distinct().Count(), Is.EqualTo(7));
                 NetworkToolRackInteractable[] racks = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkToolRackInteractable>(true)).ToArray();
-                Assert.That(racks.Length, Is.EqualTo(3));
+                Assert.That(racks.Length, Is.EqualTo(6));
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<PlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<ToolController>(), Is.Not.Null);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerCampaignAgent>(), Is.Not.Null);
+                NetworkCampaignStation[] campaignStations = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkCampaignStation>(true)).ToArray();
+                Assert.That(campaignStations.Count(item => !item.IsCalibrationConsole), Is.EqualTo(5));
+                Assert.That(campaignStations.Count(item => item.IsCalibrationConsole), Is.EqualTo(1));
             }
             finally
             {

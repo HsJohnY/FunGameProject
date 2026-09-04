@@ -32,6 +32,8 @@ namespace FunGame.Editor
             "Assets/Game/Content/Networking/M4_NetworkCommunication.prefab";
         private const string IncidentPrefabPath = "Assets/Game/Content/Networking/M4_CoolingIncident.prefab";
         private const string PipePrefabPath = "Assets/Game/Content/Networking/M4_ReplacementPipe.prefab";
+        private const string CampaignPrefabPath = "Assets/Game/Content/Networking/M4_Campaign.prefab";
+        private const string EnemyPrefabPath = "Assets/Game/Content/Networking/M4_Enemy.prefab";
 
         [MenuItem("FunGame/M4/生成多人三舱整合场景")]
         public static void ConfigureCurrent()
@@ -62,7 +64,7 @@ namespace FunGame.Editor
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[M4-2] 多人三舱场景已生成；联网冷却事故与共享管件已接入。 ");
+            Debug.Log("[M4] 多人三章完整整合场景已生成。 ");
         }
 
         [MenuItem("FunGame/M4/构建 Windows 开发版本")]
@@ -81,10 +83,10 @@ namespace FunGame.Editor
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
             {
-                throw new BuildFailedException($"M4-2 构建失败：{report.summary.result}");
+                throw new BuildFailedException($"M4 完整整合版构建失败：{report.summary.result}");
             }
 
-            Debug.Log($"[M4-2] Windows 开发构建成功：{report.summary.totalSize} bytes。 ");
+            Debug.Log($"[M4] Windows 完整整合开发构建成功：{report.summary.totalSize} bytes。 ");
         }
 
         private static void RemoveLocalPlayer(Scene scene)
@@ -108,6 +110,11 @@ namespace FunGame.Editor
             {
                 foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
                 {
+                    if (behaviour is InterferenceEnemy dormantEnemy)
+                    {
+                        // 原单人敌人仅作为联网敌人的布置参考，运行时不能重复显示或碰撞。
+                        dormantEnemy.SetEncounterActive(false);
+                    }
                     if (ShouldFreeze(behaviour))
                     {
                         behaviour.enabled = false;
@@ -138,9 +145,13 @@ namespace FunGame.Editor
             GameObject communicationPrefab = CreateOrUpdateCommunicationPrefab();
             GameObject incidentPrefab = CreateOrUpdateIncidentPrefab();
             GameObject pipePrefab = CreateOrUpdatePipePrefab();
+            GameObject enemyPrefab = CreateOrUpdateEnemyPrefab();
+            GameObject campaignPrefab = CreateOrUpdateCampaignPrefab(enemyPrefab);
             M3NetworkBootstrap.RegisterNetworkPrefab(communicationPrefab);
             M3NetworkBootstrap.RegisterNetworkPrefab(incidentPrefab);
             M3NetworkBootstrap.RegisterNetworkPrefab(pipePrefab);
+            M3NetworkBootstrap.RegisterNetworkPrefab(enemyPrefab);
+            M3NetworkBootstrap.RegisterNetworkPrefab(campaignPrefab);
             var sessionObject = new GameObject("M4 Network Session");
             var networkManager = sessionObject.AddComponent<NetworkManager>();
             var transport = sessionObject.AddComponent<UnityTransport>();
@@ -157,6 +168,33 @@ namespace FunGame.Editor
             sessionObject.AddComponent<NetworkIncidentSpawner>().Configure(networkManager, incidentPrefab);
             sessionObject.AddComponent<NetworkSharedItemSpawner>()
                 .Configure(networkManager, pipePrefab, FindRequired("Replacement Pipe").transform.position);
+            sessionObject.AddComponent<NetworkCampaignSpawner>().Configure(networkManager, campaignPrefab);
+        }
+
+        private static GameObject CreateOrUpdateEnemyPrefab()
+        {
+            GameObject enemy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            enemy.name = "M4 Network Interference Enemy";
+            enemy.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
+            enemy.AddComponent<NetworkObject>();
+            var transformSync = enemy.AddComponent<Unity.Netcode.Components.NetworkTransform>();
+            transformSync.AuthorityMode = Unity.Netcode.Components.NetworkTransform.AuthorityModes.Server;
+            transformSync.Interpolate = true;
+            enemy.AddComponent<NetworkCombatEnemy>();
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(enemy, EnemyPrefabPath);
+            UnityEngine.Object.DestroyImmediate(enemy);
+            return prefab;
+        }
+
+        private static GameObject CreateOrUpdateCampaignPrefab(GameObject enemyPrefab)
+        {
+            var campaign = new GameObject("M4 Network Campaign");
+            campaign.AddComponent<NetworkObject>();
+            campaign.AddComponent<NetworkCampaignController>().Configure(enemyPrefab);
+            campaign.AddComponent<NetworkCampaignOverlay>();
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(campaign, CampaignPrefabPath);
+            UnityEngine.Object.DestroyImmediate(campaign);
+            return prefab;
         }
 
         private static GameObject CreateOrUpdateIncidentPrefab()
@@ -202,6 +240,19 @@ namespace FunGame.Editor
             AddToolRack("Impact Wrench Rack", "m4-wrench-rack", ToolKind.ImpactWrench);
             AddToolRack("Sealant Gun Rack", "m4-sealant-rack", ToolKind.SealantGun);
             AddToolRack("Circuit Bridger Rack", "m4-bridger-rack", ToolKind.CircuitBridger);
+            AddToolRack("Relay Bridger Station", "m4-relay-bridger", ToolKind.CircuitBridger);
+            AddToolRack("Relay Wrench Station", "m4-relay-wrench", ToolKind.ImpactWrench);
+            AddToolRack("Storm Wrench Station", "m4-storm-wrench", ToolKind.ImpactWrench);
+
+            for (int index = 0; index < 5; index++)
+            {
+                GameObject relay = FindRequired($"Storm Relay {index + 1}");
+                if (relay.GetComponent<Collider>() == null) relay.AddComponent<BoxCollider>();
+                relay.AddComponent<NetworkCampaignStation>().Configure(index, false);
+            }
+            GameObject calibration = FindRequired("Storm Core Calibration Console");
+            if (calibration.GetComponent<Collider>() == null) calibration.AddComponent<BoxCollider>();
+            calibration.AddComponent<NetworkCampaignStation>().Configure(0, true);
 
             // 原单人物品只保留建模来源；联网版本由服务器生成，避免出现两个可见管件。
             FindRequired("Replacement Pipe").SetActive(false);

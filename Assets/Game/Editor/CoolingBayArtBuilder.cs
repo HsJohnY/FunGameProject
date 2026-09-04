@@ -32,8 +32,10 @@ namespace FunGame.Editor
             Material machineryMaterial,
             Material warningMaterial,
             Material trimMaterial,
-            Material circuitMaterial)
+            Material circuitMaterial = null)
         {
+            // 兼容旧战斗场景生成器；未传入紫色电路材质时沿用警示材质。
+            circuitMaterial ??= warningMaterial;
             GameObject wrenchPlaceholder = FindSceneObject("Impact Wrench Visual");
             if (wrenchPlaceholder != null)
             {

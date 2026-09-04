@@ -215,6 +215,7 @@ namespace FunGame.Editor
             toolController.enabled = false;
             player.AddComponent<NetworkPlayerCarryController>();
             player.AddComponent<NetworkPlayerIncidentAgent>();
+            player.AddComponent<NetworkPlayerCampaignAgent>();
             var promptOverlay = player.AddComponent<ContextPromptOverlay>();
             promptOverlay.enabled = false;
             NetworkPlayerController networkPlayer = player.AddComponent<NetworkPlayerController>();
