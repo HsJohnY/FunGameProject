@@ -42,12 +42,10 @@ namespace FunGame.Tests.PlayMode
                     Is.EqualTo(NetworkEndpointRules.AnyIpv4Address), "主机必须监听真实和虚拟局域网网卡");
                 Assert.That(transport.ConnectionData.Port, Is.EqualTo(17843));
                 float deadline = Time.realtimeSinceStartup + 5f;
-                while (menu.IsMenuOpen && Time.realtimeSinceStartup < deadline) yield return null;
+                while (!session.HasLocalPlayer && Time.realtimeSinceStartup < deadline) yield return null;
                 Assert.That(session.HasLocalPlayer, Is.True);
-                Assert.That(menu.IsMenuOpen, Is.False);
+                Assert.That(menu.IsMenuOpen, Is.True, "房主创建成功后应停留在房间信息页以复制本机 IP");
                 var owner = manager.LocalClient.PlayerObject.GetComponent<FirstPersonController>();
-                Assert.That(owner.IsInputEnabled, Is.True);
-                menu.OpenNetworkLobby();
                 yield return null;
                 Assert.That(owner.IsInputEnabled, Is.False);
                 Assert.That(owner.IsCursorLocked, Is.False);
@@ -67,8 +65,8 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.None));
                 Assert.That(menu.StartRoom(true, "", "17843"), Is.True, "Can retry after a failed join");
                 deadline = Time.realtimeSinceStartup + 5f;
-                while (menu.IsMenuOpen && Time.realtimeSinceStartup < deadline) yield return null;
-                Assert.That(menu.IsMenuOpen, Is.False);
+                while (!session.HasLocalPlayer && Time.realtimeSinceStartup < deadline) yield return null;
+                Assert.That(menu.IsMenuOpen, Is.True);
                 Assert.That(session.HasLocalPlayer, Is.True);
             }
             finally
