@@ -39,8 +39,13 @@ namespace FunGame.UI
             if (!IsNetworkLobbyOpen || _session == null) return false;
             _roomAddress = address;
             _roomPort = port;
-            // A host listens on all interfaces; the join-address field is only for clients.
-            if (!_session.TrySetEndpointInput(host ? NetworkEndpointRules.DefaultAddress : address, port)) return false;
+            // 主机仍由会话层监听 0.0.0.0，但必须保留玩家填写的虚拟局域网地址：
+            // 它会显示在房间信息中，并在断开后回填，方便队友按同一地址加入。
+            // 空地址仅作为旧自动化入口的兼容行为回退到本机环回地址。
+            string endpointAddress = host && string.IsNullOrWhiteSpace(address)
+                ? NetworkEndpointRules.DefaultAddress
+                : address;
+            if (!_session.TrySetEndpointInput(endpointAddress, port)) return false;
             _enterWhenConnected = host ? _session.StartHost() : _session.StartClient();
             return _enterWhenConnected;
         }

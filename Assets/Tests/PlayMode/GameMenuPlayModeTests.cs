@@ -33,7 +33,9 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(menu.StartRoom(false, "invalid", "17843"), Is.False);
                 Assert.That(session.IsEndpointEditable, Is.True);
                 Assert.That(session.StatusText, Does.Contain("IPv4"));
-                Assert.That(menu.StartRoom(true, "", "17843"), Is.True);
+                Assert.That(menu.StartRoom(true, "127.0.0.2", "17843"), Is.True);
+                Assert.That(session.Address, Is.EqualTo("127.0.0.2"),
+                    "创建房间不能把玩家填写的局域网或虚拟局域网地址重写为 127.0.0.1");
                 float deadline = Time.realtimeSinceStartup + 5f;
                 while (menu.IsMenuOpen && Time.realtimeSinceStartup < deadline) yield return null;
                 Assert.That(session.HasLocalPlayer, Is.True);
