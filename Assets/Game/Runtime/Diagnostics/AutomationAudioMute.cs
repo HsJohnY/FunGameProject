@@ -9,7 +9,7 @@ namespace FunGame.Diagnostics
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void MuteAutomatedRuns()
         {
-            if (Application.isBatchMode || Environment.GetCommandLineArgs().Any(a => a.StartsWith("--m4-check-output=")))
+            if (Application.isBatchMode || Environment.GetCommandLineArgs().Any(a => a.StartsWith("--m4-check-output=") || a == "--mute-audio"))
                 AudioListener.pause = true;
         }
     }

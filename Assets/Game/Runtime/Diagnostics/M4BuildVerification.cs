@@ -40,13 +40,22 @@ namespace FunGame.Diagnostics
             Require(SceneManager.sceneCountInBuildSettings == 1, "Only the canonical solo map is packaged");
             Require(menu != null && menu.CanStartSinglePlayer, "Single-player button must be available in the built menu");
             yield return Capture("01-mode-menu.png");
-            menu.EnterGameplayForAutomation();
+            menu.OpenNetworkLobby();
+            yield return Capture("00-network-lobby.png");
+            Require(menu.IsNetworkLobbyOpen && Cursor.lockState == CursorLockMode.None, "Lobby has usable cursor before spawn");
             NetworkSessionController session = FindFirstObjectByType<NetworkSessionController>();
-            Require(session.TrySetEndpointInput("127.0.0.1", "17842") && session.StartHost(), "Host start");
+            Require(menu.StartRoom(true, "127.0.0.1", "17842"), "Host start from lobby");
             yield return new WaitForSecondsRealtime(1f);
             NetworkManager manager = NetworkManager.Singleton;
             Require(manager != null && manager.LocalClient.PlayerObject != null, "Owner player spawned");
             var player = manager.LocalClient.PlayerObject;
+            Require(!menu.IsMenuOpen, "Connected owner enters gameplay");
+            menu.OpenNetworkLobby();
+            yield return null;
+            Require(!player.GetComponent<FunGame.Player.FirstPersonController>().IsInputEnabled
+                && Cursor.lockState == CursorLockMode.None, "Lobby releases owner cursor and blocks gameplay input");
+            yield return Capture("11-connected-room.png");
+            menu.EnterGameplayForAutomation();
             player.GetComponent<NetworkPlayerToolbelt>().RequestToggleTool(ToolKind.ImpactWrench);
             yield return new WaitForSecondsRealtime(0.5f);
             var guidance = player.GetComponent<DemoObjectiveGuidancePresenter>();

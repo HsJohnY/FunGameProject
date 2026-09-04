@@ -4,7 +4,6 @@ using FunGame.Player;
 using FunGame.Settings;
 using FunGame.Tools;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 namespace FunGame.UI
@@ -12,7 +11,7 @@ namespace FunGame.UI
     /// <summary>
     /// 提供启动主菜单、游戏内暂停菜单和可持久化必要设置。
     /// </summary>
-    public sealed class GameMenuController : MonoBehaviour
+    public sealed partial class GameMenuController : MonoBehaviour
     {
         private const string OpenAsMainKey = "FunGame.Menu.OpenAsMain";
         public const string SinglePlayerScene = "SinglePlayer_ThreeChapterDemo";
@@ -26,6 +25,7 @@ namespace FunGame.UI
         {
             Main,
             Pause,
+            Lobby,
             Settings
         }
 
@@ -157,21 +157,7 @@ namespace FunGame.UI
                 TryBindSpawnedPlayer();
             }
 
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-            {
-                if (!_menuOpen)
-                {
-                    OpenMenu(MenuPage.Pause);
-                }
-                else if (_page == MenuPage.Settings)
-                {
-                    _page = _settingsReturnPage;
-                }
-                else if (_page == MenuPage.Pause)
-                {
-                    CloseMenu();
-                }
-            }
+            UpdateNetworkLobby();
 
             if (_menuOpen && !networkSessionFlow && Time.timeScale != 0f)
             {
@@ -200,6 +186,7 @@ namespace FunGame.UI
 
         private void OnGUI()
         {
+            HandleMenuKeyboard();
             if (!_menuOpen)
             {
                 return;
@@ -207,6 +194,12 @@ namespace FunGame.UI
 
             EnsureStyles();
             DrawBackdrop();
+
+            if (_page == MenuPage.Lobby)
+            {
+                DrawNetworkLobby();
+                return;
+            }
 
             float panelWidth = Mathf.Min(_page == MenuPage.Settings ? 920f : 1080f, Screen.width - 40f);
             float panelHeight = Mathf.Min(_page == MenuPage.Settings ? 820f : 650f, Screen.height - 40f);
@@ -271,7 +264,8 @@ namespace FunGame.UI
                 string startSubtitle = networkSessionFlow ? "HOST OR JOIN SESSION" : "INITIALIZE EXPEDITION";
                 if (DrawTechButton(right, ref buttonY, startTitle, startSubtitle, Amber))
                 {
-                    CloseMenu();
+                    if (networkSessionFlow) OpenNetworkLobby();
+                    else CloseMenu();
                 }
             }
             else if (DrawTechButton(right, ref buttonY, "继续任务", "RESUME OPERATION", Cyan))
@@ -288,9 +282,11 @@ namespace FunGame.UI
 
             if (_page == MenuPage.Pause)
             {
-                if (DrawTechButton(right, ref buttonY, "重新开始任务", "RELOAD CHECKPOINT", Amber))
+                if (DrawTechButton(right, ref buttonY, networkSessionFlow ? "联机房间" : "重新开始任务",
+                    networkSessionFlow ? "ROOM · CONNECTION" : "RELOAD CHECKPOINT", Amber))
                 {
-                    ReloadAs(MenuPage.Pause);
+                    if (networkSessionFlow) OpenNetworkLobby();
+                    else ReloadAs(MenuPage.Pause);
                 }
 
                 if (DrawTechButton(right, ref buttonY, "返回主菜单", "DISCONNECT FROM BAY", Cyan))
@@ -535,7 +531,17 @@ namespace FunGame.UI
 
         private void SetGameplayEnabled(bool enabled)
         {
-            player?.SetGameplayInputEnabled(enabled);
+            if (player != null)
+            {
+                player.SetGameplayInputEnabled(enabled);
+                var carry = player.GetComponent<FunGame.Networking.NetworkPlayerCarryController>();
+                if (carry != null) carry.SetGameplayInputEnabled(enabled);
+            }
+            if (!enabled || player == null)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
             if (_interactor != null)
             {
                 _interactor.enabled = enabled;
@@ -552,7 +558,7 @@ namespace FunGame.UI
             foreach (FirstPersonController candidate in
                      Object.FindObjectsByType<FirstPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (candidate.enabled)
+                if (candidate.isActiveAndEnabled)
                 {
                     BindPlayer(candidate);
                     return;

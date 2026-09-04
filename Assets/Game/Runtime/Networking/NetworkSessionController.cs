@@ -39,6 +39,13 @@ namespace FunGame.Networking
         public string StatusText => statusText;
         public bool IsEndpointEditable => sessionState == SessionState.Idle;
         public bool EscapeStopsSession => escapeStopsSession;
+        public string Address => addressText;
+        public string Port => portText;
+        public bool HasLocalPlayer => networkManager != null && networkManager.IsConnectedClient
+            && networkManager.LocalClient?.PlayerObject != null;
+        public bool IsHost => networkManager != null && networkManager.IsHost;
+        public int ConnectedPlayerCount => networkManager != null && networkManager.IsHost
+            ? networkManager.ConnectedClientsIds.Count : 0;
 
         /// <summary>
         /// 为后续正式大厅界面和自动测试提供统一的地址输入入口。
@@ -99,7 +106,7 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (Keyboard.current?.f1Key.wasPressedThisFrame == true)
+            if (escapeStopsSession && Keyboard.current?.f1Key.wasPressedThisFrame == true)
             {
                 panelVisible = !panelVisible;
             }
@@ -132,8 +139,8 @@ namespace FunGame.Networking
 
         private void OnGUI()
         {
-            if (!escapeStopsSession && FunGame.UI.GameMenuController.IsAnyMenuOpen) return;
-            if (!escapeStopsSession && !panelVisible) return;
+            // The shared campaign uses GameMenuController for cursor-safe room controls.
+            if (!escapeStopsSession) return;
             if (!panelVisible)
             {
                 GUILayout.BeginArea(new Rect(20f, 20f, 300f, 58f), GUI.skin.box);
@@ -346,9 +353,11 @@ namespace FunGame.Networking
         {
             if (networkManager != null && !networkManager.IsHost && clientId == networkManager.LocalClientId)
             {
-                statusText = string.IsNullOrWhiteSpace(networkManager.DisconnectReason)
-                    ? "已与主机断开"
-                    : $"连接已断开：{networkManager.DisconnectReason}";
+                statusText = sessionState == SessionState.Stopping
+                    ? "已离开房间，可以重新加入或创建房间"
+                    : sessionState == SessionState.Connecting
+                        ? "连接失败，请确认房主已开房且地址、端口正确后重试"
+                        : "与房主的连接已断开，请重新加入房间";
                 sessionState = SessionState.Stopping;
                 shutdownRequested = true;
                 return;
