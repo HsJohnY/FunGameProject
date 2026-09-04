@@ -20,8 +20,8 @@ namespace FunGame.Networking
             Stopping
         }
 
-        private const int ConnectTimeoutMilliseconds = 500;
-        private const int MaxConnectAttempts = 6;
+        private const int ConnectTimeoutMilliseconds = 1000;
+        private const int MaxConnectAttempts = 10;
 
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
@@ -65,6 +65,28 @@ namespace FunGame.Networking
             }
 
             addressText = normalizedAddress;
+            portText = normalizedPort.ToString();
+            return true;
+        }
+
+        /// <summary>
+        /// 创建房间只需要端口。主机监听地址由程序固定为全部 IPv4 网卡，
+        /// 不接受玩家填写的“本机 IP”，避免把远端连接地址和本地监听地址混为一谈。
+        /// </summary>
+        public bool TrySetHostPortInput(string port)
+        {
+            if (!IsEndpointEditable)
+            {
+                statusText = "请先停止当前会话";
+                return false;
+            }
+
+            if (!NetworkEndpointRules.TryNormalizePort(port, out ushort normalizedPort, out string error))
+            {
+                statusText = error;
+                return false;
+            }
+
             portText = normalizedPort.ToString();
             return true;
         }
@@ -156,7 +178,7 @@ namespace FunGame.Networking
 
             bool idle = networkManager != null && sessionState == SessionState.Idle;
             GUI.enabled = idle;
-            GUILayout.Label("主机 IPv4 地址");
+            GUILayout.Label("房主 IPv4 地址（仅加入房间时使用）");
             addressText = GUILayout.TextField(addressText);
             GUILayout.Label("端口");
             portText = GUILayout.TextField(portText);
@@ -196,7 +218,7 @@ namespace FunGame.Networking
 
         public bool StartHost()
         {
-            if (!TryApplyEndpoint("0.0.0.0"))
+            if (!TryApplyHostEndpoint())
             {
                 return false;
             }
@@ -240,8 +262,8 @@ namespace FunGame.Networking
                 return false;
             }
 
-            // 默认传输层可能持续重试约一分钟。技术验证阶段缩短到约三秒，
-            // 使错误地址或未启动的主机能快速失败并允许玩家重新输入。
+            // 虚拟网卡首次握手可能比真实局域网更慢；保留约十秒连接窗口，
+            // 同时仍让错误地址在合理时间内恢复为可编辑状态。
             transport.ConnectTimeoutMS = ConnectTimeoutMilliseconds;
             transport.MaxConnectAttempts = MaxConnectAttempts;
             sessionState = SessionState.Connecting;
@@ -289,6 +311,35 @@ namespace FunGame.Networking
             }
 
             transport.SetConnectionData(address, port, listenAddress);
+            return true;
+        }
+
+        private bool TryApplyHostEndpoint()
+        {
+            if (networkManager == null || transport == null)
+            {
+                statusText = "场景缺少 NetworkManager 或 UnityTransport";
+                return false;
+            }
+
+            if (sessionState != SessionState.Idle || networkManager.IsListening)
+            {
+                statusText = "请先停止当前会话";
+                return false;
+            }
+
+            if (!NetworkEndpointRules.TryNormalizePort(portText, out ushort port, out string error))
+            {
+                statusText = error;
+                return false;
+            }
+
+            // Address 是主机进程内的本地客户端目标；ServerListenAddress 才是服务器监听范围。
+            // 监听 0.0.0.0 后，真实局域网与虚拟局域网网卡都可接收外部客户端连接。
+            transport.SetConnectionData(
+                NetworkEndpointRules.DefaultAddress,
+                port,
+                NetworkEndpointRules.AnyIpv4Address);
             return true;
         }
 

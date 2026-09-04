@@ -27,5 +27,15 @@ namespace FunGame.Tests.EditMode
             Assert.That(valid, Is.False);
             Assert.That(error, Is.Not.Empty);
         }
+
+        [TestCase("7777", 7777)]
+        [TestCase(" 24567 ", 24567)]
+        public void TryNormalizePort_创建房间只校验端口(string input, int expected)
+        {
+            bool valid = NetworkEndpointRules.TryNormalizePort(input, out ushort port, out string error);
+
+            Assert.That(valid, Is.True, error);
+            Assert.That((int)port, Is.EqualTo(expected));
+        }
     }
 }

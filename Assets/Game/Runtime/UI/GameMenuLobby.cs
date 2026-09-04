@@ -37,15 +37,15 @@ namespace FunGame.UI
         public bool StartRoom(bool host, string address, string port)
         {
             if (!IsNetworkLobbyOpen || _session == null) return false;
-            _roomAddress = address;
             _roomPort = port;
-            // 主机仍由会话层监听 0.0.0.0，但必须保留玩家填写的虚拟局域网地址：
-            // 它会显示在房间信息中，并在断开后回填，方便队友按同一地址加入。
-            // 空地址仅作为旧自动化入口的兼容行为回退到本机环回地址。
-            string endpointAddress = host && string.IsNullOrWhiteSpace(address)
-                ? NetworkEndpointRules.DefaultAddress
-                : address;
-            if (!_session.TrySetEndpointInput(endpointAddress, port)) return false;
+            if (!host) _roomAddress = address;
+
+            // 房主只决定监听端口；监听哪些本机网卡由会话层统一处理。
+            // 只有加入方需要填写并校验房主的可达 IPv4 地址。
+            bool endpointValid = host
+                ? _session.TrySetHostPortInput(port)
+                : _session.TrySetEndpointInput(address, port);
+            if (!endpointValid) return false;
             _enterWhenConnected = host ? _session.StartHost() : _session.StartClient();
             return _enterWhenConnected;
         }
@@ -157,7 +157,7 @@ namespace FunGame.UI
                 bool idle = _session != null && _session.IsEndpointEditable;
                 bool connected = HasConnectedSession;
                 GUI.Label(new Rect(502f, 158f, 536f, 28f), "连接设置", _sectionStyle);
-                GUI.Label(new Rect(502f, 203f, 536f, 24f), "房主 IPv4 地址（加入房间时填写）", _subtitleStyle);
+                GUI.Label(new Rect(502f, 203f, 536f, 24f), "房主 IPv4 地址（仅加入房间时填写）", _subtitleStyle);
                 GUI.enabled = idle;
                 GUI.SetNextControlName("RoomAddress");
                 _roomAddress = GUI.TextField(new Rect(502f, 235f, 536f, 48f), _roomAddress, 64, _roomInputStyle);

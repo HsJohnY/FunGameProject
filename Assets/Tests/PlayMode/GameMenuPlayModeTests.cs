@@ -3,6 +3,7 @@ using FunGame.Player;
 using FunGame.UI;
 using FunGame.Networking;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine.SceneManagement;
 using NUnit.Framework;
 using UnityEngine;
@@ -23,6 +24,7 @@ namespace FunGame.Tests.PlayMode
             var menu = Object.FindFirstObjectByType<GameMenuController>();
             var session = Object.FindFirstObjectByType<NetworkSessionController>();
             var manager = Object.FindFirstObjectByType<NetworkManager>();
+            var transport = manager.GetComponent<UnityTransport>();
             try
             {
                 menu.OpenNetworkLobby();
@@ -33,9 +35,12 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(menu.StartRoom(false, "invalid", "17843"), Is.False);
                 Assert.That(session.IsEndpointEditable, Is.True);
                 Assert.That(session.StatusText, Does.Contain("IPv4"));
-                Assert.That(menu.StartRoom(true, "127.0.0.2", "17843"), Is.True);
-                Assert.That(session.Address, Is.EqualTo("127.0.0.2"),
-                    "创建房间不能把玩家填写的局域网或虚拟局域网地址重写为 127.0.0.1");
+                Assert.That(menu.StartRoom(true, "这不是主机需要填写的地址", "17843"), Is.True,
+                    "创建房间应忽略地址栏，只使用端口并监听全部 IPv4 网卡");
+                Assert.That(transport.ConnectionData.Address, Is.EqualTo(NetworkEndpointRules.DefaultAddress));
+                Assert.That(transport.ConnectionData.ServerListenAddress,
+                    Is.EqualTo(NetworkEndpointRules.AnyIpv4Address), "主机必须监听真实和虚拟局域网网卡");
+                Assert.That(transport.ConnectionData.Port, Is.EqualTo(17843));
                 float deadline = Time.realtimeSinceStartup + 5f;
                 while (menu.IsMenuOpen && Time.realtimeSinceStartup < deadline) yield return null;
                 Assert.That(session.HasLocalPlayer, Is.True);
@@ -55,7 +60,7 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(menu.IsNetworkLobbyOpen, Is.True);
                 LogAssert.Expect(LogType.Error, "Failed to connect to server.");
                 Assert.That(menu.StartRoom(false, "127.0.0.1", "17843"), Is.True);
-                deadline = Time.realtimeSinceStartup + 8f;
+                deadline = Time.realtimeSinceStartup + 15f;
                 while (!session.IsEndpointEditable && Time.realtimeSinceStartup < deadline) yield return null;
                 Assert.That(session.IsEndpointEditable, Is.True, session.StatusText);
                 Assert.That(menu.IsNetworkLobbyOpen, Is.True);
