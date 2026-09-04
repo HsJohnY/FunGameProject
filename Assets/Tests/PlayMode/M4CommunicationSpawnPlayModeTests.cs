@@ -95,6 +95,13 @@ namespace FunGame.Tests.PlayMode
             Assert.That(campaign.CoolingRunsCompleted, Is.EqualTo(1));
             yield return CompleteCoolingIncident(incident);
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.RelaySurge));
+            localPlayer.GetComponent<NetworkPlayerToolbelt>().RequestToggleTool(ToolKind.ImpactWrench);
+            AimAt(localPlayer.gameObject, new Vector3(0f, 1f, 30f), Vector3.back);
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.That(guidance.CurrentInstruction.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.CircuitBridgerRack));
+            Assert.That(guidance.CurrentTarget, Is.Not.Null);
+            Assert.That(guidance.CurrentTarget.GetComponent<NetworkToolRackInteractable>().IsUnlocked(campaign.Chapter), Is.True);
+            Assert.That(guidance.CurrentTarget.position.z, Is.LessThan(30f), "Do not guide through the locked chapter-three door.");
             var source = Object.FindFirstObjectByType<SinglePlayerDemoController>(FindObjectsInactive.Include);
             Assert.That(campaign.EnemiesRemaining, Is.EqualTo(source.RelayDefenseEncounter.Enemies.Count));
             Assert.That(campaign.StormWaveCount, Is.EqualTo(source.StormEncounters.Count));

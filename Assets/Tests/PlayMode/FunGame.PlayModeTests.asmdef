@@ -3,6 +3,8 @@
   "rootNamespace": "FunGame.Tests.PlayMode",
   "references": [
     "FunGame.Runtime",
+    "Unity.InputSystem",
+    "Unity.InputSystem.TestFramework",
     "Unity.Netcode.Runtime",
     "Unity.Netcode.Transports.UTP"
   ],

@@ -5,6 +5,16 @@ namespace FunGame.Tests.EditMode
 {
     public sealed class NetworkCommunicationRulesTests
     {
+        [Test]
+        public void NicknameSupportsChineseAndFitsTheNetworkPayload()
+        {
+            Assert.That(NetworkPlayerController.NormalizeNickname(" 维修员小王\n"), Is.EqualTo("维修员小王"));
+            Assert.That(NetworkPlayerController.NormalizeNickname("\t<>\n"), Is.Empty);
+            string name = NetworkPlayerController.NormalizeNickname(new string('修', 40));
+            Assert.That(name.Length, Is.EqualTo(16));
+            Assert.That(System.Text.Encoding.UTF8.GetByteCount(name), Is.LessThanOrEqualTo(61));
+        }
+
         [TestCase(0ul, NetworkQualityLevel.Good)]
         [TestCase(100ul, NetworkQualityLevel.Good)]
         [TestCase(101ul, NetworkQualityLevel.Playable)]

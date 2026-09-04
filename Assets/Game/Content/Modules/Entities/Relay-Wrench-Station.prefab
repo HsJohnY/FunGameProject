@@ -124,6 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: relay-wrench-station
   offeredTool: 1
+  unlockChapter: 1
 --- !u!114 &6440949888061160124
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,3 +139,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: m4-relay-wrench
   offeredTool: 1
+  unlockChapter: 1

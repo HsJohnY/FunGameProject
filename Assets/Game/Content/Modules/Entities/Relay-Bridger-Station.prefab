@@ -124,6 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: relay-bridger-station
   offeredTool: 3
+  unlockChapter: 1
 --- !u!114 &2202789536013735837
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,3 +139,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: m4-relay-bridger
   offeredTool: 3
+  unlockChapter: 1

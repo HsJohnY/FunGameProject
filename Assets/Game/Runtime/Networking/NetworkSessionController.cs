@@ -106,13 +106,14 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (escapeStopsSession && Keyboard.current?.f1Key.wasPressedThisFrame == true)
+            if (!NetworkChatController.IsChatOpen && escapeStopsSession && Keyboard.current?.f1Key.wasPressedThisFrame == true)
             {
                 panelVisible = !panelVisible;
             }
 
             // 网络玩家生成后鼠标会被第一人称视角锁定；Esc 始终保留为技术验证场景的安全退出键。
             if (escapeStopsSession
+                && !NetworkChatController.IsChatOpen && !NetworkChatController.ConsumedCloseKey
                 && sessionState != SessionState.Idle
                 && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {

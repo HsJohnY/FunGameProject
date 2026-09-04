@@ -124,6 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: storm-wrench-station
   offeredTool: 1
+  unlockChapter: 2
 --- !u!114 &3043845106376045128
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,3 +139,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: m4-storm-wrench
   offeredTool: 1
+  unlockChapter: 2

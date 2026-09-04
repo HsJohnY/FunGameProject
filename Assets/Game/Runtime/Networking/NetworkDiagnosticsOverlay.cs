@@ -22,7 +22,7 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (Keyboard.current?.f2Key.wasPressedThisFrame == true)
+            if (!NetworkChatController.IsChatOpen && Keyboard.current?.f2Key.wasPressedThisFrame == true)
             {
                 _visible = !_visible;
             }

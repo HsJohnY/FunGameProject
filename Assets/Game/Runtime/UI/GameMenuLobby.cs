@@ -17,12 +17,14 @@ namespace FunGame.UI
         private GUIStyle _roomInputStyle;
         private GUIStyle _roomBodyStyle;
         private int _localAddressIndex;
+        private string _nickname;
 
         public bool IsNetworkLobbyOpen => _menuOpen && _page == MenuPage.Lobby;
         private bool HasConnectedSession => _session != null && _session.HasLocalPlayer;
 
         public void OpenNetworkLobby()
         {
+            _nickname = NetworkPlayerController.LocalNickname;
             if (!networkSessionFlow) return;
             if (_session == null) _session = Object.FindFirstObjectByType<NetworkSessionController>();
             if (_session != null)
@@ -37,6 +39,9 @@ namespace FunGame.UI
         public bool StartRoom(bool host, string address, string port)
         {
             if (!IsNetworkLobbyOpen || _session == null) return false;
+            string nickname = NetworkPlayerController.NormalizeNickname(_nickname);
+            if (nickname.Length == 0) return false;
+            NetworkPlayerController.LocalNickname = nickname;
             _roomAddress = address;
             _roomPort = port;
             // A host listens on all interfaces; the join-address field is only for clients.
@@ -81,6 +86,7 @@ namespace FunGame.UI
         {
             Event input = Event.current;
             if (input.type != EventType.KeyDown || _changingScene) return;
+            if (NetworkChatController.IsChatOpen || NetworkChatController.ConsumedCloseKey) return;
             if (input.keyCode == KeyCode.F1 && networkSessionFlow)
             {
                 input.Use();
@@ -152,17 +158,24 @@ namespace FunGame.UI
                 bool idle = _session != null && _session.IsEndpointEditable;
                 bool connected = HasConnectedSession;
                 GUI.Label(new Rect(502f, 158f, 536f, 28f), "连接设置", _sectionStyle);
-                GUI.Label(new Rect(502f, 203f, 536f, 24f), "房主 IPv4 地址（加入房间时填写）", _subtitleStyle);
+                GUI.Label(new Rect(502f, 194f, 536f, 24f), "你的昵称（头顶与聊天显示，最多 16 字）", _subtitleStyle);
                 GUI.enabled = idle;
+                GUI.SetNextControlName("PlayerNickname");
+                _nickname = GUI.TextField(new Rect(502f, 222f, 536f, 44f), _nickname ?? NetworkPlayerController.LocalNickname,
+                    NetworkPlayerController.MaximumNicknameLength, _roomInputStyle);
+                GUI.Label(new Rect(502f, 282f, 370f, 24f), "房主 IPv4 地址（加入时填写）", _subtitleStyle);
                 GUI.SetNextControlName("RoomAddress");
-                _roomAddress = GUI.TextField(new Rect(502f, 235f, 536f, 48f), _roomAddress, 64, _roomInputStyle);
-                GUI.Label(new Rect(502f, 296f, 536f, 24f), "房间端口", _subtitleStyle);
+                _roomAddress = GUI.TextField(new Rect(502f, 314f, 370f, 48f), _roomAddress, 64, _roomInputStyle);
+                GUI.Label(new Rect(892f, 282f, 146f, 24f), "房间端口", _subtitleStyle);
                 GUI.SetNextControlName("RoomPort");
-                _roomPort = GUI.TextField(new Rect(502f, 328f, 536f, 48f), _roomPort, 5, _roomInputStyle);
+                _roomPort = GUI.TextField(new Rect(892f, 314f, 146f, 48f), _roomPort, 5, _roomInputStyle);
+                bool validNickname = NetworkPlayerController.NormalizeNickname(_nickname).Length > 0;
+                GUI.enabled = idle && validNickname;
                 if (GUI.Button(new Rect(502f, 400f, 258f, 58f), "创建房间  →", _buttonStyle)) StartRoom(true, _roomAddress, _roomPort);
                 if (GUI.Button(new Rect(780f, 400f, 258f, 58f), "加入房间  →", _buttonStyle)) StartRoom(false, _roomAddress, _roomPort);
                 GUI.enabled = true;
                 string state = _session == null ? "联机服务尚未就绪，请返回主菜单重试。" : _session.StatusText;
+                if (idle && !validNickname) state = "请先填写昵称，再创建或加入房间。";
                 if (connected) state = _session.IsHost
                     ? $"房间已开启 · 已连接 {_session.ConnectedPlayerCount} 人 · 端口 {_session.Port}"
                     : $"已连接房主 {_session.Address}:{_session.Port}";

@@ -143,6 +143,9 @@ namespace FunGame.Player
 
         private void UpdateMovement()
         {
+            // Raw keyboard tap compensation must obey the same input gate as actions.
+            if (!_gameplayInputAllowed) return;
+
             bool grounded = _characterController.isGrounded;
             if (grounded && _verticalVelocity < 0f)
             {

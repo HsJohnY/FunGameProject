@@ -124,6 +124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: relay-sealant-station
   offeredTool: 2
+  unlockChapter: 1
 --- !u!114 &5173411244849989016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138,3 +139,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: m4-relay-sealant
   offeredTool: 2
+  unlockChapter: 1
