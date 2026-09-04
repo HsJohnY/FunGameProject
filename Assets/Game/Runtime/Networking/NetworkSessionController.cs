@@ -22,6 +22,8 @@ namespace FunGame.Networking
 
         private const int ConnectTimeoutMilliseconds = 1000;
         private const int MaxConnectAttempts = 10;
+        private const float ConnectionRecoveryTimeoutSeconds = 12f;
+        private const float ShutdownRecoveryTimeoutSeconds = 2f;
 
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
@@ -35,6 +37,8 @@ namespace FunGame.Networking
         private bool shutdownRequested;
         private bool transportFailedDuringStart;
         private bool panelVisible = true;
+        private float connectionDeadline;
+        private float shutdownDeadline;
 
         public string StatusText => statusText;
         public bool IsEndpointEditable => sessionState == SessionState.Idle;
@@ -141,22 +145,42 @@ namespace FunGame.Networking
                 StopSession();
             }
 
+            // 某些虚拟网卡失败后不会及时产生断开回调。不能让界面无限停留在 Connecting。
+            if (sessionState == SessionState.Connecting
+                && connectionDeadline > 0f
+                && Time.realtimeSinceStartup >= connectionDeadline)
+            {
+                BeginShutdown("连接超时，请确认房主地址、端口和防火墙设置后重试");
+            }
+
             // NGO 的断开回调可能发生在其内部事件分发期间。延迟到下一帧清理，
             // 避免在回调栈中再次关闭传输层，同时确保失败客户端回到可编辑状态。
-            if (!shutdownRequested)
+            if (shutdownRequested)
             {
-                return;
+                shutdownRequested = false;
+                shutdownDeadline = Time.realtimeSinceStartup + ShutdownRecoveryTimeoutSeconds;
+                if (networkManager != null && networkManager.IsListening)
+                {
+                    // 先尝试正常停止，让最后的 Despawn 和断开消息有机会完成。
+                    networkManager.Shutdown(false);
+                }
+                else
+                {
+                    CompleteShutdown();
+                }
             }
 
-            shutdownRequested = false;
-            if (networkManager != null && networkManager.IsListening)
+            // 即使底层停止回调丢失，也必须在短时间后解除界面输入锁定。
+            if (sessionState == SessionState.Stopping
+                && shutdownDeadline > 0f
+                && Time.realtimeSinceStartup >= shutdownDeadline)
             {
-                // 保留一帧消息队列，让房主退出原因和最后的 Despawn 有机会送达客户端。
-                networkManager.Shutdown(false);
-                return;
+                if (networkManager != null && networkManager.IsListening)
+                {
+                    networkManager.Shutdown(true);
+                }
+                CompleteShutdown();
             }
-
-            CompleteShutdown();
         }
 
         private void OnGUI()
@@ -269,6 +293,7 @@ namespace FunGame.Networking
             sessionState = SessionState.Connecting;
             if (networkManager.StartClient())
             {
+                connectionDeadline = Time.realtimeSinceStartup + ConnectionRecoveryTimeoutSeconds;
                 statusText = "正在连接主机…（可随时停止）";
                 return true;
             }
@@ -285,9 +310,7 @@ namespace FunGame.Networking
                 return;
             }
 
-            sessionState = SessionState.Stopping;
-            statusText = "会话已停止";
-            shutdownRequested = true;
+            BeginShutdown("会话已停止");
         }
 
         private bool TryApplyEndpoint(string listenAddress)
@@ -393,6 +416,7 @@ namespace FunGame.Networking
 
         private void HandleClientConnected(ulong clientId)
         {
+            connectionDeadline = 0f;
             sessionState = networkManager.IsHost ? SessionState.HostRunning : SessionState.ClientConnected;
             panelVisible = false;
             statusText = networkManager.IsHost
@@ -409,8 +433,7 @@ namespace FunGame.Networking
                     : sessionState == SessionState.Connecting
                         ? "连接失败，请确认房主已开房且地址、端口正确后重试"
                         : "与房主的连接已断开，请重新加入房间";
-                sessionState = SessionState.Stopping;
-                shutdownRequested = true;
+                BeginShutdown(statusText);
                 return;
             }
 
@@ -423,8 +446,7 @@ namespace FunGame.Networking
             statusText = sessionState == SessionState.HostRunning
                 ? "主机启动失败：端口可能已被占用，请更换端口后重试"
                 : "网络传输失败，请检查地址和端口后重试";
-            sessionState = SessionState.Stopping;
-            shutdownRequested = true;
+            BeginShutdown(statusText);
         }
 
         private void HandleClientStopped(bool wasServer)
@@ -440,9 +462,19 @@ namespace FunGame.Networking
         private void CompleteShutdown()
         {
             shutdownRequested = false;
+            connectionDeadline = 0f;
+            shutdownDeadline = 0f;
             sessionState = SessionState.Idle;
             panelVisible = true;
             SetCursorAvailable();
+        }
+
+        private void BeginShutdown(string message)
+        {
+            statusText = message;
+            connectionDeadline = 0f;
+            sessionState = SessionState.Stopping;
+            shutdownRequested = true;
         }
 
         private static void SetCursorAvailable()
