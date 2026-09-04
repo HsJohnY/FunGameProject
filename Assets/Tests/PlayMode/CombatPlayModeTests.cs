@@ -26,6 +26,18 @@ namespace FunGame.Tests.PlayMode
                 knockbackDistance: 0f);
             CreateToolActor(new Vector3(0f, 100f, 0f), out GameObject actor, out PlayerToolbelt toolbelt, out ToolController controller);
             toolbelt.Equip(ToolKind.ImpactWrench);
+            GameObject armorObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            armorObject.name = "Enemy Child Armor";
+            armorObject.transform.SetParent(enemyObject.transform, false);
+            armorObject.transform.localPosition = new Vector3(0.35f, 0f, 0f);
+            Collider armorCollider = armorObject.GetComponent<Collider>();
+            Renderer armorRenderer = armorObject.GetComponent<Renderer>();
+            enemy.SetEncounterActive(false);
+            Assert.That(armorCollider.enabled, Is.False, "休眠波次不能留下子碰撞体");
+            Assert.That(armorRenderer.enabled, Is.False, "休眠波次不能提前显示悬浮护甲零件");
+            enemy.SetEncounterActive(true);
+            Assert.That(armorCollider.enabled, Is.True);
+            Assert.That(armorRenderer.enabled, Is.True);
             Physics.SyncTransforms();
 
             yield return null;
@@ -42,10 +54,12 @@ namespace FunGame.Tests.PlayMode
             Assert.That(enemy.IsDefeated, Is.True);
             Assert.That(encounter.State, Is.EqualTo(CombatEncounterState.Succeeded));
             Assert.That(enemyObject.GetComponent<Collider>().enabled, Is.False, "被击败的干扰体应立即停止碰撞和攻击");
+            Assert.That(armorCollider.enabled, Is.False, "外伸护甲和侧翼的子碰撞体也必须立即关闭，不能隐形阻挡后续交互");
 
             yield return new WaitForSecondsRealtime(0.5f);
 
             Assert.That(enemyObject.GetComponent<Renderer>().enabled, Is.False, "失效动画结束后不应留下黑色残骸");
+            Assert.That(armorRenderer.enabled, Is.False, "失效动画结束后护甲、侧翼等子模型也必须隐藏");
 
             Object.Destroy(actor);
             Object.Destroy(enemyObject);

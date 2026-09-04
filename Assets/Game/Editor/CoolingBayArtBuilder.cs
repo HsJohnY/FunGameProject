@@ -1,3 +1,5 @@
+using FunGame.Incident;
+using FunGame.Interaction;
 using UnityEngine;
 
 namespace FunGame.Editor
@@ -119,9 +121,14 @@ namespace FunGame.Editor
 
             var pump = new GameObject("Modular Cooling Pump").transform;
             pump.SetParent(root);
-            var pumpCollider = pump.gameObject.AddComponent<BoxCollider>();
+            var pumpCollider = pump.gameObject.AddComponent<CapsuleCollider>();
             pumpCollider.center = new Vector3(0f, 1.05f, 5.8f);
-            pumpCollider.size = new Vector3(2.7f, 2.1f, 3.8f);
+            pumpCollider.direction = 2;
+            pumpCollider.radius = 0.92f;
+            pumpCollider.height = 3.55f;
+            CoolingDiagnosticInteractable inspectionTarget =
+                GameObject.Find("Cooling Pump Inspection Panel")?.GetComponent<CoolingDiagnosticInteractable>();
+            pump.gameObject.AddComponent<ContextInteractionProxy>().Configure(inspectionTarget);
             CreateShape(pump, "Pump Drum", PrimitiveType.Cylinder,
                 new Vector3(0f, 1.05f, 5.8f), new Vector3(0.9f, 1.72f, 0.9f), machinery,
                 Quaternion.Euler(90f, 0f, 0f));

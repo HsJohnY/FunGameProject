@@ -91,7 +91,6 @@ namespace FunGame.Demo
             CacheFirst<SealantTarget>(DemoGuidanceTargetKind.Leak);
             CacheFirst<MechanicalFastenerTarget>(DemoGuidanceTargetKind.Fastener);
             CacheFirst<ToggleConsoleInteractable>(DemoGuidanceTargetKind.CoolingConsole);
-            CacheFirst<DemoCalibrationConsole>(DemoGuidanceTargetKind.CampaignConsole);
             CacheFirst<DemoEasterEgg325Interactable>(DemoGuidanceTargetKind.SecretPlate);
 
             foreach (CarryableInteractable carryable in
@@ -168,6 +167,13 @@ namespace FunGame.Demo
 
         private Transform ResolveTarget(DemoGuidanceTargetKind kind)
         {
+            if (kind == DemoGuidanceTargetKind.CampaignConsole)
+            {
+                return campaign != null && campaign.CurrentCampaignConsole != null
+                    ? campaign.CurrentCampaignConsole.transform
+                    : null;
+            }
+
             if (kind == DemoGuidanceTargetKind.Relay)
             {
                 return FindNearestRelay();
@@ -349,7 +355,7 @@ namespace FunGame.Demo
             return "▼";
         }
 
-        private static string GetTargetLabel(DemoGuidanceTargetKind kind)
+        private string GetTargetLabel(DemoGuidanceTargetKind kind)
         {
             switch (kind)
             {
@@ -365,7 +371,11 @@ namespace FunGame.Demo
                 case DemoGuidanceTargetKind.ReplacementPipe: return "替换管";
                 case DemoGuidanceTargetKind.CoolingConsole: return "冷却控制台";
                 case DemoGuidanceTargetKind.Relay: return "继电器";
-                case DemoGuidanceTargetKind.CampaignConsole: return "风暴控制台";
+                case DemoGuidanceTargetKind.CampaignConsole:
+                    return campaign != null && campaign.CurrentCampaignConsole != null &&
+                           campaign.CurrentCampaignConsole.Role == DemoCalibrationConsoleRole.RelayRecovery
+                        ? "配电恢复终端"
+                        : "核心校准终端";
                 case DemoGuidanceTargetKind.SecretPlate: return "旧维修铭牌";
                 default: return string.Empty;
             }

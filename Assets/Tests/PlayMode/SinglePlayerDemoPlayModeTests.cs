@@ -38,11 +38,13 @@ namespace FunGame.Tests.PlayMode
                 CreateEmptyEncounter("Storm Wave 4"),
                 CreateEmptyEncounter("Storm Wave 5")
             };
-            var consoleObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
+            var relayConsoleObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var relayConsole = relayConsoleObject.AddComponent<DemoCalibrationConsole>();
+            var stormConsoleObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var stormConsole = stormConsoleObject.AddComponent<DemoCalibrationConsole>();
             var campaignObject = new GameObject("Demo Campaign");
             var campaign = campaignObject.AddComponent<SinglePlayerDemoController>();
-            campaign.Configure(incident, relayDefense, relays, stormWaves, campaignConsole);
+            campaign.Configure(incident, relayDefense, relays, stormWaves, relayConsole, stormConsole);
             var relayCompartment = new GameObject("Relay Compartment");
             var stormChamber = new GameObject("Storm Chamber");
             var relayDoor = new GameObject("Relay Door");
@@ -77,6 +79,9 @@ namespace FunGame.Tests.PlayMode
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(SinglePlayerDemoChapter.RelaySurge));
             Assert.That(campaign.ShipCapabilityStatus, Does.Contain("冷却在线"));
+            Assert.That(campaign.CurrentCampaignConsole, Is.SameAs(relayConsole));
+            Assert.That(relayConsole.SupportsChapter(campaign.Chapter), Is.True);
+            Assert.That(stormConsole.SupportsChapter(campaign.Chapter), Is.False);
             presentation.RefreshChapterVisibility(true);
             Assert.That(relayCompartment.activeSelf, Is.True);
             Assert.That(stormChamber.activeSelf, Is.False);
@@ -103,12 +108,19 @@ namespace FunGame.Tests.PlayMode
                 stormWaves[wave].NotifyEnemyDefeated();
                 yield return null;
                 Assert.That(campaign.IsCampaignConsoleAvailable, Is.True);
-                Assert.That(campaign.ExecuteCampaignConsole(), Is.True);
+                Assert.That(campaign.CurrentCampaignConsole, Is.SameAs(stormConsole));
+                Assert.That(stormConsole.GetInteractionOption(null).IsAvailable, Is.True);
+                Assert.That(relayConsole.GetInteractionOption(null).IsAvailable, Is.False);
+                Assert.That(stormConsole.ExecuteInteraction(null), Is.True);
                 yield return null;
             }
 
             Assert.That(campaign.IsCompleted, Is.True);
             Assert.That(campaign.ShipCapabilityStatus, Does.Contain("全部在线"));
+            Assert.That(campaign.CoolingChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.RelayChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.StormChapterSeconds, Is.GreaterThanOrEqualTo(0f));
+            Assert.That(campaign.RecordedChapterSeconds, Is.EqualTo(campaign.ElapsedSeconds).Within(0.05f));
 
             Object.Destroy(actor);
             Object.Destroy(campaignObject);
@@ -117,7 +129,8 @@ namespace FunGame.Tests.PlayMode
             Object.Destroy(stormChamber);
             Object.Destroy(relayDoor);
             Object.Destroy(stormDoor);
-            Object.Destroy(consoleObject);
+            Object.Destroy(relayConsoleObject);
+            Object.Destroy(stormConsoleObject);
             foreach (GameObject relayObject in relayObjects) Object.Destroy(relayObject);
             foreach (CombatEncounterController wave in stormWaves) Object.Destroy(wave.gameObject);
             Object.Destroy(relayDefense.gameObject);

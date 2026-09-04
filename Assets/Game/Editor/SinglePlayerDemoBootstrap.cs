@@ -18,7 +18,7 @@ using UnityEngine.SceneManagement;
 namespace FunGame.Editor
 {
     /// <summary>
-    /// 生成三章单人演示场景：扩展冷却事故、继电器事件和风暴核心三波校准防卫。
+    /// 生成三章单人演示场景：扩展冷却事故、继电器事件和风暴核心五波校准防卫。
     /// </summary>
     public static class SinglePlayerDemoBootstrap
     {
@@ -185,25 +185,22 @@ namespace FunGame.Editor
                     stormCoreTarget)
             };
 
-            GameObject consoleObject = CreateBlock(
+            DemoCalibrationConsole relayRecoveryConsole = CreateCampaignConsole(
                 relayCompartment,
-                "Ship Systems Command Console",
+                "Power Compartment Recovery Console",
                 new Vector3(0f, 1f, 8.55f),
-                new Vector3(2.2f, 2f, 0.7f),
+                relayMaterial,
+                darkMaterial,
+                warningMaterial,
+                relayMaterial);
+            DemoCalibrationConsole stormCalibrationConsole = CreateCampaignConsole(
+                stormChamber,
+                "Storm Core Calibration Console",
+                new Vector3(0f, 1f, 8.55f),
                 stormMaterial,
-                true);
-            var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
-            CreateLocalDecoration(consoleObject.transform, "Calibration Console Screen", PrimitiveType.Cube,
-                new Vector3(0f, 0.18f, -0.58f), new Vector3(0.62f, 0.24f, 0.08f), darkMaterial);
-            CreateLocalDecoration(consoleObject.transform, "Calibration Console Lever", PrimitiveType.Cylinder,
-                new Vector3(0.32f, -0.15f, -0.62f), new Vector3(0.07f, 0.22f, 0.07f), warningMaterial,
-                Quaternion.Euler(62f, 0f, 0f));
-            for (int index = 0; index < 5; index++)
-            {
-                CreateLocalDecoration(consoleObject.transform, $"Calibration Stage Light {index + 1}", PrimitiveType.Sphere,
-                    new Vector3(-0.42f + index * 0.21f, -0.2f, -0.62f), new Vector3(0.055f, 0.055f, 0.035f),
-                    index == 2 ? warningMaterial : relayMaterial);
-            }
+                darkMaterial,
+                warningMaterial,
+                stormMaterial);
 
             CreateZoneLight(relayCompartment, "Power Compartment Work Light", new Vector3(0f, 4.2f, 0.5f), relayMaterial);
             CreateZoneLight(stormChamber, "Storm Chamber Work Light", new Vector3(0f, 4.2f, 1.8f), stormMaterial);
@@ -211,7 +208,13 @@ namespace FunGame.Editor
             stormChamber.position = StormChamberOffset;
 
             var campaign = root.gameObject.AddComponent<SinglePlayerDemoController>();
-            campaign.Configure(incident, relayDefense, relays, stormWaves, campaignConsole);
+            campaign.Configure(
+                incident,
+                relayDefense,
+                relays,
+                stormWaves,
+                relayRecoveryConsole,
+                stormCalibrationConsole);
             root.gameObject.AddComponent<SinglePlayerDemoOverlay>().Configure(campaign);
             var guidance = root.gameObject.AddComponent<DemoObjectiveGuidancePresenter>();
             guidance.Configure(
@@ -258,6 +261,10 @@ namespace FunGame.Editor
             {
                 ConfigureCurrent();
             }
+            else
+            {
+                UpgradeChapterConsoleLayout();
+            }
 
             Directory.CreateDirectory("Builds/SinglePlayerDemo-Windows");
             var options = new BuildPlayerOptions
@@ -274,6 +281,108 @@ namespace FunGame.Editor
             }
 
             Debug.Log($"[Demo] Windows 开发构建成功：{report.summary.totalSize} bytes。");
+        }
+
+        [MenuItem("FunGame/Demo/升级章节终端分舱布局")]
+        public static void UpgradeChapterConsoleLayout()
+        {
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            GameObject root = scene.GetRootGameObjects()
+                .FirstOrDefault(item => item.name == "Single Player Three Chapter Demo");
+            if (root == null)
+            {
+                throw new InvalidDataException("三章演示场景缺少流程根对象。");
+            }
+
+            Transform relayCompartment = root.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(item => item.name == "Chapter 2 - Power Relay Compartment");
+            Transform stormChamber = root.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(item => item.name == "Chapter 3 - Storm Core Chamber");
+            if (relayCompartment == null || stormChamber == null)
+            {
+                throw new InvalidDataException("三章演示场景缺少配电舱或风暴核心舱。");
+            }
+
+            DemoCalibrationConsole[] existingConsoles = root.GetComponentsInChildren<DemoCalibrationConsole>(true);
+            bool alreadySeparated = existingConsoles.Count(item =>
+                                        item.Role == DemoCalibrationConsoleRole.RelayRecovery &&
+                                        item.transform.IsChildOf(relayCompartment)) == 1 &&
+                                    existingConsoles.Count(item =>
+                                        item.Role == DemoCalibrationConsoleRole.StormCalibration &&
+                                        item.transform.IsChildOf(stormChamber)) == 1;
+            if (alreadySeparated)
+            {
+                return;
+            }
+
+            Material relayMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/Demo_Relay.mat");
+            Material stormMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/Demo_Storm.mat");
+            Material warningMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/Demo_Warning.mat");
+            Material darkMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/Demo_Dark.mat");
+            if (relayMaterial == null || stormMaterial == null || warningMaterial == null || darkMaterial == null)
+            {
+                throw new InvalidDataException("章节终端升级缺少演示材质。");
+            }
+
+            DemoCalibrationConsole relayRecoveryConsole = existingConsoles.FirstOrDefault(item =>
+                item.transform.IsChildOf(relayCompartment));
+            if (relayRecoveryConsole == null)
+            {
+                throw new InvalidDataException("配电舱缺少可迁移的旧章节控制台。");
+            }
+
+            relayRecoveryConsole.name = "Power Compartment Recovery Console";
+            Renderer relayBody = relayRecoveryConsole.GetComponent<Renderer>();
+            if (relayBody != null)
+            {
+                relayBody.sharedMaterial = relayMaterial;
+            }
+
+            DemoCalibrationConsole stormCalibrationConsole = existingConsoles.FirstOrDefault(item =>
+                item.transform.IsChildOf(stormChamber));
+            if (stormCalibrationConsole == null)
+            {
+                stormCalibrationConsole = CreateCampaignConsole(
+                    stormChamber,
+                    "Storm Core Calibration Console",
+                    new Vector3(0f, 1f, 8.55f),
+                    stormMaterial,
+                    darkMaterial,
+                    warningMaterial,
+                    stormMaterial);
+            }
+
+            CoolingIncidentController incident = UnityEngine.Object.FindFirstObjectByType<CoolingIncidentController>();
+            SinglePlayerDemoController campaign = root.GetComponent<SinglePlayerDemoController>();
+            CombatEncounterController relayDefense = relayCompartment.GetComponentsInChildren<CombatEncounterController>(true)
+                .FirstOrDefault(item => item.name == "Chapter 2 Relay Surge");
+            DemoRelayTarget[] relays = relayCompartment.GetComponentsInChildren<DemoRelayTarget>(true)
+                .OrderBy(item => item.name)
+                .ToArray();
+            CombatEncounterController[] stormWaves = stormChamber.GetComponentsInChildren<CombatEncounterController>(true)
+                .Where(item => item.name.StartsWith("Chapter 3 Wave", StringComparison.Ordinal))
+                .OrderBy(item => item.name)
+                .ToArray();
+            if (incident == null || campaign == null || relayDefense == null || relays.Length == 0 || stormWaves.Length == 0)
+            {
+                throw new InvalidDataException("章节终端升级无法解析完整流程引用。");
+            }
+
+            campaign.Configure(
+                incident,
+                relayDefense,
+                relays,
+                stormWaves,
+                relayRecoveryConsole,
+                stormCalibrationConsole);
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene, ScenePath))
+            {
+                throw new IOException($"无法保存章节终端升级：{ScenePath}");
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Demo] 章节终端已按配电舱与风暴核心舱完成分舱升级。");
         }
 
         private static void RemoveLegacyVisualClutter()
@@ -400,6 +509,9 @@ namespace FunGame.Editor
             GameObject rack = CreateBlock(
                 parent, name, position, new Vector3(0.55f, 1.05f, 0.9f), bodyMaterial, true);
             rack.AddComponent<ToolRackInteractable>().Configure(name.ToLowerInvariant().Replace(' ', '-'), tool);
+            BoxCollider rackCollider = rack.GetComponent<BoxCollider>();
+            rackCollider.center = new Vector3(-0.25f, 0f, 0f);
+            rackCollider.size = new Vector3(1.7f, 1.2f, 1.25f);
             if (tool == ToolKind.CircuitBridger)
             {
                 CreateDecoration(parent, name + " Scanner", PrimitiveType.Cube,
@@ -444,6 +556,9 @@ namespace FunGame.Editor
                     true);
                 relays[index] = relayObject.AddComponent<DemoRelayTarget>();
                 relays[index].Configure($"storm-relay-{index + 1}", $"风暴继电器 {index + 1}");
+                BoxCollider relayCollider = relayObject.GetComponent<BoxCollider>();
+                relayCollider.center = new Vector3(0f, 0.275f, -0.07f);
+                relayCollider.size = new Vector3(1f, 1.6f, 1.15f);
                 CreateLocalDecoration(relayObject.transform, "Relay Phase Coil", PrimitiveType.Cylinder,
                     new Vector3(0f, 0.15f, 0f), new Vector3(0.62f, 0.45f, 0.62f), warning,
                     Quaternion.Euler(0f, 0f, 90f));
@@ -456,6 +571,41 @@ namespace FunGame.Editor
             }
 
             return relays;
+        }
+
+        private static DemoCalibrationConsole CreateCampaignConsole(
+            Transform parent,
+            string name,
+            Vector3 position,
+            Material bodyMaterial,
+            Material screenMaterial,
+            Material warningMaterial,
+            Material stageMaterial)
+        {
+            GameObject consoleObject = CreateBlock(
+                parent,
+                name,
+                position,
+                new Vector3(2.2f, 2f, 0.7f),
+                bodyMaterial,
+                false);
+            var campaignConsole = consoleObject.AddComponent<DemoCalibrationConsole>();
+            BoxCollider consoleCollider = consoleObject.GetComponent<BoxCollider>();
+            consoleCollider.center = new Vector3(0f, 0f, -0.18f);
+            consoleCollider.size = new Vector3(1f, 1f, 1.4f);
+            CreateLocalDecoration(consoleObject.transform, "Calibration Console Screen", PrimitiveType.Cube,
+                new Vector3(0f, 0.18f, -0.58f), new Vector3(0.62f, 0.24f, 0.08f), screenMaterial);
+            CreateLocalDecoration(consoleObject.transform, "Calibration Console Lever", PrimitiveType.Cylinder,
+                new Vector3(0.32f, -0.15f, -0.62f), new Vector3(0.07f, 0.22f, 0.07f), warningMaterial,
+                Quaternion.Euler(62f, 0f, 0f));
+            for (int index = 0; index < 5; index++)
+            {
+                CreateLocalDecoration(consoleObject.transform, $"Calibration Stage Light {index + 1}", PrimitiveType.Sphere,
+                    new Vector3(-0.42f + index * 0.21f, -0.2f, -0.62f), new Vector3(0.055f, 0.055f, 0.035f),
+                    index == 2 ? warningMaterial : stageMaterial);
+            }
+
+            return campaignConsole;
         }
 
         private static CombatEncounterController CreateEncounter(
@@ -565,21 +715,21 @@ namespace FunGame.Editor
             if (spec.Archetype == "skitter")
             {
                 CreateLocalDecoration(enemy, "Left Fin", PrimitiveType.Cube,
-                    new Vector3(-0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent);
+                    new Vector3(-0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent, keepCollider: true);
                 CreateLocalDecoration(enemy, "Right Fin", PrimitiveType.Cube,
-                    new Vector3(0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent);
+                    new Vector3(0.55f, 0f, 0f), new Vector3(0.55f, 0.08f, 0.25f), accent, keepCollider: true);
             }
             else if (spec.Archetype == "pulser")
             {
                 CreateLocalDecoration(enemy, "Pulse Crown", PrimitiveType.Sphere,
-                    new Vector3(0f, 0.72f, 0f), new Vector3(0.42f, 0.18f, 0.42f), accent);
+                    new Vector3(0f, 0.72f, 0f), new Vector3(0.42f, 0.18f, 0.42f), accent, keepCollider: true);
             }
             else if (spec.Archetype == "bulwark")
             {
                 CreateLocalDecoration(enemy, "Front Armor", PrimitiveType.Cube,
-                    new Vector3(0f, 0f, -0.55f), new Vector3(0.85f, 0.65f, 0.18f), accent);
+                    new Vector3(0f, 0f, -0.55f), new Vector3(0.85f, 0.65f, 0.18f), accent, keepCollider: true);
                 CreateLocalDecoration(enemy, "Armor Crown", PrimitiveType.Cube,
-                    new Vector3(0f, 0.8f, 0f), new Vector3(0.75f, 0.2f, 0.7f), accent);
+                    new Vector3(0f, 0.8f, 0f), new Vector3(0.75f, 0.2f, 0.7f), accent, keepCollider: true);
             }
         }
 
@@ -703,7 +853,8 @@ namespace FunGame.Editor
             Vector3 localPosition,
             Vector3 localScale,
             Material material,
-            Quaternion localRotation = default)
+            Quaternion localRotation = default,
+            bool keepCollider = false)
         {
             GameObject decoration = GameObject.CreatePrimitive(type);
             decoration.name = name;
@@ -712,7 +863,10 @@ namespace FunGame.Editor
             decoration.transform.localRotation = localRotation == default ? Quaternion.identity : localRotation;
             decoration.transform.localScale = localScale;
             decoration.GetComponent<Renderer>().sharedMaterial = material;
-            UnityEngine.Object.DestroyImmediate(decoration.GetComponent<Collider>());
+            if (!keepCollider)
+            {
+                UnityEngine.Object.DestroyImmediate(decoration.GetComponent<Collider>());
+            }
             return decoration;
         }
 

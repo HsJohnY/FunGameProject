@@ -68,6 +68,12 @@ namespace FunGame.Interaction
 
             _interactAction = new InputAction("上下文交互", InputActionType.Button, "<Keyboard>/e");
             _dropAction = new InputAction("丢下或取消", InputActionType.Button, "<Keyboard>/q");
+            if (Debug.isDebugBuild)
+            {
+                // Development Build 的无障碍/自动化备用输入；Release 仍只保留正式键位。
+                _interactAction.AddBinding("<Mouse>/rightButton");
+                _dropAction.AddBinding("<Mouse>/middleButton");
+            }
         }
 
         private void OnEnable()

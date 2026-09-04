@@ -24,6 +24,7 @@ namespace FunGame.Tests.EditMode
                 SinglePlayerDemoController campaign = root.GetComponent<SinglePlayerDemoController>();
                 DemoObjectiveGuidancePresenter guidance = root.GetComponent<DemoObjectiveGuidancePresenter>();
                 DemoRelayTarget[] relays = root.GetComponentsInChildren<DemoRelayTarget>(true);
+                DemoCalibrationConsole[] consoles = root.GetComponentsInChildren<DemoCalibrationConsole>(true);
                 CombatEncounterController[] encounters = root.GetComponentsInChildren<CombatEncounterController>(true);
                 InterferenceEnemy[] enemies = root.GetComponentsInChildren<InterferenceEnemy>(true);
                 DemoEasterEgg325Interactable secret = root.GetComponentInChildren<DemoEasterEgg325Interactable>(true);
@@ -43,6 +44,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(campaign.RequiredRelayCount, Is.EqualTo(5));
                 Assert.That(campaign.StormWaveCount, Is.EqualTo(5));
                 Assert.That(relays.Length, Is.EqualTo(5));
+                Assert.That(consoles.Length, Is.EqualTo(2));
                 Assert.That(encounters.Length, Is.EqualTo(6));
                 Assert.That(enemies.Length, Is.EqualTo(27));
                 Assert.That(enemies.Count(item => item.Behavior == InterferenceEnemyBehavior.Direct), Is.GreaterThan(0));
@@ -55,6 +57,10 @@ namespace FunGame.Tests.EditMode
                 Assert.That(stormChamber, Is.Not.Null);
                 Assert.That(player, Is.Not.Null);
                 Assert.That(relays.All(item => item.transform.IsChildOf(relayCompartment)), Is.True);
+                Assert.That(consoles.Single(item => item.Role == DemoCalibrationConsoleRole.RelayRecovery)
+                    .transform.IsChildOf(relayCompartment), Is.True);
+                Assert.That(consoles.Single(item => item.Role == DemoCalibrationConsoleRole.StormCalibration)
+                    .transform.IsChildOf(stormChamber), Is.True);
                 Assert.That(stormCore.IsChildOf(stormChamber), Is.True);
                 Assert.That(relayCompartment.gameObject.activeSelf, Is.False, "第二章舱室不应在第一章提前显示。");
                 Assert.That(stormChamber.gameObject.activeSelf, Is.False, "第三章舱室不应在第一章提前显示。");
@@ -74,6 +80,81 @@ namespace FunGame.Tests.EditMode
             {
                 EditorSceneManager.CloseScene(scene, true);
             }
+        }
+
+        [Test]
+        public void 后续章节关键交互物与怪物外形均有可命中的碰撞范围()
+        {
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+            try
+            {
+                GameObject root = scene.GetRootGameObjects().First(item => item.name == "Single Player Three Chapter Demo");
+                Transform relayCompartment = FindTransform(scene, "Chapter 2 - Power Relay Compartment");
+                Transform stormChamber = FindTransform(scene, "Chapter 3 - Storm Core Chamber");
+                relayCompartment.gameObject.SetActive(true);
+                stormChamber.gameObject.SetActive(true);
+
+                foreach (DemoRelayTarget relay in root.GetComponentsInChildren<DemoRelayTarget>(true))
+                {
+                    AssertRenderersCovered(relay.gameObject, relay.GetComponentsInChildren<Renderer>(true));
+                }
+
+                foreach (DemoCalibrationConsole console in root.GetComponentsInChildren<DemoCalibrationConsole>(true))
+                {
+                    AssertRenderersCovered(console.gameObject, console.GetComponentsInChildren<Renderer>(true));
+                }
+
+                AssertSiblingDecorationsCovered(scene, "Relay Bridger Station");
+                AssertSiblingDecorationsCovered(scene, "Relay Wrench Station");
+                AssertSiblingDecorationsCovered(scene, "Storm Wrench Station");
+
+                foreach (InterferenceEnemy enemy in root.GetComponentsInChildren<InterferenceEnemy>(true))
+                {
+                    for (Transform current = enemy.transform; current != null; current = current.parent)
+                    {
+                        current.gameObject.SetActive(true);
+                    }
+                    foreach (MeshRenderer renderer in enemy.GetComponentsInChildren<MeshRenderer>(true))
+                    {
+                        Assert.That(renderer.GetComponent<Collider>(), Is.Not.Null,
+                            $"{enemy.name} / {renderer.name} 的可见外形缺少对应碰撞体。");
+                    }
+                }
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        private static void AssertSiblingDecorationsCovered(Scene scene, string rackName)
+        {
+            GameObject rack = FindTransform(scene, rackName).gameObject;
+            Collider collider = rack.GetComponent<Collider>();
+            Renderer[] renderers = rack.transform.parent.GetComponentsInChildren<Renderer>(true)
+                .Where(renderer => renderer.name.StartsWith(rackName)).ToArray();
+            foreach (Renderer renderer in renderers)
+            {
+                Assert.That(Contains(collider.bounds, renderer.bounds), Is.True,
+                    $"{rackName} / {renderer.name} 的可见范围超出工具架交互碰撞体。");
+            }
+        }
+
+        private static void AssertRenderersCovered(GameObject target, Renderer[] renderers)
+        {
+            Collider collider = target.GetComponent<Collider>();
+            Assert.That(collider, Is.Not.Null, $"{target.name} 缺少交互碰撞体。");
+            foreach (Renderer renderer in renderers)
+            {
+                Assert.That(Contains(collider.bounds, renderer.bounds), Is.True,
+                    $"{target.name} / {renderer.name} 的可见范围超出交互碰撞体。");
+            }
+        }
+
+        private static bool Contains(Bounds outer, Bounds inner)
+        {
+            outer.Expand(0.03f);
+            return outer.Contains(inner.min) && outer.Contains(inner.max);
         }
 
         private static Transform FindTransform(Scene scene, string name)

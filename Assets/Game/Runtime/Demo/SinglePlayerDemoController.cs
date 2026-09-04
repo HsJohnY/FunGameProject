@@ -4,6 +4,7 @@ using FunGame.Combat;
 using FunGame.Incident;
 using FunGame.UI;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace FunGame.Demo
 {
@@ -17,13 +18,19 @@ namespace FunGame.Demo
         [SerializeField] private CombatEncounterController relayDefense;
         [SerializeField] private DemoRelayTarget[] relayTargets;
         [SerializeField] private CombatEncounterController[] stormWaves;
-        [SerializeField] private DemoCalibrationConsole campaignConsole;
+        [FormerlySerializedAs("campaignConsole")]
+        [SerializeField] private DemoCalibrationConsole relayRecoveryConsole;
+        [SerializeField] private DemoCalibrationConsole stormCalibrationConsole;
         private SinglePlayerDemoRules _rules;
         private bool _relayChapterStarted;
         private bool _stormChapterStarted;
         private bool _relayChapterFailed;
         private bool _stormChapterFailed;
         private float _elapsedSeconds;
+        private float _chapterStartedAt;
+        private float _coolingChapterSeconds;
+        private float _relayChapterSeconds;
+        private float _stormChapterSeconds;
 
         public event Action StateChanged;
         public SinglePlayerDemoChapter Chapter => Rules.Chapter;
@@ -37,10 +44,21 @@ namespace FunGame.Demo
         public float ElapsedSeconds => _elapsedSeconds;
         public int ChapterRestartCount { get; private set; }
         public bool IsCompleted => Chapter == SinglePlayerDemoChapter.Completed;
+        public float CoolingChapterSeconds => _coolingChapterSeconds;
+        public float RelayChapterSeconds => _relayChapterSeconds;
+        public float StormChapterSeconds => _stormChapterSeconds;
+        public float RecordedChapterSeconds =>
+            _coolingChapterSeconds + _relayChapterSeconds + _stormChapterSeconds;
         public bool IsAwaitingCalibration => Rules.IsAwaitingCalibration;
         public bool IsCurrentChapterFailed => _relayChapterFailed || _stormChapterFailed;
         public CombatEncounterController RelayDefenseEncounter => relayDefense;
         public CombatEncounterController CurrentStormEncounter => GetCurrentStormWave();
+        public DemoCalibrationConsole CurrentCampaignConsole =>
+            Chapter == SinglePlayerDemoChapter.RelaySurge
+                ? relayRecoveryConsole
+                : Chapter == SinglePlayerDemoChapter.StormCalibration
+                    ? stormCalibrationConsole
+                    : null;
         public bool IsCampaignConsoleAvailable =>
             _relayChapterFailed || _stormChapterFailed ||
             (Chapter == SinglePlayerDemoChapter.StormCalibration && Rules.IsAwaitingCalibration);
@@ -95,15 +113,15 @@ namespace FunGame.Demo
 
                 if (Chapter == SinglePlayerDemoChapter.RelaySurge)
                 {
-                    if (_relayChapterFailed) return "辅助设备离线 · 前往风暴控制台重启第二章";
+                    if (_relayChapterFailed) return "辅助设备离线 · 前往配电舱恢复终端重启第二章";
                     int enemies = relayDefense != null ? relayDefense.RemainingEnemyCount : 0;
                     return $"稳定继电器 {StabilizedRelayCount}/{RequiredRelayCount} · 剩余干扰体 {enemies}";
                 }
 
                 if (Chapter == SinglePlayerDemoChapter.StormCalibration)
                 {
-                    if (_stormChapterFailed) return "风暴核心离线 · 前往控制台重启第三章";
-                    if (Rules.IsAwaitingCalibration) return $"第 {CurrentStormWave + 1} 波已清除 · 前往控制台写入校准";
+                    if (_stormChapterFailed) return "风暴核心离线 · 前往核心校准终端重启第三章";
+                    if (Rules.IsAwaitingCalibration) return $"第 {CurrentStormWave + 1} 波已清除 · 前往核心校准终端写入校准";
                     CombatEncounterController wave = GetCurrentStormWave();
                     int enemies = wave != null ? wave.RemainingEnemyCount : 0;
                     return $"抵御第 {CurrentStormWave + 1}/{StormWaveCount} 波 · 剩余干扰体 {enemies}";
@@ -127,16 +145,54 @@ namespace FunGame.Demo
             CombatEncounterController[] configuredStormWaves,
             DemoCalibrationConsole configuredConsole)
         {
+            ConfigureState(
+                configuredIncident,
+                configuredRelayDefense,
+                configuredRelays,
+                configuredStormWaves);
+            relayRecoveryConsole = configuredConsole;
+            stormCalibrationConsole = configuredConsole;
+            configuredConsole?.Configure(this, DemoCalibrationConsoleRole.Shared);
+        }
+
+        public void Configure(
+            CoolingIncidentController configuredIncident,
+            CombatEncounterController configuredRelayDefense,
+            DemoRelayTarget[] configuredRelays,
+            CombatEncounterController[] configuredStormWaves,
+            DemoCalibrationConsole configuredRelayRecoveryConsole,
+            DemoCalibrationConsole configuredStormCalibrationConsole)
+        {
+            ConfigureState(
+                configuredIncident,
+                configuredRelayDefense,
+                configuredRelays,
+                configuredStormWaves);
+            relayRecoveryConsole = configuredRelayRecoveryConsole;
+            stormCalibrationConsole = configuredStormCalibrationConsole;
+            relayRecoveryConsole?.Configure(this, DemoCalibrationConsoleRole.RelayRecovery);
+            stormCalibrationConsole?.Configure(this, DemoCalibrationConsoleRole.StormCalibration);
+        }
+
+        private void ConfigureState(
+            CoolingIncidentController configuredIncident,
+            CombatEncounterController configuredRelayDefense,
+            DemoRelayTarget[] configuredRelays,
+            CombatEncounterController[] configuredStormWaves)
+        {
             coolingIncident = configuredIncident;
             relayDefense = configuredRelayDefense;
             relayTargets = configuredRelays;
             stormWaves = configuredStormWaves;
-            campaignConsole = configuredConsole;
             _rules = new SinglePlayerDemoRules(
                 RequiredCoolingRuns,
                 Mathf.Max(1, relayTargets?.Length ?? 0),
                 Mathf.Max(1, stormWaves?.Length ?? 0));
-            campaignConsole?.Configure(this);
+            _elapsedSeconds = 0f;
+            _chapterStartedAt = 0f;
+            _coolingChapterSeconds = 0f;
+            _relayChapterSeconds = 0f;
+            _stormChapterSeconds = 0f;
         }
 
         private void Start()
@@ -158,6 +214,7 @@ namespace FunGame.Demo
                 {
                     if (Rules.Chapter == SinglePlayerDemoChapter.RelaySurge)
                     {
+                        RecordChapterDuration(1, ref _coolingChapterSeconds);
                         BeginRelayChapter();
                     }
                     else
@@ -280,6 +337,7 @@ namespace FunGame.Demo
 
             if (Rules.Chapter == SinglePlayerDemoChapter.StormCalibration)
             {
+                RecordChapterDuration(2, ref _relayChapterSeconds);
                 BeginStormChapter();
             }
         }
@@ -373,12 +431,28 @@ namespace FunGame.Demo
 
         private void CompleteDemo()
         {
+            RecordChapterDuration(3, ref _stormChapterSeconds);
             foreach (CombatEncounterController wave in stormWaves)
             {
                 wave?.PrepareDormant();
             }
 
-            Debug.Log($"[Demo] result=completed duration={CoolingIncidentController.FormatDuration(_elapsedSeconds)} secret325={EasterEgg325Discovered} restarts={ChapterRestartCount}", this);
+            Debug.Log(
+                $"[Demo] result=completed duration={CoolingIncidentController.FormatDuration(_elapsedSeconds)} " +
+                $"cooling={CoolingIncidentController.FormatDuration(_coolingChapterSeconds)} " +
+                $"relay={CoolingIncidentController.FormatDuration(_relayChapterSeconds)} " +
+                $"storm={CoolingIncidentController.FormatDuration(_stormChapterSeconds)} " +
+                $"secret325={EasterEgg325Discovered} restarts={ChapterRestartCount}",
+                this);
+        }
+
+        private void RecordChapterDuration(int chapter, ref float target)
+        {
+            target = Mathf.Max(0f, _elapsedSeconds - _chapterStartedAt);
+            _chapterStartedAt = _elapsedSeconds;
+            Debug.Log(
+                $"[Demo] chapter={chapter} result=completed duration={CoolingIncidentController.FormatDuration(target)}",
+                this);
         }
     }
 }

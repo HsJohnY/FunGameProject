@@ -12,7 +12,7 @@ namespace FunGame.Tests.EditMode
         {
             var safeRect = new UnityEngine.Rect(100f, 50f, 1000f, 500f);
             DemoMarkerPlacement first = DemoMarkerLayout.Calculate(
-                new UnityEngine.Vector3(0.8f, 0f, -5f),
+                new UnityEngine.Vector3(2.8f, 0f, -5f),
                 UnityEngine.Vector2.zero,
                 safeRect,
                 -1f);
@@ -26,6 +26,22 @@ namespace FunGame.Tests.EditMode
             Assert.That(first.BehindSide, Is.EqualTo(1f));
             Assert.That(jitter.BehindSide, Is.EqualTo(1f));
             Assert.That(jitter.Position.x, Is.EqualTo(safeRect.xMax).Within(0.01f));
+        }
+
+        [Test]
+        public void 背后目标忽略垂直偏差并稳定贴在左右边缘()
+        {
+            var safeRect = new UnityEngine.Rect(100f, 50f, 1000f, 500f);
+            DemoMarkerPlacement placement = DemoMarkerLayout.Calculate(
+                new UnityEngine.Vector3(0.1f, -4f, -8f),
+                UnityEngine.Vector2.zero,
+                safeRect,
+                -1f);
+
+            Assert.That(placement.IsEdge, Is.True);
+            Assert.That(placement.BehindSide, Is.EqualTo(-1f));
+            Assert.That(placement.Position.x, Is.EqualTo(safeRect.xMin).Within(0.01f));
+            Assert.That(placement.Position.y, Is.EqualTo(safeRect.center.y).Within(0.01f));
         }
 
         [Test]
@@ -122,12 +138,15 @@ namespace FunGame.Tests.EditMode
         public void 第二章和第三章的门禁都有明确操作目标()
         {
             DemoGuidanceInstruction relay = DemoGuidanceRules.ResolveRelay(false, 3, 2, ToolKind.CircuitBridger);
+            DemoGuidanceInstruction relayFailure = DemoGuidanceRules.ResolveRelay(true, 3, 2, ToolKind.CircuitBridger);
             DemoGuidanceInstruction calibration = DemoGuidanceRules.ResolveStorm(false, true, 0, ToolKind.ImpactWrench, false);
             DemoGuidanceInstruction completed = DemoGuidanceRules.ResolveStorm(false, false, 0, ToolKind.ImpactWrench, true);
 
             Assert.That(relay.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.Relay));
             Assert.That(relay.SecondaryTarget, Is.EqualTo(DemoGuidanceTargetKind.Enemy));
+            Assert.That(relayFailure.ActionText, Does.Contain("配电舱恢复终端"));
             Assert.That(calibration.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.CampaignConsole));
+            Assert.That(calibration.ActionText, Does.Contain("核心校准终端"));
             Assert.That(completed.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.SecretPlate));
         }
     }

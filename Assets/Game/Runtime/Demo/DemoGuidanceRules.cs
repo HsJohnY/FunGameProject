@@ -158,7 +158,7 @@ namespace FunGame.Demo
             {
                 return new DemoGuidanceInstruction(
                     DemoGuidanceTargetKind.CampaignConsole,
-                    "继电器防卫失败：前往风暴控制台，按 E 重启本章。 ");
+                    "继电器防卫失败：前往配电舱恢复终端，按 E 重启本章。 ");
             }
 
             if (remainingRelays > 0)
@@ -210,14 +210,14 @@ namespace FunGame.Demo
             {
                 return new DemoGuidanceInstruction(
                     DemoGuidanceTargetKind.CampaignConsole,
-                    "核心防卫失败：前往风暴控制台，按 E 重启第三章。 ");
+                    "核心防卫失败：前往核心校准终端，按 E 重启第三章。 ");
             }
 
             if (awaitingCalibration)
             {
                 return new DemoGuidanceInstruction(
                     DemoGuidanceTargetKind.CampaignConsole,
-                    "本波已清除：返回风暴控制台，按 E 写入校准并启动下一波。 ");
+                    "本波已清除：前往本舱核心校准终端，按 E 写入校准并启动下一波。 ");
             }
 
             if (remainingEnemies > 0)

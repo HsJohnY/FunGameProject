@@ -44,11 +44,23 @@ if (Test-Path -LiteralPath $playerLog -PathType Leaf) {
 $completed = $null -ne $completionMatch
 $gameplaySeconds = $null
 $gameplayDuration = 'not-completed'
+$coolingDuration = 'unavailable'
+$relayDuration = 'unavailable'
+$stormDuration = 'unavailable'
 if ($completed -and $completionMatch.Matches.Count -gt 0) {
     $durationText = $completionMatch.Matches[0].Groups['duration'].Value
     $parts = $durationText.Split(':')
     $gameplaySeconds = [int]$parts[0] * 60 + [int]$parts[1]
     $gameplayDuration = $durationText
+
+    $breakdownMatch = Select-String -LiteralPath $playerLog `
+        -Pattern '\[Demo\] result=completed .*cooling=(?<cooling>\d+:\d{2}) relay=(?<relay>\d+:\d{2}) storm=(?<storm>\d+:\d{2})' `
+        | Select-Object -Last 1
+    if ($null -ne $breakdownMatch -and $breakdownMatch.Matches.Count -gt 0) {
+        $coolingDuration = $breakdownMatch.Matches[0].Groups['cooling'].Value
+        $relayDuration = $breakdownMatch.Matches[0].Groups['relay'].Value
+        $stormDuration = $breakdownMatch.Matches[0].Groups['storm'].Value
+    }
 }
 
 $minimumSeconds = $MinimumMinutes * 60
@@ -59,6 +71,9 @@ $result = @(
     "status=$status",
     "completed=$completed",
     "gameplayDuration=$gameplayDuration",
+    "coolingChapterDuration=$coolingDuration",
+    "relayChapterDuration=$relayDuration",
+    "stormChapterDuration=$stormDuration",
     "wallClockDuration=$($wallClock.Elapsed.ToString('hh\:mm\:ss'))",
     "targetMinutes=$MinimumMinutes-$MaximumMinutes",
     "playerExitCode=$($process.ExitCode)",

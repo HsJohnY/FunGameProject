@@ -88,6 +88,16 @@ namespace FunGame.UI
             CloseMenu();
         }
 
+        /// <summary>
+        /// 仅供开发构建的截图检查点直接打开设置页；普通玩家仍从主菜单进入。
+        /// </summary>
+        public void OpenSettingsForAutomation()
+        {
+            _settingsReturnPage = MenuPage.Main;
+            _pendingSettings = GameSettingsStore.Current;
+            OpenMenu(MenuPage.Settings);
+        }
+
         private void Awake()
         {
             if (player == null)
@@ -285,7 +295,24 @@ namespace FunGame.UI
             DrawRect(new Rect(header.x, header.yMax + 8f, header.width, 2f), Amber);
 
             Rect content = new Rect(panel.x + 42f, panel.y + 118f, panel.width - 84f, panel.height - 158f);
-            GUILayout.BeginArea(content, _contentStyle);
+            GUI.Box(content, GUIContent.none, _contentStyle);
+            const float horizontalPadding = 22f;
+            const float topPadding = 12f;
+            const float bottomPadding = 18f;
+            const float footerHeight = 44f;
+            const float footerGap = 14f;
+            Rect footer = new Rect(
+                content.x + horizontalPadding,
+                content.yMax - bottomPadding - footerHeight,
+                content.width - horizontalPadding * 2f,
+                footerHeight);
+            Rect scrollArea = new Rect(
+                content.x + horizontalPadding,
+                content.y + topPadding,
+                content.width - horizontalPadding * 2f,
+                footer.y - footerGap - content.y - topPadding);
+
+            GUILayout.BeginArea(scrollArea);
             _settingsScroll = GUILayout.BeginScrollView(_settingsScroll);
 
             DrawSection("AUDIO BUS // 音频");
@@ -336,7 +363,10 @@ namespace FunGame.UI
             frameRateIndex = GUILayout.SelectionGrid(Mathf.Max(0, frameRateIndex), frameRateLabels, 4, _choiceStyle);
             _pendingSettings.FrameRateLimit = frameRates[frameRateIndex];
 
-            GUILayout.Space(20f);
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+
+            GUILayout.BeginArea(footer);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("恢复默认  //  RESET", _secondaryButtonStyle, GUILayout.Height(44f)))
             {
@@ -355,7 +385,6 @@ namespace FunGame.UI
             }
 
             GUILayout.EndHorizontal();
-            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
 

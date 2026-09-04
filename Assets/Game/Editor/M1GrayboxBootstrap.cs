@@ -172,44 +172,52 @@ namespace FunGame.Editor
             pressureGauge.AddComponent<CoolingDiagnosticInteractable>().Configure(
                 incident,
                 CoolingDiagnosticInteractable.DiagnosticKind.PressureGauge);
+            ConfigureBoxCollider(pressureGauge, Vector3.zero, new Vector3(1.25f, 1.25f, 2.2f));
             GameObject pumpInspection = CreateBlock(
                 environment,
                 "Cooling Pump Inspection Panel",
-                new Vector3(1.2f, 1.25f, 4.45f),
-                new Vector3(0.9f, 0.65f, 0.2f),
+                new Vector3(1.55f, 1.25f, 4.45f),
+                new Vector3(1.05f, 0.75f, 0.2f),
                 warningMaterial);
             pumpInspection.AddComponent<CoolingDiagnosticInteractable>().Configure(
                 incident,
                 CoolingDiagnosticInteractable.DiagnosticKind.PumpHousing);
+            ConfigureBoxCollider(pumpInspection, new Vector3(0f, 0f, -0.3f), new Vector3(1f, 1f, 1.75f));
             CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 4f), structureMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
 
             GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -3.65f), new Vector3(0.35f, 0.9f, 0.8f), warningMaterial);
             wrenchRack.AddComponent<ToolRackInteractable>().Configure("impact-wrench-rack", ToolKind.ImpactWrench);
+            ConfigureBoxCollider(wrenchRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
             GameObject bridgerRack = CreateBlock(environment, "Circuit Bridger Rack", new Vector3(5.15f, 1f, -2.5f), new Vector3(0.35f, 0.9f, 0.8f), circuitMaterial);
             bridgerRack.AddComponent<ToolRackInteractable>().Configure("circuit-bridger-rack", ToolKind.CircuitBridger);
+            ConfigureBoxCollider(bridgerRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
             GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.35f), new Vector3(0.35f, 0.9f, 0.8f), machineryMaterial);
             sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
+            ConfigureBoxCollider(sealantRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
 
             GameObject circuitNode = CreateBlock(
                 environment,
                 "Cooling Control Circuit Interlock",
                 new Vector3(-5.85f, 1.25f, -1.6f),
-                new Vector3(0.28f, 1.25f, 1.3f),
+                new Vector3(0.34f, 1.5f, 1.45f),
                 circuitMaterial);
             circuitNode.AddComponent<CircuitBridgeTarget>().Configure(incident);
+            ConfigureBoxCollider(circuitNode, new Vector3(0.19f, 0f, 0f), new Vector3(1.8f, 1f, 1f));
 
             var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
             recoveryPointObject.transform.SetParent(environment);
             recoveryPointObject.transform.position = new Vector3(-4.8f, 0.75f, -4.5f);
-            GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(0f, 1.1f, 4.25f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
+            GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(-3.6f, 1.1f, 6.7f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
             fastener.AddComponent<MechanicalFastenerTarget>().Configure(incident);
+            ConfigureBoxCollider(fastener, new Vector3(0f, 0f, -0.36f), new Vector3(1.1f, 1.1f, 2.6f));
             var pipeAnchor = new GameObject("Replacement Pipe Install Anchor");
             pipeAnchor.transform.SetParent(fastener.transform, false);
             pipeAnchor.transform.localPosition = new Vector3(0f, 0f, -1.2f);
             // 安装座同时保留恢复点引用，重置事故时可以把已安装的任务物送回架上。
             fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform, recoveryPointObject.transform);
-            GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
+            GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.65f, 0.5f, 1.5f), machineryMaterial);
+            ConfigureBoxCollider(leak, Vector3.zero, new Vector3(1.7f, 2f, 1f));
             leak.AddComponent<SealantTarget>().Configure(incident);
 
             GameObject carryable = CreateBlock(environment, "Replacement Pipe", recoveryPointObject.transform.position, new Vector3(0.6f, 0.6f, 1.5f), warningMaterial);
@@ -217,6 +225,7 @@ namespace FunGame.Editor
             itemBody.mass = 3f;
             var carryableItem = carryable.AddComponent<CarryableInteractable>();
             carryableItem.ConfigureIdentity("replacement-pipe", "替换管件");
+            ConfigureBoxCollider(carryable, Vector3.zero, new Vector3(1f, 1f, 1.2f));
             carryable.AddComponent<TaskItemRecovery>().Configure(recoveryPointObject.transform, -3f);
 
             var layout = new GameObject("Controlled Incident Layouts").AddComponent<CoolingIncidentLayoutController>();
@@ -234,9 +243,9 @@ namespace FunGame.Editor
                 },
                 new[]
                 {
-                    new Vector3(0f, 1.1f, 4.25f),
-                    new Vector3(3.6f, 1.1f, 6.7f),
-                    new Vector3(-3.6f, 1.1f, 6.7f)
+                    new Vector3(-3.6f, 1.1f, 6.7f),
+                    new Vector3(-3.6f, 1.1f, 4.6f),
+                    new Vector3(3.2f, 1.1f, 3.4f)
                 },
                 new[]
                 {
@@ -351,6 +360,18 @@ namespace FunGame.Editor
             GameObject block = CreateBlock(parent, name, position, scale, material);
             Object.DestroyImmediate(block.GetComponent<Collider>());
             return block;
+        }
+
+        private static void ConfigureBoxCollider(GameObject target, Vector3 center, Vector3 size)
+        {
+            BoxCollider collider = target.GetComponent<BoxCollider>();
+            if (collider == null)
+            {
+                collider = target.AddComponent<BoxCollider>();
+            }
+
+            collider.center = center;
+            collider.size = size;
         }
 
         private static Material CreateOrLoadMaterial(string path, Color color)
