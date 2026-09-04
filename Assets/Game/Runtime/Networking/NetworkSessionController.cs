@@ -35,6 +35,7 @@ namespace FunGame.Networking
         private string statusText = "尚未启动会话";
         private SessionState sessionState = SessionState.Idle;
         private bool shutdownRequested;
+        private bool forceShutdownRequested;
         private bool transportFailedDuringStart;
         private bool panelVisible = true;
         private float connectionDeadline;
@@ -150,7 +151,7 @@ namespace FunGame.Networking
                 && connectionDeadline > 0f
                 && Time.realtimeSinceStartup >= connectionDeadline)
             {
-                BeginShutdown("连接超时，请确认房主地址、端口和防火墙设置后重试");
+                BeginShutdown("连接超时，请确认房主地址、端口和防火墙设置后重试", true);
             }
 
             // NGO 的断开回调可能发生在其内部事件分发期间。延迟到下一帧清理，
@@ -158,19 +159,35 @@ namespace FunGame.Networking
             if (shutdownRequested)
             {
                 shutdownRequested = false;
+                bool forceShutdown = forceShutdownRequested;
+                forceShutdownRequested = false;
                 shutdownDeadline = Time.realtimeSinceStartup + ShutdownRecoveryTimeoutSeconds;
                 if (networkManager != null && networkManager.IsListening)
                 {
-                    // 先尝试正常停止，让最后的 Despawn 和断开消息有机会完成。
-                    networkManager.Shutdown(false);
+                    // 尚未完成握手时没有需要发送的离开消息，立即丢弃队列可避免
+                    // NGO 在失败连接上长期等待优雅停机并锁死大厅输入。
+                    networkManager.Shutdown(forceShutdown);
                 }
-                else
+                if (networkManager == null)
                 {
                     CompleteShutdown();
+                    return;
                 }
             }
 
-            // 即使底层停止回调丢失，也必须在短时间后解除界面输入锁定。
+            // NGO 的停止事件发生在 ShutdownInternal 尚未完全结束时。只有两个底层状态都复位后，
+            // NetworkManager 才能安全地再次 StartHost / StartClient。
+            if (sessionState == SessionState.Stopping
+                && networkManager != null
+                && !networkManager.IsListening
+                && !networkManager.ShutdownInProgress)
+            {
+                CompleteShutdown();
+                return;
+            }
+
+            // 停止过程超时后再次要求立即丢弃队列，但不能伪装成 Idle：
+            // 在 ShutdownInProgress 结束前开放按钮只会让下一次启动再次失败。
             if (sessionState == SessionState.Stopping
                 && shutdownDeadline > 0f
                 && Time.realtimeSinceStartup >= shutdownDeadline)
@@ -179,7 +196,7 @@ namespace FunGame.Networking
                 {
                     networkManager.Shutdown(true);
                 }
-                CompleteShutdown();
+                shutdownDeadline = Time.realtimeSinceStartup + ShutdownRecoveryTimeoutSeconds;
             }
         }
 
@@ -431,13 +448,15 @@ namespace FunGame.Networking
         {
             if (networkManager != null && !networkManager.IsHost && clientId == networkManager.LocalClientId)
             {
+                bool failedWhileConnecting = sessionState == SessionState.Connecting;
                 statusText = sessionState == SessionState.Stopping
                     ? "已离开房间，可以重新加入或创建房间"
-                    : sessionState == SessionState.Connecting
+                    : failedWhileConnecting
                         ? "连接失败，请确认房主已开房且地址、端口正确后重试"
                         : "与房主的连接已断开，请重新加入房间";
-                BeginShutdown(statusText);
-                Debug.LogWarning($"[NetworkSession] role=client event=disconnected clientId={clientId} state={sessionState}");
+                BeginShutdown(statusText, failedWhileConnecting);
+                Debug.LogWarning($"[NetworkSession] role=client event=disconnected clientId={clientId} " +
+                                 $"duringConnect={failedWhileConnecting}");
                 return;
             }
 
@@ -448,39 +467,47 @@ namespace FunGame.Networking
         private void HandleTransportFailure()
         {
             transportFailedDuringStart = true;
+            bool failedWhileConnecting = sessionState == SessionState.Connecting;
             statusText = sessionState == SessionState.HostRunning
                 ? "主机启动失败：端口可能已被占用，请更换端口后重试"
                 : "网络传输失败，请检查地址和端口后重试";
-            BeginShutdown(statusText);
+            BeginShutdown(statusText, failedWhileConnecting);
             Debug.LogError($"[NetworkSession] event=transport-failure message={statusText}");
         }
 
         private void HandleClientStopped(bool wasServer)
         {
-            CompleteShutdown();
+            // 不在 NGO 的 ShutdownInternal 回调栈内提前开放界面；Update 会等待其完全复位。
+            if (shutdownDeadline <= 0f)
+                shutdownDeadline = Time.realtimeSinceStartup + ShutdownRecoveryTimeoutSeconds;
         }
 
         private void HandleServerStopped(bool wasClient)
         {
-            CompleteShutdown();
+            // 与客户端相同，等待 ShutdownInProgress 结束后再允许开始下一次会话。
+            if (shutdownDeadline <= 0f)
+                shutdownDeadline = Time.realtimeSinceStartup + ShutdownRecoveryTimeoutSeconds;
         }
 
         private void CompleteShutdown()
         {
             shutdownRequested = false;
+            forceShutdownRequested = false;
             connectionDeadline = 0f;
             shutdownDeadline = 0f;
             sessionState = SessionState.Idle;
             panelVisible = true;
             SetCursorAvailable();
+            Debug.Log($"[NetworkSession] event=recovered state=idle editable={IsEndpointEditable}");
         }
 
-        private void BeginShutdown(string message)
+        private void BeginShutdown(string message, bool force = false)
         {
             statusText = message;
             connectionDeadline = 0f;
             sessionState = SessionState.Stopping;
             shutdownRequested = true;
+            forceShutdownRequested |= force;
         }
 
         private static void SetCursorAvailable()
