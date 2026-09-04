@@ -16,8 +16,8 @@ namespace FunGame.Tests.EditMode
         public void BothModesLoadOnlyTheCanonicalSoloMap()
         {
             Assert.That(GameMenuController.CooperativeScene, Is.EqualTo(GameMenuController.SinglePlayerScene));
-            Assert.That(EditorBuildSettings.scenes.Count(s => s.enabled), Is.EqualTo(1));
-            Assert.That(EditorBuildSettings.scenes.Single(s => s.enabled).path, Does.EndWith("SinglePlayer_ThreeChapterDemo.unity"));
+            Assert.That(EditorBuildSettings.scenes.Count(s => s.enabled), Is.EqualTo(4));
+            Assert.That(EditorBuildSettings.scenes.First(s => s.enabled).path, Does.EndWith("SinglePlayer_ThreeChapterDemo.unity"));
             Scene scene = EditorSceneManager.OpenScene("Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity", OpenSceneMode.Additive);
             try
             {

@@ -31,6 +31,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M3/生成网络验证场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "M3_NetworkSlice";
 

@@ -19,6 +19,7 @@ namespace FunGame.Tests.PlayMode
             FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Cooperative;
             yield return SceneManager.LoadSceneAsync(GameMenuController.CooperativeScene, LoadSceneMode.Additive);
             var scene = SceneManager.GetSceneByName(GameMenuController.CooperativeScene);
+            yield return ModularSceneTestUtility.WaitUntilReady(scene);
             var menu = Object.FindFirstObjectByType<GameMenuController>();
             var session = Object.FindFirstObjectByType<NetworkSessionController>();
             var manager = Object.FindFirstObjectByType<NetworkManager>();

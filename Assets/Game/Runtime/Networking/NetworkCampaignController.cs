@@ -57,8 +57,8 @@ namespace FunGame.Networking
 
         public override void OnNetworkSpawn()
         {
-            _map = FindFirstObjectByType<SinglePlayerDemoController>(FindObjectsInactive.Include);
-            _coolingCombat = FindFirstObjectByType<CoolingCombatIntegrationController>(FindObjectsInactive.Include);
+            _map = ExpeditionContext.Current != null ? ExpeditionContext.Current.Campaign : null;
+            _coolingCombat = ExpeditionContext.Current != null ? ExpeditionContext.Current.CoolingCombat : null;
             chapter.OnValueChanged += (_, _) => RefreshDoors();
             if (IsServer)
             {

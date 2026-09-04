@@ -39,6 +39,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M4/生成多人三舱整合场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             SinglePlayerDemoBootstrap.ConfigureCurrent();
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             GameObject[] sourceRoots = scene.GetRootGameObjects();
@@ -85,24 +86,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M4/构建 Windows 开发版本")]
         public static void BuildWindowsDevelopment()
         {
-            // 两种模式都从已合并的生成器重建，避免场景快照仍保留旧工具模型。
-            ConfigureCurrent();
-            Directory.CreateDirectory(BuildFolder);
-            var options = new BuildPlayerOptions
-            {
-                scenes = new[] { ScenePath },
-                locationPathName = BuildPath,
-                target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development | BuildOptions.AllowDebugging
-            };
-
-            BuildReport report = BuildPipeline.BuildPlayer(options);
-            if (report.summary.result != BuildResult.Succeeded)
-            {
-                throw new BuildFailedException($"M4 完整整合版构建失败：{report.summary.result}");
-            }
-
-            Debug.Log($"[M4] Windows 完整整合开发构建成功：{report.summary.totalSize} bytes。 ");
+            ModularContentBuilder.BuildWindows("Builds/M4-Coop-Windows/FunGame-M4-Coop.exe");
         }
 
         private static bool ShouldFreeze(MonoBehaviour behaviour)

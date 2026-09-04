@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8b8fd06cbc3d4747bc88f84382f5b12, type: 3}
+  m_Name: Chapter-3-Wave-3---Mixed-Breach
+  m_EditorClassIdentifier: 
+  briefing: "\u8FDC\u7A0B\u652F\u63F4"
+  deployments:
+  - enemyId: wave3-strider-left
+    delaySeconds: 4
+  - enemyId: wave3-strider-center
+    delaySeconds: 4
+  - enemyId: wave3-skitter
+    delaySeconds: 4
+  - enemyId: wave3-pulser
+    delaySeconds: 8
+  - enemyId: wave3-skitter-right
+    delaySeconds: 8

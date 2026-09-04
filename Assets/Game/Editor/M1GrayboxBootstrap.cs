@@ -29,6 +29,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M1/生成当前冷却舱场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             EnsureFolder(MaterialFolder);
             AudioClip[] bgmClips = ProceduralBgmAssetBuilder.GenerateOrRefresh();
             AudioClip menuBgm = AssetDatabase.LoadAssetAtPath<AudioClip>(MenuBgmPath);

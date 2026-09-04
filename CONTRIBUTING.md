@@ -1,5 +1,7 @@
 # 协同开发约定
 
+**编辑前必须阅读根目录 [AGENTS.md](AGENTS.md)。** 当前资源的权威来源和模块所有权见 [模块化协作架构](Docs/COLLABORATIVE_ARCHITECTURE.md)。
+
 本项目允许多名开发者通过 GitHub 并行工作。首要原则是同一时间由一人负责一个功能及其主要文件，避免事后处理可以提前避免的 Unity 场景冲突。
 
 ## 开始工作前
@@ -19,7 +21,8 @@
 
 ## Unity 特别约定
 
-- `Assets/Game/Editor/M1GrayboxBootstrap.cs` 与它生成的 `Assets/Game/Scenes/M1_CoolingBay.unity` 视为同一所有权范围；同一时间只由一人修改或重新生成；
+- 正式内容直接编辑 `Assets/Game/Content/Modules` 中所属模块的 Prefab/配置；旧灰盒生成器已禁止覆盖模块化工作区；
+- 主组合场景与模块清单由集成任务维护；环境生成器只输出自己的 Additive Scene，普通构建不得改写源资源；
 - `.unity`、`.prefab`、`.asset` 和对应生成器发生冲突时，不盲目选择一侧或手工拼接文件 ID，应由功能负责人重新生成并复测；
 - 不提交 `Library`、`Temp`、`Logs`、`Builds` 或本机 IDE 文件；
 - 业务代码保留适量中文注释，并为新增规则补充 EditMode 或 PlayMode 验证。

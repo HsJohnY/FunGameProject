@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using FunGame.Tools;
 using UnityEngine;
+using UnityEngine.Serialization;
+using FunGame.Content;
 
 namespace FunGame.Combat
 {
@@ -11,31 +13,54 @@ namespace FunGame.Combat
     [RequireComponent(typeof(CapsuleCollider), typeof(MeshRenderer), typeof(Rigidbody))]
     public sealed class InterferenceEnemy : MonoBehaviour, IToolTarget
     {
+        [SerializeField] private EnemyDefinition definition;
+        public EnemyDefinition Definition => definition;
+        public void ConfigureDefinition(EnemyDefinition value) => definition = value;
+
         private const float CollisionSkin = 0.02f;
 
         [SerializeField] private string targetId = "interference-creature";
         [SerializeField] private string targetName = "线路干扰体";
         [SerializeField] private DefendableSystemTarget defenseTarget;
         [SerializeField] private CombatEncounterController encounter;
-        [SerializeField] private InterferenceEnemyBehavior behavior;
-        [SerializeField, Min(1)] private int maxHealth = 3;
-        [SerializeField, Min(0.1f)] private float moveSpeed = 1.35f;
-        [SerializeField, Min(0.1f)] private float attackRange = 1.3f;
-        [SerializeField, Min(0.05f)] private float attackIntervalSeconds = 1.25f;
-        [SerializeField, Min(0f)] private float attackWindupSeconds = 0.45f;
-        [SerializeField, Min(1)] private int interferenceDamage = 10;
-        [SerializeField, Min(1)] private int wrenchDamage = 2;
-        [SerializeField, Min(0f)] private float knockbackDistance = 1.25f;
-        [SerializeField, Range(0.1f, 1f)] private float sealantSpeedMultiplier = 0.35f;
-        [SerializeField, Min(0.1f)] private float sealantSlowSeconds = 2.25f;
-        [SerializeField, Min(0.05f)] private float sealantPulseIntervalSeconds = 0.15f;
-        [SerializeField, Min(0f)] private float sealantPushDistance = 0.18f;
-        [SerializeField, Min(1)] private int sealantDamage = 1;
-        [SerializeField, Min(0.1f)] private float sealantSplashRadius = 1.65f;
-        [SerializeField, Min(0.1f)] private float bridgerStunSeconds = 1.4f;
-        [SerializeField, Min(0)] private int bridgerOverloadDamage = 1;
-        [SerializeField] private bool requiresCircuitDisruption;
-        [SerializeField, Min(0f)] private float defeatedVisualSeconds = 0.75f;
+        [SerializeField, HideInInspector, FormerlySerializedAs("behavior")] private InterferenceEnemyBehavior legacyBehavior = InterferenceEnemyBehavior.Direct;
+        private InterferenceEnemyBehavior behavior { get => definition != null ? definition.Behavior : legacyBehavior; set => legacyBehavior = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("maxHealth")] private int legacyMaxHealth = 3;
+        private int maxHealth { get => definition != null ? definition.MaxHealth : legacyMaxHealth; set => legacyMaxHealth = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("moveSpeed")] private float legacyMoveSpeed = 1.35f;
+        private float moveSpeed { get => definition != null ? definition.MoveSpeed : legacyMoveSpeed; set => legacyMoveSpeed = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("attackRange")] private float legacyAttackRange = 1.3f;
+        private float attackRange { get => definition != null ? definition.AttackRange : legacyAttackRange; set => legacyAttackRange = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("attackIntervalSeconds")] private float legacyAttackIntervalSeconds = 1.25f;
+        private float attackIntervalSeconds { get => definition != null ? definition.AttackIntervalSeconds : legacyAttackIntervalSeconds; set => legacyAttackIntervalSeconds = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("attackWindupSeconds")] private float legacyAttackWindupSeconds = 0.45f;
+        private float attackWindupSeconds { get => definition != null ? definition.AttackWindupSeconds : legacyAttackWindupSeconds; set => legacyAttackWindupSeconds = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("interferenceDamage")] private int legacyInterferenceDamage = 10;
+        private int interferenceDamage { get => definition != null ? definition.InterferenceDamage : legacyInterferenceDamage; set => legacyInterferenceDamage = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("wrenchDamage")] private int legacyWrenchDamage = 2;
+        private int wrenchDamage { get => definition != null ? definition.WrenchDamage : legacyWrenchDamage; set => legacyWrenchDamage = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("knockbackDistance")] private float legacyKnockbackDistance = 1.25f;
+        private float knockbackDistance { get => definition != null ? definition.KnockbackDistance : legacyKnockbackDistance; set => legacyKnockbackDistance = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantSpeedMultiplier")] private float legacySealantSpeedMultiplier = 0.35f;
+        private float sealantSpeedMultiplier { get => definition != null ? definition.SealantSpeedMultiplier : legacySealantSpeedMultiplier; set => legacySealantSpeedMultiplier = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantSlowSeconds")] private float legacySealantSlowSeconds = 2.25f;
+        private float sealantSlowSeconds { get => definition != null ? definition.SealantSlowSeconds : legacySealantSlowSeconds; set => legacySealantSlowSeconds = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantPulseIntervalSeconds")] private float legacySealantPulseIntervalSeconds = 0.15f;
+        private float sealantPulseIntervalSeconds { get => definition != null ? definition.SealantPulseIntervalSeconds : legacySealantPulseIntervalSeconds; set => legacySealantPulseIntervalSeconds = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantPushDistance")] private float legacySealantPushDistance = 0.18f;
+        private float sealantPushDistance { get => definition != null ? definition.SealantPushDistance : legacySealantPushDistance; set => legacySealantPushDistance = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantDamage")] private int legacySealantDamage = 1;
+        private int sealantDamage { get => definition != null ? definition.SealantDamage : legacySealantDamage; set => legacySealantDamage = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("sealantSplashRadius")] private float legacySealantSplashRadius = 1.65f;
+        private float sealantSplashRadius { get => definition != null ? definition.SealantSplashRadius : legacySealantSplashRadius; set => legacySealantSplashRadius = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("bridgerStunSeconds")] private float legacyBridgerStunSeconds = 1.4f;
+        private float bridgerStunSeconds { get => definition != null ? definition.BridgerStunSeconds : legacyBridgerStunSeconds; set => legacyBridgerStunSeconds = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("bridgerOverloadDamage")] private int legacyBridgerOverloadDamage = 1;
+        private int bridgerOverloadDamage { get => definition != null ? definition.BridgerOverloadDamage : legacyBridgerOverloadDamage; set => legacyBridgerOverloadDamage = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("requiresCircuitDisruption")] private bool legacyRequiresCircuitDisruption = false;
+        private bool requiresCircuitDisruption { get => definition != null ? definition.RequiresCircuitDisruption : legacyRequiresCircuitDisruption; set => legacyRequiresCircuitDisruption = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("defeatedVisualSeconds")] private float legacyDefeatedVisualSeconds = 0.75f;
+        private float defeatedVisualSeconds { get => definition != null ? definition.DefeatedVisualSeconds : legacyDefeatedVisualSeconds; set => legacyDefeatedVisualSeconds = value; }
 
         private InterferenceEnemyRules _rules;
         private Collider _collider;
@@ -84,14 +109,28 @@ namespace FunGame.Combat
         public float AttackWindup => attackWindupSeconds;
         public int InterferenceDamage => interferenceDamage;
         public int WrenchDamage => wrenchDamage;
+        public float SealantSpeedMultiplier => sealantSpeedMultiplier;
+        public float SealantSlowSeconds => sealantSlowSeconds;
+        public float SealantPulseInterval => sealantPulseIntervalSeconds;
+        public float SealantPushDistance => sealantPushDistance;
+        public int SealantDamage => sealantDamage;
+        public float SealantSplashRadius => sealantSplashRadius;
+        public float BridgerStunSeconds => bridgerStunSeconds;
+        public int BridgerDamage => bridgerOverloadDamage;
         public float KnockbackDistance => knockbackDistance;
         public bool RequiresCircuitDisruption => requiresCircuitDisruption;
         public Vector3 AuthoredScale => baseScale;
         public bool HasCombatPosition => hasCombatPosition;
-        public float DeploymentDelay => deploymentDelay;
+        private float? _deploymentDelayOverride;
+        public float DeploymentDelay => _deploymentDelayOverride ?? (encounter != null && encounter.Definition != null
+            ? encounter.Definition.GetDelay(targetId, deploymentDelay) : deploymentDelay);
         public bool IsDeployed => _encounterActive && Time.time >= _deploymentEndsAt;
         public float DeploymentRemaining => Mathf.Max(0f, _deploymentEndsAt - Time.time);
-        public void ConfigureDeployment(float delay) => deploymentDelay = Mathf.Max(0f, delay);
+        public void ConfigureDeployment(float delay)
+        {
+            if (Application.isPlaying) _deploymentDelayOverride = Mathf.Max(0f, delay);
+            else deploymentDelay = Mathf.Max(0f, delay);
+        }
         public Vector3 AttackPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(attackLocalPoint) : defenseTarget.transform.position;
         public Vector3 ApproachPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(approachLocalPoint) : AttackPosition;
 
@@ -401,7 +440,7 @@ namespace FunGame.Combat
             _slowedUntil = 0f;
             _stunnedUntil = 0f;
             _nextSealantPulseTime = 0f;
-            _deploymentEndsAt = Time.time + deploymentDelay;
+            _deploymentEndsAt = Time.time + DeploymentDelay;
             SetEncounterActive(true);
             RefreshVisual();
         }

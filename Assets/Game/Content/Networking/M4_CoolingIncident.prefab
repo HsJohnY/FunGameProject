@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1875435307
+  GlobalObjectIdHash: 3042949300
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -71,7 +71,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  startingTemperature: 65
-  failureTemperature: 100
-  temperatureRisePerSecond: 0.07
-  diagnosticChecksEnabled: 1
+  definition: {fileID: 11400000, guid: 4925e951c4b8e92409c9318c1b154b63, type: 2}
+  legacyStartingTemperature: 65
+  legacyFailureTemperature: 100
+  legacyTemperatureRisePerSecond: 0.07
+  legacyDiagnosticChecksEnabled: 1

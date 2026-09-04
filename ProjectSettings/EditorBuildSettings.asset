@@ -8,5 +8,14 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Game/Scenes/SinglePlayer_ThreeChapterDemo.unity
     guid: 3c962ee4ae5e7f44cb01932637b6ce33
+  - enabled: 1
+    path: Assets/Game/Scenes/Environment/CoolingBay.unity
+    guid: 06e7dd56a1dc915438f61828249ebe89
+  - enabled: 1
+    path: Assets/Game/Scenes/Environment/PowerRelay.unity
+    guid: b6e80e49dd8ef464eb47bb7a02138983
+  - enabled: 1
+    path: Assets/Game/Scenes/Environment/StormCore.unity
+    guid: 99b8070a9af30e34ab5f38731802d768
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

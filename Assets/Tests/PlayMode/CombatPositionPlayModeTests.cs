@@ -17,6 +17,7 @@ namespace FunGame.Tests.PlayMode
             FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             yield return SceneManager.LoadSceneAsync(GameMenuController.SinglePlayerScene, LoadSceneMode.Additive);
             Scene scene = SceneManager.GetSceneByName(GameMenuController.SinglePlayerScene);
+            yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Object.FindFirstObjectByType<GameMenuController>().EnterGameplayForAutomation();
             var campaign = Object.FindFirstObjectByType<FunGame.Demo.SinglePlayerDemoController>();
             campaign.enabled = false;
@@ -41,6 +42,7 @@ namespace FunGame.Tests.PlayMode
             FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             yield return SceneManager.LoadSceneAsync("SinglePlayer_ThreeChapterDemo", LoadSceneMode.Additive);
             Scene scene = SceneManager.GetSceneByName("SinglePlayer_ThreeChapterDemo");
+            yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Object.FindFirstObjectByType<GameMenuController>()?.EnterGameplayForAutomation();
             var all = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<InterferenceEnemy>(true)).ToArray();
             foreach (InterferenceEnemy enemy in all) { enemy.enabled = false; enemy.ConfigureDeployment(0f); }

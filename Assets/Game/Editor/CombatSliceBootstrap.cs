@@ -26,6 +26,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Combat/生成基础防卫场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             EnsureFolder(MaterialFolder);
 
             Material structureMaterial = CreateOrLoadMaterial(

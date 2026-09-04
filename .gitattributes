@@ -1,13 +1,14 @@
 * text=auto
 *.cs text eol=lf
+*.asmdef text eol=lf
 *.md text eol=lf
 *.json text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
-*.unity merge=unityyamlmerge eol=lf
-*.prefab merge=unityyamlmerge eol=lf
-*.asset merge=unityyamlmerge eol=lf
-*.meta merge=unityyamlmerge eol=lf
+*.unity merge=unityyamlmerge eol=lf whitespace=-blank-at-eol
+*.prefab merge=unityyamlmerge eol=lf whitespace=-blank-at-eol
+*.asset merge=unityyamlmerge eol=lf whitespace=-blank-at-eol
+*.meta merge=unityyamlmerge eol=lf whitespace=-blank-at-eol
 *.png binary
 *.jpg binary
 *.jpeg binary

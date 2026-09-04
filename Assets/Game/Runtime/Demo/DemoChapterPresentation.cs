@@ -119,6 +119,7 @@ namespace FunGame.Demo
             _visibleChapter = VisibleChapter;
             bool relayUnlocked = VisibleChapter >= SinglePlayerDemoChapter.RelaySurge;
             bool stormUnlocked = VisibleChapter >= SinglePlayerDemoChapter.StormCalibration;
+            ExpeditionContext.Current?.SetEnvironmentVisibility(networkMode || relayUnlocked, networkMode || stormUnlocked);
             if (relayCompartment != null) relayCompartment.SetActive(networkMode || relayUnlocked);
             if (stormChamber != null) stormChamber.SetActive(networkMode || stormUnlocked);
             if (relayAccessDoor != null) relayAccessDoor.SetActive(!relayUnlocked);

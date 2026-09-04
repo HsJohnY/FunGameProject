@@ -274,7 +274,7 @@ PlayerSettings:
   AndroidIsGame: 1
   androidAppCategory: 3
   useAndroidAppCategory: 1
-  androidAppCategoryOther:
+  androidAppCategoryOther: 
   AndroidEnableTango: 0
   androidEnableBanner: 1
   androidUseLowAccuracyLocation: 0

@@ -2,6 +2,10 @@
 
 这是“小型多人合作巨构维修远征”练手项目的独立 Unity 工作空间。目前需求基线、单机核心灰盒、首次玩法评审和 M3-1 网络会话已完成，正在评审一个约半小时的三章单人 Demo：玩家依次恢复冷却、配电和风暴核心三个连续舱室，已恢复的舰船能力会持续在线。游戏内包含动态任务句、稳定的屏幕边缘目标标记、关键交互物低模轮廓和按章节开启的舱门，目标是让首次玩家不读攻略也能完整通关。
 
+## 协作开发入口
+
+任何 agent 编辑前必须先完整阅读 [AGENTS.md](AGENTS.md)。资源拆分和生成规则见 [模块化协作架构](Docs/COLLABORATIVE_ARCHITECTURE.md)。新环境先运行 `Tools/Initialize-Collaboration.ps1` 配置合并驱动；正式双模式版本使用 `Tools/Build-M4.ps1`，该入口不会重新生成源场景。
+
 ## 从哪里开始
 
 1. 查看 [Docs/PROJECT_STATUS.md](Docs/PROJECT_STATUS.md)，了解当前阶段、正在做什么和下一步。

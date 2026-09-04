@@ -3,6 +3,7 @@
   "rootNamespace": "FunGame.Tests.EditMode",
   "references": [
     "FunGame.Runtime",
+    "FunGame.Editor",
     "Unity.Netcode.Runtime",
     "Unity.Netcode.Transports.UTP"
   ],

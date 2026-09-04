@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FunGame.Interaction;
 using UnityEngine;
+using FunGame.Content;
 using UnityEngine.InputSystem;
 
 namespace FunGame.Tools
@@ -19,6 +20,12 @@ namespace FunGame.Tools
         private IToolTarget _currentTarget;
         [SerializeField, Min(0.05f)] private float impactWrenchCooldownSeconds = 0.38f;
         [SerializeField, Min(0.05f)] private float circuitBridgerCooldownSeconds = 0.8f;
+        [SerializeField] private ToolDefinition wrenchDefinition;
+        [SerializeField] private ToolDefinition bridgerDefinition;
+        public void ConfigureDefinitions(ToolDefinition wrench, ToolDefinition bridger)
+        {
+            wrenchDefinition = wrench; bridgerDefinition = bridger;
+        }
         private float _nextImpactWrenchActionTime;
         private float _nextCircuitBridgerActionTime;
 
@@ -111,11 +118,11 @@ namespace FunGame.Tools
             bool succeeded = _currentTarget.ApplyTool(_toolbelt);
             if (option.EquippedTool == ToolKind.ImpactWrench)
             {
-                _nextImpactWrenchActionTime = Time.unscaledTime + impactWrenchCooldownSeconds;
+                _nextImpactWrenchActionTime = Time.unscaledTime + (wrenchDefinition != null ? wrenchDefinition.CooldownSeconds : impactWrenchCooldownSeconds);
             }
             else if (option.EquippedTool == ToolKind.CircuitBridger)
             {
-                _nextCircuitBridgerActionTime = Time.unscaledTime + circuitBridgerCooldownSeconds;
+                _nextCircuitBridgerActionTime = Time.unscaledTime + (bridgerDefinition != null ? bridgerDefinition.CooldownSeconds : circuitBridgerCooldownSeconds);
             }
 
             ToolActionExecuted?.Invoke(new ToolActionFeedback(

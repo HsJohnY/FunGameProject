@@ -30,6 +30,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Demo/生成三章单人演示场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             M1GrayboxBootstrap.ConfigureCurrent();
             CombatRepairIntegrationBootstrap.ConfigureCurrent();
 
@@ -283,30 +284,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Demo/构建三章单人 Windows 开发版本")]
         public static void BuildWindowsDevelopment()
         {
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
-            {
-                ConfigureCurrent();
-            }
-            else
-            {
-                UpgradeChapterConsoleLayout();
-            }
-
-            Directory.CreateDirectory("Builds/SinglePlayerDemo-Windows");
-            var options = new BuildPlayerOptions
-            {
-                scenes = new[] { ScenePath },
-                locationPathName = "Builds/SinglePlayerDemo-Windows/FunGame-SinglePlayerDemo.exe",
-                target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.Development
-            };
-            BuildReport report = BuildPipeline.BuildPlayer(options);
-            if (report.summary.result != BuildResult.Succeeded)
-            {
-                throw new BuildFailedException($"三章单人演示构建失败：{report.summary.result}");
-            }
-
-            Debug.Log($"[Demo] Windows 开发构建成功：{report.summary.totalSize} bytes。");
+            ModularContentBuilder.BuildWindows("Builds/SinglePlayerDemo-Windows/FunGame-SinglePlayerDemo.exe");
         }
 
         [MenuItem("FunGame/Demo/升级章节终端分舱布局")]
