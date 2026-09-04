@@ -25,6 +25,8 @@ namespace FunGame.Networking
 
         [SerializeField] private NetworkManager networkManager;
         [SerializeField] private UnityTransport transport;
+        [SerializeField] private string panelTitle = "M3-2 双人会话验证";
+        [SerializeField] private bool escapeStopsSession = true;
 
         private string addressText = NetworkEndpointRules.DefaultAddress;
         private string portText = NetworkEndpointRules.DefaultPort.ToString();
@@ -36,6 +38,14 @@ namespace FunGame.Networking
 
         public string StatusText => statusText;
         public bool IsEndpointEditable => sessionState == SessionState.Idle;
+        public bool EscapeStopsSession => escapeStopsSession;
+        public string Address => addressText;
+        public string Port => portText;
+        public bool HasLocalPlayer => networkManager != null && networkManager.IsConnectedClient
+            && networkManager.LocalClient?.PlayerObject != null;
+        public bool IsHost => networkManager != null && networkManager.IsHost;
+        public int ConnectedPlayerCount => networkManager != null && networkManager.IsHost
+            ? networkManager.ConnectedClientsIds.Count : 0;
 
         /// <summary>
         /// 为后续正式大厅界面和自动测试提供统一的地址输入入口。
@@ -59,11 +69,20 @@ namespace FunGame.Networking
             return true;
         }
 
-        public void Configure(NetworkManager manager, UnityTransport networkTransport)
+        public void Configure(
+            NetworkManager manager,
+            UnityTransport networkTransport,
+            string configuredPanelTitle = null,
+            bool configuredEscapeStopsSession = true)
         {
             Unsubscribe();
             networkManager = manager;
             transport = networkTransport;
+            if (!string.IsNullOrWhiteSpace(configuredPanelTitle))
+            {
+                panelTitle = configuredPanelTitle;
+            }
+            escapeStopsSession = configuredEscapeStopsSession;
             Subscribe();
         }
 
@@ -87,13 +106,15 @@ namespace FunGame.Networking
 
         private void Update()
         {
-            if (Keyboard.current?.f1Key.wasPressedThisFrame == true)
+            if (escapeStopsSession && Keyboard.current?.f1Key.wasPressedThisFrame == true)
             {
                 panelVisible = !panelVisible;
             }
 
             // 网络玩家生成后鼠标会被第一人称视角锁定；Esc 始终保留为技术验证场景的安全退出键。
-            if (sessionState != SessionState.Idle && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            if (escapeStopsSession
+                && sessionState != SessionState.Idle
+                && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
                 StopSession();
             }
@@ -118,6 +139,8 @@ namespace FunGame.Networking
 
         private void OnGUI()
         {
+            // The shared campaign uses GameMenuController for cursor-safe room controls.
+            if (!escapeStopsSession) return;
             if (!panelVisible)
             {
                 GUILayout.BeginArea(new Rect(20f, 20f, 300f, 58f), GUI.skin.box);
@@ -127,8 +150,8 @@ namespace FunGame.Networking
             }
 
             const float width = 420f;
-            GUILayout.BeginArea(new Rect(20f, 20f, width, 300f), GUI.skin.box);
-            GUILayout.Label("M3-2 双人会话验证（F1 隐藏）");
+            GUILayout.BeginArea(new Rect(20f, escapeStopsSession ? 20f : 126f, width, 300f), GUI.skin.box);
+            GUILayout.Label($"{panelTitle}（F1 隐藏）");
             GUILayout.Space(8f);
 
             bool idle = networkManager != null && sessionState == SessionState.Idle;
@@ -160,7 +183,9 @@ namespace FunGame.Networking
             GUI.enabled = true;
             GUILayout.Space(8f);
             GUILayout.Label($"状态：{statusText}");
-            GUILayout.Label("会话中按 Esc 可停止 / 断开");
+            GUILayout.Label(escapeStopsSession
+                ? "会话中按 Esc 可停止 / 断开"
+                : "会话中按 F1 打开面板并选择停止 / 断开");
             if (networkManager != null && networkManager.IsHost)
             {
                 GUILayout.Label($"已连接玩家：{networkManager.ConnectedClientsIds.Count}");
@@ -328,9 +353,11 @@ namespace FunGame.Networking
         {
             if (networkManager != null && !networkManager.IsHost && clientId == networkManager.LocalClientId)
             {
-                statusText = string.IsNullOrWhiteSpace(networkManager.DisconnectReason)
-                    ? "已与主机断开"
-                    : $"连接已断开：{networkManager.DisconnectReason}";
+                statusText = sessionState == SessionState.Stopping
+                    ? "已离开房间，可以重新加入或创建房间"
+                    : sessionState == SessionState.Connecting
+                        ? "连接失败，请确认房主已开房且地址、端口正确后重试"
+                        : "与房主的连接已断开，请重新加入房间";
                 sessionState = SessionState.Stopping;
                 shutdownRequested = true;
                 return;

@@ -14,11 +14,15 @@ namespace FunGame.Networking
         [SerializeField] private float startingTemperature = 65f;
         [SerializeField] private float failureTemperature = 100f;
         [SerializeField] private float temperatureRisePerSecond = 0.07f;
+        [SerializeField] private bool diagnosticChecksEnabled;
 
         private readonly NetworkVariable<CoolingIncidentPhase> phase = new NetworkVariable<CoolingIncidentPhase>();
         private readonly NetworkVariable<float> sealProgress = new NetworkVariable<float>();
         private readonly NetworkVariable<float> temperature = new NetworkVariable<float>();
         private readonly NetworkVariable<CoolingIncidentRunState> runState = new NetworkVariable<CoolingIncidentRunState>();
+        private readonly NetworkVariable<bool> pressureInspected = new NetworkVariable<bool>();
+        private readonly NetworkVariable<bool> pumpInspected = new NetworkVariable<bool>();
+        private readonly NetworkVariable<int> circuitBridgeProgress = new NetworkVariable<int>();
 
         private CoolingIncidentRules _rules;
 
@@ -27,7 +31,17 @@ namespace FunGame.Networking
         public float Temperature => temperature.Value;
         public float FailureTemperature => failureTemperature;
         public CoolingIncidentRunState RunState => runState.Value;
+        public bool HasInspectedPressure => pressureInspected.Value;
+        public bool HasInspectedPump => pumpInspected.Value;
+        public int CircuitBridgeProgress => circuitBridgeProgress.Value;
+        public bool DiagnosticChecksEnabled => diagnosticChecksEnabled;
         public string CurrentInstruction => GetInstruction(Phase);
+
+        public void ConfigureExtendedIncident(bool enabled)
+        {
+            diagnosticChecksEnabled = enabled;
+            _rules = new CoolingIncidentRules(enabled);
+        }
 
         public override void OnNetworkSpawn()
         {
@@ -60,6 +74,14 @@ namespace FunGame.Networking
 
             switch (action)
             {
+                case NetworkIncidentAction.InspectPressure:
+                    return phase.Value == CoolingIncidentPhase.AssessSymptoms
+                           || phase.Value == CoolingIncidentPhase.VerifyPressure;
+                case NetworkIncidentAction.InspectPump:
+                    return phase.Value == CoolingIncidentPhase.AssessSymptoms;
+                case NetworkIncidentAction.BridgeCircuit:
+                    return phase.Value == CoolingIncidentPhase.RestoreControlPower
+                           && equippedTool == ToolKind.CircuitBridger;
                 case NetworkIncidentAction.SealLeak:
                     return phase.Value == CoolingIncidentPhase.ContainLeak && equippedTool == ToolKind.SealantGun;
                 case NetworkIncidentAction.OperateFastener:
@@ -101,6 +123,15 @@ namespace FunGame.Networking
             bool accepted;
             switch (action)
             {
+                case NetworkIncidentAction.InspectPressure:
+                    accepted = Rules.TryInspectPressure();
+                    break;
+                case NetworkIncidentAction.InspectPump:
+                    accepted = Rules.TryInspectPump();
+                    break;
+                case NetworkIncidentAction.BridgeCircuit:
+                    accepted = Rules.TryAdvanceCircuitBridge();
+                    break;
                 case NetworkIncidentAction.SealLeak:
                     accepted = Rules.AddSealProgress(0.25f);
                     break;
@@ -140,6 +171,11 @@ namespace FunGame.Networking
                 return ToolKind.SealantGun;
             }
 
+            if (action == NetworkIncidentAction.BridgeCircuit)
+            {
+                return ToolKind.CircuitBridger;
+            }
+
             if (action == NetworkIncidentAction.OperateFastener
                 && (currentPhase == CoolingIncidentPhase.LoosenConnection
                     || currentPhase == CoolingIncidentPhase.TightenConnection))
@@ -155,7 +191,19 @@ namespace FunGame.Networking
             return action == NetworkIncidentAction.InstallPipe;
         }
 
-        private CoolingIncidentRules Rules => _rules ??= new CoolingIncidentRules();
+        private CoolingIncidentRules Rules => _rules ??= new CoolingIncidentRules(diagnosticChecksEnabled);
+
+        public void BeginNextBranchServer()
+        {
+            if (IsServer && runState.Value == CoolingIncidentRunState.Succeeded) ResetIncidentServer();
+        }
+
+        public void ApplyTemperatureSpikeServer(float amount)
+        {
+            if (!IsServer || runState.Value != CoolingIncidentRunState.Active) return;
+            temperature.Value += Mathf.Max(0f, amount);
+            if (temperature.Value >= failureTemperature) runState.Value = CoolingIncidentRunState.Failed;
+        }
 
         private void ResetIncidentServer()
         {
@@ -172,22 +220,31 @@ namespace FunGame.Networking
             sealProgress.Value = Rules.SealProgress;
             temperature.Value = startingTemperature;
             runState.Value = CoolingIncidentRunState.Active;
+            pressureInspected.Value = Rules.HasInspectedPressure;
+            pumpInspected.Value = Rules.HasInspectedPump;
+            circuitBridgeProgress.Value = Rules.CircuitBridgeProgress;
         }
 
         private void SynchronizeRules()
         {
             phase.Value = Rules.Phase;
             sealProgress.Value = Rules.SealProgress;
+            pressureInspected.Value = Rules.HasInspectedPressure;
+            pumpInspected.Value = Rules.HasInspectedPump;
+            circuitBridgeProgress.Value = Rules.CircuitBridgeProgress;
         }
 
         private static string GetInstruction(CoolingIncidentPhase currentPhase)
         {
             return currentPhase switch
             {
+                CoolingIncidentPhase.AssessSymptoms => "分别检查压力表和冷却泵外壳",
+                CoolingIncidentPhase.RestoreControlPower => "使用线路桥接器恢复控制联锁",
                 CoolingIncidentPhase.ContainLeak => "使用密封喷枪密封泄漏点",
                 CoolingIncidentPhase.LoosenConnection => "使用冲击扳手松开管件连接",
                 CoolingIncidentPhase.InstallReplacementPipe => "搬运共享替换管件并安装到接口",
                 CoolingIncidentPhase.TightenConnection => "使用冲击扳手紧固新管件",
+                CoolingIncidentPhase.VerifyPressure => "读取压力表确认压力恢复",
                 CoolingIncidentPhase.ResetPump => "前往控制台执行泵复位",
                 _ => "冷却系统已恢复稳定"
             };

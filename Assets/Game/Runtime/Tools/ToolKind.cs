@@ -7,7 +7,8 @@ namespace FunGame.Tools
     {
         None = 0,
         ImpactWrench = 1,
-        SealantGun = 2
+        SealantGun = 2,
+        CircuitBridger = 3
     }
 
     public static class ToolKindExtensions
@@ -20,6 +21,8 @@ namespace FunGame.Tools
                     return "冲击扳手";
                 case ToolKind.SealantGun:
                     return "密封喷枪";
+                case ToolKind.CircuitBridger:
+                    return "线路桥接器";
                 default:
                     return "空手";
             }

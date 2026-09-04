@@ -26,11 +26,12 @@ namespace FunGame.Networking
         [Rpc(SendTo.Server)]
         private void RequestActionRpc(NetworkIncidentAction action)
         {
-            Vector3 stationPosition = NetworkIncidentLayout.GetStationPosition(action);
-            if (Vector3.Distance(transform.position, stationPosition) > MaximumInteractionDistance)
+            NetworkIncidentStation station = FindNearestStation(action);
+            if (station == null || Vector3.Distance(transform.position, station.transform.position) > MaximumInteractionDistance)
             {
                 return;
             }
+            Vector3 stationPosition = station.transform.position;
 
             NetworkCoolingIncidentController incident = FindFirstObjectByType<NetworkCoolingIncidentController>();
             NetworkPlayerToolbelt toolbelt = GetComponent<NetworkPlayerToolbelt>();
@@ -52,6 +53,29 @@ namespace FunGame.Networking
             }
 
             incident.TryExecuteServer(action, equippedTool, hasReplacementPipe);
+        }
+
+        private NetworkIncidentStation FindNearestStation(NetworkIncidentAction action)
+        {
+            NetworkIncidentStation nearest = null;
+            float nearestDistance = float.MaxValue;
+            foreach (NetworkIncidentStation station in
+                     FindObjectsByType<NetworkIncidentStation>(FindObjectsSortMode.None))
+            {
+                if (station.Action != action)
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(transform.position, station.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearest = station;
+                    nearestDistance = distance;
+                }
+            }
+
+            return nearest;
         }
     }
 }

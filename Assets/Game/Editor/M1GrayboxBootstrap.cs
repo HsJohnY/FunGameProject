@@ -50,6 +50,8 @@ namespace FunGame.Editor
                 MaterialFolder + "/M1_Trim.mat", new Color(0.34f, 0.19f, 0.12f));
             Material glowMaterial = CreateOrLoadMaterial(
                 MaterialFolder + "/M1_Glow.mat", new Color(0.3f, 0.9f, 0.82f));
+            Material circuitMaterial = CreateOrLoadMaterial(
+                MaterialFolder + "/M1_Circuit.mat", new Color(0.58f, 0.18f, 0.78f));
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "M1_CoolingBay";
@@ -58,11 +60,14 @@ namespace FunGame.Editor
             CreateLighting();
             var incidentObject = new GameObject("Cooling Incident");
             var incident = incidentObject.AddComponent<CoolingIncidentController>();
-            CreateCoolingBay(structureMaterial, floorMaterial, machineryMaterial, warningMaterial, incident);
+            incident.ConfigureExtendedIncident(true);
+            CoolingIncidentLayoutController layout = CreateCoolingBay(
+                structureMaterial, floorMaterial, machineryMaterial, warningMaterial, circuitMaterial, incident);
             CoolingBayArtBuilder.BuildEnvironment(
-                structureMaterial, machineryMaterial, warningMaterial, trimMaterial, glowMaterial);
-            FirstPersonController player = CreatePlayer(warningMaterial, machineryMaterial, incident);
-            CoolingBayArtBuilder.EnhanceFirstPersonTools(machineryMaterial, warningMaterial, trimMaterial);
+                structureMaterial, machineryMaterial, warningMaterial, trimMaterial, glowMaterial, circuitMaterial);
+            FirstPersonController player = CreatePlayer(warningMaterial, machineryMaterial, circuitMaterial, incident);
+            layout.ConfigurePlayer(player.GetComponent<ContextInteractor>());
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(machineryMaterial, warningMaterial, trimMaterial, circuitMaterial);
             var bgm = new GameObject("Adaptive Cooling Bay BGM").AddComponent<CoolingBayBgmController>();
             bgm.Configure(incident);
             bgm.ConfigureMusicAssets(menuBgm, gameplayBgm, bgmClips[1]);
@@ -137,11 +142,12 @@ namespace FunGame.Editor
             light.color = new Color(0.62f, 0.82f, 1f);
         }
 
-        private static void CreateCoolingBay(
+        private static CoolingIncidentLayoutController CreateCoolingBay(
             Material structureMaterial,
             Material floorMaterial,
             Material machineryMaterial,
             Material warningMaterial,
+            Material circuitMaterial,
             CoolingIncidentController incident)
         {
             var environment = new GameObject("Cooling Bay Graybox").transform;
@@ -157,25 +163,61 @@ namespace FunGame.Editor
             CreateBlock(environment, "Cooling Pump Placeholder", new Vector3(0f, 1f, 5.8f), new Vector3(4f, 2f, 2.5f), machineryMaterial);
             GameObject console = CreateBlock(environment, "Interactive Control Console", new Vector3(-4.8f, 1f, 2.2f), new Vector3(1.8f, 2f, 2f), warningMaterial);
             console.AddComponent<ToggleConsoleInteractable>().Configure(incident);
+            GameObject pressureGauge = CreateBlock(
+                environment,
+                "Diagnostic Pressure Gauge",
+                new Vector3(-4.15f, 1.65f, 1.15f),
+                new Vector3(0.55f, 0.55f, 0.25f),
+                machineryMaterial);
+            pressureGauge.AddComponent<CoolingDiagnosticInteractable>().Configure(
+                incident,
+                CoolingDiagnosticInteractable.DiagnosticKind.PressureGauge);
+            ConfigureBoxCollider(pressureGauge, Vector3.zero, new Vector3(1.25f, 1.25f, 2.2f));
+            GameObject pumpInspection = CreateBlock(
+                environment,
+                "Cooling Pump Inspection Panel",
+                new Vector3(1.55f, 1.25f, 4.45f),
+                new Vector3(1.05f, 0.75f, 0.2f),
+                warningMaterial);
+            pumpInspection.AddComponent<CoolingDiagnosticInteractable>().Configure(
+                incident,
+                CoolingDiagnosticInteractable.DiagnosticKind.PumpHousing);
+            ConfigureBoxCollider(pumpInspection, new Vector3(0f, 0f, -0.3f), new Vector3(1f, 1f, 1.75f));
             CreateBlock(environment, "Tool Rack Base", new Vector3(5.7f, 1.1f, -2.5f), new Vector3(0.8f, 2.2f, 4f), structureMaterial);
             CreateBlock(environment, "Pipe Rack Placeholder", new Vector3(-5.5f, 1.1f, -4.5f), new Vector3(1.2f, 2.2f, 4f), machineryMaterial);
 
-            GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -3.3f), new Vector3(0.35f, 1.1f, 1.1f), warningMaterial);
+            GameObject wrenchRack = CreateBlock(environment, "Impact Wrench Rack", new Vector3(5.15f, 1f, -3.65f), new Vector3(0.35f, 0.9f, 0.8f), warningMaterial);
             wrenchRack.AddComponent<ToolRackInteractable>().Configure("impact-wrench-rack", ToolKind.ImpactWrench);
-            GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.7f), new Vector3(0.35f, 1.1f, 1.1f), machineryMaterial);
+            ConfigureBoxCollider(wrenchRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
+            GameObject bridgerRack = CreateBlock(environment, "Circuit Bridger Rack", new Vector3(5.15f, 1f, -2.5f), new Vector3(0.35f, 0.9f, 0.8f), circuitMaterial);
+            bridgerRack.AddComponent<ToolRackInteractable>().Configure("circuit-bridger-rack", ToolKind.CircuitBridger);
+            ConfigureBoxCollider(bridgerRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
+            GameObject sealantRack = CreateBlock(environment, "Sealant Gun Rack", new Vector3(5.15f, 1f, -1.35f), new Vector3(0.35f, 0.9f, 0.8f), machineryMaterial);
             sealantRack.AddComponent<ToolRackInteractable>().Configure("sealant-gun-rack", ToolKind.SealantGun);
+            ConfigureBoxCollider(sealantRack, new Vector3(-0.5f, 0f, 0f), new Vector3(2.4f, 1.2f, 1.25f));
+
+            GameObject circuitNode = CreateBlock(
+                environment,
+                "Cooling Control Circuit Interlock",
+                new Vector3(-5.85f, 1.25f, -1.6f),
+                new Vector3(0.34f, 1.5f, 1.45f),
+                circuitMaterial);
+            circuitNode.AddComponent<CircuitBridgeTarget>().Configure(incident);
+            ConfigureBoxCollider(circuitNode, new Vector3(0.19f, 0f, 0f), new Vector3(1.8f, 1f, 1f));
 
             var recoveryPointObject = new GameObject("Replacement Pipe Recovery Point");
             recoveryPointObject.transform.SetParent(environment);
             recoveryPointObject.transform.position = new Vector3(-4.8f, 0.75f, -4.5f);
-            GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(0f, 1.1f, 4.25f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
+            GameObject fastener = CreateBlock(environment, "Mechanical Fastener Demo", new Vector3(-3.6f, 1.1f, 6.7f), new Vector3(0.8f, 0.8f, 0.25f), machineryMaterial);
             fastener.AddComponent<MechanicalFastenerTarget>().Configure(incident);
+            ConfigureBoxCollider(fastener, new Vector3(0f, 0f, -0.36f), new Vector3(1.1f, 1.1f, 2.6f));
             var pipeAnchor = new GameObject("Replacement Pipe Install Anchor");
             pipeAnchor.transform.SetParent(fastener.transform, false);
             pipeAnchor.transform.localPosition = new Vector3(0f, 0f, -1.2f);
             // 安装座同时保留恢复点引用，重置事故时可以把已安装的任务物送回架上。
             fastener.AddComponent<PipeInstallSocket>().Configure(incident, pipeAnchor.transform, recoveryPointObject.transform);
-            GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.25f, 1.2f, 1.2f), machineryMaterial);
+            GameObject leak = CreateBlock(environment, "Sealant Leak Demo", new Vector3(5.85f, 1.2f, 3f), new Vector3(0.65f, 0.5f, 1.5f), machineryMaterial);
+            ConfigureBoxCollider(leak, Vector3.zero, new Vector3(1.7f, 2f, 1f));
             leak.AddComponent<SealantTarget>().Configure(incident);
 
             GameObject carryable = CreateBlock(environment, "Replacement Pipe", recoveryPointObject.transform.position, new Vector3(0.6f, 0.6f, 1.5f), warningMaterial);
@@ -183,15 +225,44 @@ namespace FunGame.Editor
             itemBody.mass = 3f;
             var carryableItem = carryable.AddComponent<CarryableInteractable>();
             carryableItem.ConfigureIdentity("replacement-pipe", "替换管件");
+            ConfigureBoxCollider(carryable, Vector3.zero, new Vector3(1f, 1f, 1.2f));
             carryable.AddComponent<TaskItemRecovery>().Configure(recoveryPointObject.transform, -3f);
+
+            var layout = new GameObject("Controlled Incident Layouts").AddComponent<CoolingIncidentLayoutController>();
+            layout.Configure(
+                incident,
+                leak.transform,
+                fastener.transform,
+                recoveryPointObject.transform,
+                carryableItem,
+                new[]
+                {
+                    new Vector3(5.85f, 1.2f, 3f),
+                    new Vector3(-5.85f, 1.2f, 0.8f),
+                    new Vector3(5.85f, 1.2f, -0.4f)
+                },
+                new[]
+                {
+                    new Vector3(-3.6f, 1.1f, 6.7f),
+                    new Vector3(-3.6f, 1.1f, 4.6f),
+                    new Vector3(3.2f, 1.1f, 3.4f)
+                },
+                new[]
+                {
+                    new Vector3(-4.8f, 0.75f, -4.5f),
+                    new Vector3(4.2f, 0.75f, -5.2f),
+                    new Vector3(-4.2f, 0.75f, -5.2f)
+                });
 
             CreateDecorationBlock(environment, "Walkway A", new Vector3(-3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
             CreateDecorationBlock(environment, "Walkway B", new Vector3(3f, 0.15f, 0f), new Vector3(0.18f, 0.3f, 16f), warningMaterial);
+            return layout;
         }
 
         private static FirstPersonController CreatePlayer(
             Material warningMaterial,
             Material machineryMaterial,
+            Material circuitMaterial,
             CoolingIncidentController incident)
         {
             var player = new GameObject("Local First Person Player");
@@ -227,13 +298,21 @@ namespace FunGame.Editor
                 new Vector3(0f, -0.03f, 0.12f),
                 new Vector3(0.22f, 0.18f, 0.5f),
                 machineryMaterial);
+            GameObject bridgerVisual = CreateVisualCube(
+                toolAnchorObject.transform,
+                "Circuit Bridger Visual",
+                new Vector3(0f, -0.02f, 0.12f),
+                new Vector3(0.2f, 0.16f, 0.52f),
+                circuitMaterial);
 
             var toolbelt = player.AddComponent<PlayerToolbelt>();
-            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
+            toolbelt.ConfigureVisuals(wrenchVisual, sealantVisual, bridgerVisual);
             var playerController = player.AddComponent<FirstPersonController>();
-            player.AddComponent<ContextInteractor>();
-            player.AddComponent<ToolController>();
+            var interactor = player.AddComponent<ContextInteractor>();
+            var toolController = player.AddComponent<ToolController>();
             player.AddComponent<ContextPromptOverlay>().Configure(incident);
+            player.AddComponent<CoolingIncidentMetricsTracker>().Configure(incident, interactor, toolController);
+            player.AddComponent<ToolbeltStatusOverlay>();
             return playerController;
         }
 
@@ -281,6 +360,18 @@ namespace FunGame.Editor
             GameObject block = CreateBlock(parent, name, position, scale, material);
             Object.DestroyImmediate(block.GetComponent<Collider>());
             return block;
+        }
+
+        private static void ConfigureBoxCollider(GameObject target, Vector3 center, Vector3 size)
+        {
+            BoxCollider collider = target.GetComponent<BoxCollider>();
+            if (collider == null)
+            {
+                collider = target.AddComponent<BoxCollider>();
+            }
+
+            collider.center = center;
+            collider.size = size;
         }
 
         private static Material CreateOrLoadMaterial(string path, Color color)

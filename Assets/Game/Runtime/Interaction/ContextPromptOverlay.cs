@@ -2,6 +2,7 @@ using UnityEngine;
 using FunGame.Tools;
 using FunGame.Incident;
 using FunGame.UI;
+using FunGame.Demo;
 
 namespace FunGame.Interaction
 {
@@ -15,6 +16,7 @@ namespace FunGame.Interaction
         private ContextInteractor _interactor;
         private ToolController _toolController;
         [SerializeField] private CoolingIncidentController incident;
+        [SerializeField] private SinglePlayerDemoController demoCampaign;
         private GUIStyle _crosshairStyle;
         private GUIStyle _promptStyle;
 
@@ -29,6 +31,11 @@ namespace FunGame.Interaction
             incident = incidentController;
         }
 
+        public void ConfigureDemoCampaign(SinglePlayerDemoController configuredCampaign)
+        {
+            demoCampaign = configuredCampaign;
+        }
+
         private void OnGUI()
         {
             if (GameMenuController.IsAnyMenuOpen)
@@ -41,23 +48,23 @@ namespace FunGame.Interaction
             var crosshairRect = new Rect(Screen.width * 0.5f - 15f, Screen.height * 0.5f - 18f, 30f, 36f);
             GUI.Label(crosshairRect, "+", _crosshairStyle);
 
-            if (incident != null)
+            if (incident != null && (demoCampaign == null || demoCampaign.Chapter == SinglePlayerDemoChapter.CoolingEmergency))
             {
                 string objective;
                 bool available = incident.RunState == CoolingIncidentRunState.Active;
                 if (incident.RunState == CoolingIncidentRunState.Failed)
                 {
-                    objective = $"事故失败 · 未完成：{incident.CurrentInstruction} · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 前往控制台重新开始";
+                    objective = $"事故失败 · 未完成：{incident.CurrentInstruction} · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 误操作 {incident.RejectedActionCount} 次 · 前往控制台重新开始";
                 }
                 else if (incident.RunState == CoolingIncidentRunState.Succeeded)
                 {
-                    objective = $"冷却系统已恢复 · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 前往控制台重新开始";
+                    objective = $"冷却系统已恢复 · 用时 {CoolingIncidentController.FormatDuration(incident.LastRunDurationSeconds)} · 误操作 {incident.RejectedActionCount} 次 · 设备受击 {incident.TemperatureSpikeCount} 次 · 前往控制台重新开始";
                 }
                 else
                 {
                     objective = incident.Phase == CoolingIncidentPhase.ContainLeak
-                        ? $"当前目标：{incident.CurrentInstruction} ({incident.SealProgress:P0})"
-                        : $"当前目标：{incident.CurrentInstruction}";
+                        ? $"事故线索：{incident.CurrentGuidance} ({incident.SealProgress:P0})"
+                        : $"事故线索：{incident.CurrentGuidance}";
                 }
 
                 DrawPrompt(objective, available, 22f);

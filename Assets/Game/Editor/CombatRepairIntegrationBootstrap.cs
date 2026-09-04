@@ -44,6 +44,11 @@ namespace FunGame.Editor
                 throw new IOException($"无法复制维修防卫集成场景：{ScenePath}");
             }
 
+            Material toolMachineryMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Machinery.mat") ?? systemMaterial;
+            Material toolWarningMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Warning.mat") ?? warningMaterial;
+            Material toolTrimMaterial = AssetDatabase.LoadAssetAtPath<Material>(MaterialFolder + "/M1_Trim.mat") ?? enemyMaterial;
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(toolMachineryMaterial, toolWarningMaterial, toolTrimMaterial);
+
             CoolingIncidentController incident = Object.FindFirstObjectByType<CoolingIncidentController>();
             if (incident == null)
             {
@@ -63,20 +68,26 @@ namespace FunGame.Editor
                 systemMaterial,
                 true);
             var defenseTarget = targetObject.AddComponent<DefendableSystemTarget>();
-            defenseTarget.Configure(60);
+            defenseTarget.Configure(100);
             targetObject.AddComponent<AudioSource>();
             targetObject.AddComponent<DeviceDamageFeedback>().Configure(defenseTarget);
             CreateIntegrityIndicator(targetObject.transform, defenseTarget, warningMaterial);
 
-            InterferenceEnemy directEnemy = CreateEnemy(
+            InterferenceEnemy guardianEnemy = CreateEnemy(
                 root,
-                "Direct Interference Creature",
-                new Vector3(-2.8f, 1f, -3.8f),
+                "Shielded Relay Guardian",
+                new Vector3(0.2f, 1f, -3.2f),
                 enemyMaterial,
                 warningMaterial,
                 defenseTarget,
                 encounter,
-                InterferenceEnemyBehavior.Direct);
+                InterferenceEnemyBehavior.Direct,
+                new Vector3(1.05f, 1.05f, 1.05f),
+                6,
+                0.75f,
+                10,
+                2f,
+                true);
             InterferenceEnemy flankingEnemy = CreateEnemy(
                 root,
                 "Flanking Attachment Creature",
@@ -85,9 +96,47 @@ namespace FunGame.Editor
                 warningMaterial,
                 defenseTarget,
                 encounter,
-                InterferenceEnemyBehavior.FlankingAttach);
+                InterferenceEnemyBehavior.FlankingAttach,
+                new Vector3(0.62f, 0.5f, 0.9f),
+                2,
+                1.45f,
+                8,
+                1.8f,
+                false);
 
-            encounter.Configure(defenseTarget, new[] { directEnemy, flankingEnemy }, false);
+            var enemies = new InterferenceEnemy[7];
+            enemies[0] = guardianEnemy;
+            enemies[1] = flankingEnemy;
+            Vector3[] swarmPositions =
+            {
+                new Vector3(-3.8f, 0.55f, -3.8f),
+                new Vector3(-3.2f, 0.55f, -3.4f),
+                new Vector3(-2.6f, 0.55f, -3.9f),
+                new Vector3(-3.5f, 0.55f, -4.4f),
+                new Vector3(-2.9f, 0.55f, -4.5f)
+            };
+            for (int index = 0; index < swarmPositions.Length; index++)
+            {
+                enemies[index + 2] = CreateEnemy(
+                    root,
+                    $"Swarm Bug {index + 1}",
+                    swarmPositions[index],
+                    enemyMaterial,
+                    warningMaterial,
+                    defenseTarget,
+                    encounter,
+                    InterferenceEnemyBehavior.Direct,
+                    new Vector3(0.34f, 0.34f, 0.34f),
+                    1,
+                    1.05f,
+                    2,
+                    2.5f,
+                    false);
+            }
+
+            for (int index = 0; index < enemies.Length; index++)
+                enemies[index].ConfigureIdentity($"cooling-enemy-{index}", index == 0 ? "护盾精英" : index == 1 ? "侧袭干扰体" : "虫群干扰体");
+            encounter.Configure(defenseTarget, enemies, false);
             var integration = root.gameObject.AddComponent<CoolingCombatIntegrationController>();
             integration.Configure(incident, encounter, defenseTarget, 2.5f);
             CoolingBayBgmController bgm = Object.FindFirstObjectByType<CoolingBayBgmController>();
@@ -152,29 +201,34 @@ namespace FunGame.Editor
             Material linkMaterial,
             DefendableSystemTarget target,
             CombatEncounterController encounter,
-            InterferenceEnemyBehavior behavior)
+            InterferenceEnemyBehavior behavior,
+            Vector3 scale,
+            int maxHealth,
+            float moveSpeed,
+            int interferenceDamage,
+            float attackIntervalSeconds,
+            bool requiresCircuitDisruption)
         {
             GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             enemyObject.name = name;
             enemyObject.transform.SetParent(parent);
             enemyObject.transform.position = position;
-            enemyObject.transform.localScale = behavior == InterferenceEnemyBehavior.Direct
-                ? new Vector3(0.75f, 0.75f, 0.75f)
-                : new Vector3(0.62f, 0.5f, 0.9f);
+            enemyObject.transform.localScale = scale;
             enemyObject.GetComponent<Renderer>().sharedMaterial = material;
             var enemy = enemyObject.AddComponent<InterferenceEnemy>();
             enemy.Configure(
                 target,
                 encounter,
-                configuredMaxHealth: behavior == InterferenceEnemyBehavior.Direct ? 3 : 2,
-                configuredMoveSpeed: behavior == InterferenceEnemyBehavior.Direct ? 1.25f : 1.55f,
+                configuredMaxHealth: maxHealth,
+                configuredMoveSpeed: moveSpeed,
                 configuredAttackRange: 1.15f,
-                configuredAttackIntervalSeconds: 1.5f,
-                configuredInterferenceDamage: 10,
-                configuredWrenchDamage: 1,
+                configuredAttackIntervalSeconds: attackIntervalSeconds,
+                configuredInterferenceDamage: interferenceDamage,
+                configuredWrenchDamage: 2,
                 configuredKnockbackDistance: 1.1f,
                 configuredBehavior: behavior,
-                configuredAttackWindupSeconds: 0.55f);
+                configuredAttackWindupSeconds: 0.55f,
+                configuredRequiresCircuitDisruption: requiresCircuitDisruption);
             var line = enemyObject.AddComponent<LineRenderer>();
             line.startColor = new Color(1f, 0.75f, 0.08f);
             line.endColor = new Color(0.8f, 0.15f, 1f);
@@ -211,7 +265,7 @@ namespace FunGame.Editor
             tutorial.SetParent(parent);
             Vector3[] points =
             {
-                new Vector3(5.1f, 0.035f, -3.3f),
+                new Vector3(5.1f, 0.035f, -4f),
                 new Vector3(4.2f, 0.035f, -2.0f),
                 new Vector3(3.4f, 0.035f, -0.5f),
                 new Vector3(3.5f, 0.035f, 1.2f),
@@ -242,12 +296,14 @@ namespace FunGame.Editor
 
             Camera viewCamera = player.GetComponentInChildren<Camera>(true);
             Transform wrenchVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Impact Wrench Visual");
+            Transform sealantVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Sealant Gun Visual");
+            Transform bridgerVisual = player.transform.Find("First Person Camera/Main Tool Visual Anchor/Circuit Bridger Visual");
             var cameraFeedback = player.AddComponent<CombatCameraFeedback>();
             cameraFeedback.Configure(viewCamera != null ? viewCamera.transform : null);
             var hitStop = player.AddComponent<LocalHitStopFeedback>();
             player.AddComponent<AudioSource>();
             var presenter = player.AddComponent<WrenchFeedbackPresenter>();
-            presenter.Configure(wrenchVisual, cameraFeedback, hitStop);
+            presenter.Configure(wrenchVisual, sealantVisual, bridgerVisual, cameraFeedback, hitStop);
             player.AddComponent<CoolingCombatStatusOverlay>().Configure(integration);
         }
 

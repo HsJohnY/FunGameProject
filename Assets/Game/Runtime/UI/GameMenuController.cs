@@ -4,7 +4,6 @@ using FunGame.Player;
 using FunGame.Settings;
 using FunGame.Tools;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 namespace FunGame.UI
@@ -12,9 +11,11 @@ namespace FunGame.UI
     /// <summary>
     /// 提供启动主菜单、游戏内暂停菜单和可持久化必要设置。
     /// </summary>
-    public sealed class GameMenuController : MonoBehaviour
+    public sealed partial class GameMenuController : MonoBehaviour
     {
         private const string OpenAsMainKey = "FunGame.Menu.OpenAsMain";
+        public const string SinglePlayerScene = "SinglePlayer_ThreeChapterDemo";
+        public const string CooperativeScene = SinglePlayerScene;
         private static readonly Color Cyan = new Color(0.2f, 0.92f, 0.88f);
         private static readonly Color Amber = new Color(1f, 0.56f, 0.18f);
         private static readonly Color MutedText = new Color(0.52f, 0.68f, 0.74f);
@@ -24,17 +25,20 @@ namespace FunGame.UI
         {
             Main,
             Pause,
+            Lobby,
             Settings
         }
 
         [SerializeField] private FirstPersonController player;
         [SerializeField] private bool showMainMenuOnStart = true;
+        [SerializeField] private bool networkSessionFlow;
         private ContextInteractor _interactor;
         private ToolController _toolController;
         private GameSettingsValues _pendingSettings;
         private MenuPage _page;
         private MenuPage _settingsReturnPage;
         private bool _menuOpen;
+        private bool _changingScene;
         private Vector2 _settingsScroll;
         private Vector2Int[] _resolutionOptions;
         private GUIStyle _titleStyle;
@@ -63,10 +67,54 @@ namespace FunGame.UI
 
         public static bool IsAnyMenuOpen { get; private set; }
         public bool IsMenuOpen => _menuOpen;
+        public bool UsesNetworkSessionFlow => networkSessionFlow;
+        public bool CanStartSinglePlayer => networkSessionFlow && Application.CanStreamedLevelBeLoaded(SinglePlayerScene);
+
+        public void StartSinglePlayerMode()
+        {
+            if (!CanStartSinglePlayer) return;
+            FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
+            StartCoroutine(ChangeScene(SinglePlayerScene, false));
+        }
+
+        public void ReturnToModeSelection() => ReloadAs(MenuPage.Main);
 
         public void Configure(FirstPersonController configuredPlayer)
         {
-            player = configuredPlayer;
+            BindPlayer(configuredPlayer);
+        }
+
+        /// <summary>
+        /// 联机场景的玩家在启动会话后才生成，因此菜单需要延迟绑定本地拥有者。
+        /// </summary>
+        public void ConfigureForNetworkSession()
+        {
+            networkSessionFlow = true;
+            BindPlayer(null);
+        }
+
+        public void ConfigureForSinglePlayer(FirstPersonController localPlayer)
+        {
+            networkSessionFlow = false;
+            BindPlayer(localPlayer);
+        }
+
+        /// <summary>
+        /// 仅供开发构建的截图检查点进入玩法画面；普通玩家仍通过主菜单按钮开始。
+        /// </summary>
+        public void EnterGameplayForAutomation()
+        {
+            CloseMenu();
+        }
+
+        /// <summary>
+        /// 仅供开发构建的截图检查点直接打开设置页；普通玩家仍从主菜单进入。
+        /// </summary>
+        public void OpenSettingsForAutomation()
+        {
+            _settingsReturnPage = MenuPage.Main;
+            _pendingSettings = GameSettingsStore.Current;
+            OpenMenu(MenuPage.Settings);
         }
 
         private void Awake()
@@ -104,23 +152,14 @@ namespace FunGame.UI
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (player == null)
             {
-                if (!_menuOpen)
-                {
-                    OpenMenu(MenuPage.Pause);
-                }
-                else if (_page == MenuPage.Settings)
-                {
-                    _page = _settingsReturnPage;
-                }
-                else if (_page == MenuPage.Pause)
-                {
-                    CloseMenu();
-                }
+                TryBindSpawnedPlayer();
             }
 
-            if (_menuOpen && Time.timeScale != 0f)
+            UpdateNetworkLobby();
+
+            if (_menuOpen && !networkSessionFlow && Time.timeScale != 0f)
             {
                 Time.timeScale = 0f;
             }
@@ -147,6 +186,7 @@ namespace FunGame.UI
 
         private void OnGUI()
         {
+            HandleMenuKeyboard();
             if (!_menuOpen)
             {
                 return;
@@ -154,6 +194,12 @@ namespace FunGame.UI
 
             EnsureStyles();
             DrawBackdrop();
+
+            if (_page == MenuPage.Lobby)
+            {
+                DrawNetworkLobby();
+                return;
+            }
 
             float panelWidth = Mathf.Min(_page == MenuPage.Settings ? 920f : 1080f, Screen.width - 40f);
             float panelHeight = Mathf.Min(_page == MenuPage.Settings ? 820f : 650f, Screen.height - 40f);
@@ -210,9 +256,16 @@ namespace FunGame.UI
             float buttonY = right.y;
             if (_page == MenuPage.Main)
             {
-                if (DrawTechButton(right, ref buttonY, "开始维修任务", "INITIALIZE EXPEDITION", Amber))
+                if (CanStartSinglePlayer && DrawTechButton(right, ref buttonY, "单人模式", "SOLO · THREE CHAPTER EXPEDITION", Amber))
                 {
-                    CloseMenu();
+                    StartSinglePlayerMode();
+                }
+                string startTitle = networkSessionFlow ? "联机协作" : "开始维修任务";
+                string startSubtitle = networkSessionFlow ? "HOST OR JOIN SESSION" : "INITIALIZE EXPEDITION";
+                if (DrawTechButton(right, ref buttonY, startTitle, startSubtitle, Amber))
+                {
+                    if (networkSessionFlow) OpenNetworkLobby();
+                    else CloseMenu();
                 }
             }
             else if (DrawTechButton(right, ref buttonY, "继续任务", "RESUME OPERATION", Cyan))
@@ -229,9 +282,11 @@ namespace FunGame.UI
 
             if (_page == MenuPage.Pause)
             {
-                if (DrawTechButton(right, ref buttonY, "重新开始任务", "RELOAD CHECKPOINT", Amber))
+                if (DrawTechButton(right, ref buttonY, networkSessionFlow ? "联机房间" : "重新开始任务",
+                    networkSessionFlow ? "ROOM · CONNECTION" : "RELOAD CHECKPOINT", Amber))
                 {
-                    ReloadAs(MenuPage.Pause);
+                    if (networkSessionFlow) OpenNetworkLobby();
+                    else ReloadAs(MenuPage.Pause);
                 }
 
                 if (DrawTechButton(right, ref buttonY, "返回主菜单", "DISCONNECT FROM BAY", Cyan))
@@ -259,7 +314,24 @@ namespace FunGame.UI
             DrawRect(new Rect(header.x, header.yMax + 8f, header.width, 2f), Amber);
 
             Rect content = new Rect(panel.x + 42f, panel.y + 118f, panel.width - 84f, panel.height - 158f);
-            GUILayout.BeginArea(content, _contentStyle);
+            GUI.Box(content, GUIContent.none, _contentStyle);
+            const float horizontalPadding = 22f;
+            const float topPadding = 12f;
+            const float bottomPadding = 18f;
+            const float footerHeight = 44f;
+            const float footerGap = 14f;
+            Rect footer = new Rect(
+                content.x + horizontalPadding,
+                content.yMax - bottomPadding - footerHeight,
+                content.width - horizontalPadding * 2f,
+                footerHeight);
+            Rect scrollArea = new Rect(
+                content.x + horizontalPadding,
+                content.y + topPadding,
+                content.width - horizontalPadding * 2f,
+                footer.y - footerGap - content.y - topPadding);
+
+            GUILayout.BeginArea(scrollArea);
             _settingsScroll = GUILayout.BeginScrollView(_settingsScroll);
 
             DrawSection("AUDIO BUS // 音频");
@@ -310,7 +382,10 @@ namespace FunGame.UI
             frameRateIndex = GUILayout.SelectionGrid(Mathf.Max(0, frameRateIndex), frameRateLabels, 4, _choiceStyle);
             _pendingSettings.FrameRateLimit = frameRates[frameRateIndex];
 
-            GUILayout.Space(20f);
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+
+            GUILayout.BeginArea(footer);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("恢复默认  //  RESET", _secondaryButtonStyle, GUILayout.Height(44f)))
             {
@@ -329,7 +404,6 @@ namespace FunGame.UI
             }
 
             GUILayout.EndHorizontal();
-            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
 
@@ -443,7 +517,7 @@ namespace FunGame.UI
             _page = page;
             _menuOpen = true;
             IsAnyMenuOpen = true;
-            Time.timeScale = 0f;
+            Time.timeScale = networkSessionFlow ? 1f : 0f;
             SetGameplayEnabled(false);
         }
 
@@ -457,7 +531,17 @@ namespace FunGame.UI
 
         private void SetGameplayEnabled(bool enabled)
         {
-            player?.SetGameplayInputEnabled(enabled);
+            if (player != null)
+            {
+                player.SetGameplayInputEnabled(enabled);
+                var carry = player.GetComponent<FunGame.Networking.NetworkPlayerCarryController>();
+                if (carry != null) carry.SetGameplayInputEnabled(enabled);
+            }
+            if (!enabled || player == null)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
             if (_interactor != null)
             {
                 _interactor.enabled = enabled;
@@ -469,11 +553,60 @@ namespace FunGame.UI
             }
         }
 
+        private void TryBindSpawnedPlayer()
+        {
+            foreach (FirstPersonController candidate in
+                     Object.FindObjectsByType<FirstPersonController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (candidate.isActiveAndEnabled)
+                {
+                    BindPlayer(candidate);
+                    return;
+                }
+            }
+        }
+
+        private void BindPlayer(FirstPersonController configuredPlayer)
+        {
+            player = configuredPlayer;
+            _interactor = player != null ? player.GetComponent<ContextInteractor>() : null;
+            _toolController = player != null ? player.GetComponent<ToolController>() : null;
+            if (player == null)
+            {
+                return;
+            }
+
+            GameSettingsStore.Apply(GameSettingsStore.Current, player, false);
+            SetGameplayEnabled(!_menuOpen);
+        }
+
         private void ReloadAs(MenuPage page)
         {
-            PlayerPrefs.SetInt(OpenAsMainKey, page == MenuPage.Main ? 1 : 0);
+            FunGame.Demo.SharedMapModeController.NextMode = page == MenuPage.Main || networkSessionFlow
+                ? FunGame.Demo.ExpeditionMode.Cooperative : FunGame.Demo.ExpeditionMode.Solo;
+            string scene = page == MenuPage.Main && Application.CanStreamedLevelBeLoaded(CooperativeScene)
+                ? CooperativeScene : SceneManager.GetActiveScene().name;
+            StartCoroutine(ChangeScene(scene, page == MenuPage.Main));
+        }
+
+        private System.Collections.IEnumerator ChangeScene(string scene, bool openMenu)
+        {
+            if (_changingScene) yield break;
+            _changingScene = true;
             Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            var manager = Unity.Netcode.NetworkManager.Singleton;
+            if (manager != null)
+            {
+                manager.Shutdown();
+                yield return null;
+                float deadline = Time.realtimeSinceStartup + 5f;
+                while (manager != null && manager.IsListening && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (manager != null) Destroy(manager.gameObject);
+                yield return null;
+            }
+            PlayerPrefs.SetInt(OpenAsMainKey, openMenu ? 1 : 0);
+            SceneManager.LoadScene(scene);
         }
 
         private Vector2Int[] BuildResolutionOptions()

@@ -8,6 +8,7 @@ namespace FunGame.Tests.EditMode
     public sealed class NetworkIncidentAuthorityTests
     {
         [TestCase(NetworkIncidentAction.SealLeak, CoolingIncidentPhase.ContainLeak, ToolKind.SealantGun)]
+        [TestCase(NetworkIncidentAction.BridgeCircuit, CoolingIncidentPhase.RestoreControlPower, ToolKind.CircuitBridger)]
         [TestCase(NetworkIncidentAction.OperateFastener, CoolingIncidentPhase.LoosenConnection, ToolKind.ImpactWrench)]
         [TestCase(NetworkIncidentAction.OperateFastener, CoolingIncidentPhase.TightenConnection, ToolKind.ImpactWrench)]
         [TestCase(NetworkIncidentAction.OperatePump, CoolingIncidentPhase.ResetPump, ToolKind.None)]
@@ -26,6 +27,7 @@ namespace FunGame.Tests.EditMode
             Assert.That(NetworkCoolingIncidentController.RequiresReplacementPipe(NetworkIncidentAction.SealLeak), Is.False);
             Assert.That(NetworkCoolingIncidentController.RequiresReplacementPipe(NetworkIncidentAction.OperateFastener), Is.False);
             Assert.That(NetworkCoolingIncidentController.RequiresReplacementPipe(NetworkIncidentAction.OperatePump), Is.False);
+            Assert.That(NetworkCoolingIncidentController.RequiresReplacementPipe(NetworkIncidentAction.BridgeCircuit), Is.False);
         }
     }
 }

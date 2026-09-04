@@ -52,13 +52,13 @@ namespace FunGame.Networking
 
         private void OnGUI()
         {
-            if (!IsSpawned)
+            if (!IsSpawned || FunGame.UI.GameMenuController.IsAnyMenuOpen)
             {
                 return;
             }
 
             float height = _panelVisible ? 245f : GetClosedPreviewHeight();
-            GUILayout.BeginArea(new Rect(20f, Screen.height - height - 20f, 460f, height), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(20f, Screen.height - height - 190f, Mathf.Min(460f, Screen.width - 40f), height), GUI.skin.box);
             if (!_panelVisible)
             {
                 DrawClosedPreview();

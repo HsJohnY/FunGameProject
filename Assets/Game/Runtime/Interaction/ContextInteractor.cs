@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FunGame.Player;
 using FunGame.Tools;
@@ -32,7 +33,9 @@ namespace FunGame.Interaction
 
         public InteractionOption? CurrentOption => _currentOption;
         public bool IsHoldingItem => _heldItem != null;
+        public CarryableInteractable HeldItem => _heldItem;
         public PlayerToolbelt Toolbelt => _toolbelt;
+        public event Action<string, string> InteractionRejected;
 
         private void Awake()
         {
@@ -65,6 +68,12 @@ namespace FunGame.Interaction
 
             _interactAction = new InputAction("上下文交互", InputActionType.Button, "<Keyboard>/e");
             _dropAction = new InputAction("丢下或取消", InputActionType.Button, "<Keyboard>/q");
+            if (Debug.isDebugBuild)
+            {
+                // Development Build 的无障碍/自动化备用输入；Release 仍只保留正式键位。
+                _interactAction.AddBinding("<Mouse>/rightButton");
+                _dropAction.AddBinding("<Mouse>/middleButton");
+            }
         }
 
         private void OnEnable()
@@ -129,7 +138,7 @@ namespace FunGame.Interaction
             InteractionOption? bestOption = null;
             foreach (MonoBehaviour component in _componentBuffer)
             {
-                if (!(component is IContextInteractable interactable))
+                if (!component.isActiveAndEnabled || !(component is IContextInteractable interactable))
                 {
                     continue;
                 }
@@ -183,6 +192,7 @@ namespace FunGame.Interaction
             InteractionOption option = _currentOption.Value;
             if (!option.IsAvailable)
             {
+                InteractionRejected?.Invoke(option.TargetId, option.UnavailableReason);
                 Debug.Log($"[Interaction] target={option.TargetId} blocked={option.UnavailableReason}", this);
                 return false;
             }
@@ -243,6 +253,20 @@ namespace FunGame.Interaction
             CarryableInteractable item = _heldItem;
             _heldItem = null;
             item.SetInstalled(socket);
+            return true;
+        }
+
+        /// <summary>
+        /// 事故重置时清除对指定任务物的持有引用，随后由恢复系统重新放置该物体。
+        /// </summary>
+        public bool ReleaseHeldItemForRecovery(CarryableInteractable item)
+        {
+            if (_heldItem == null || _heldItem != item)
+            {
+                return false;
+            }
+
+            _heldItem = null;
             return true;
         }
 

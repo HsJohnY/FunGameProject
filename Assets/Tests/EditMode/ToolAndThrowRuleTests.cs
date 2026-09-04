@@ -36,6 +36,21 @@ namespace FunGame.Tests.EditMode
         }
 
         [Test]
+        public void 第三工具具有独立名称且错误工具反馈明确()
+        {
+            var option = new ToolActionOption(
+                "circuit",
+                "控制联锁",
+                "桥接",
+                ToolKind.CircuitBridger,
+                ToolKind.SealantGun);
+
+            Assert.That(ToolKind.CircuitBridger.GetDisplayName(), Is.EqualTo("线路桥接器"));
+            Assert.That(option.IsAvailable, Is.False);
+            Assert.That(option.BlockedReason, Is.EqualTo("需要线路桥接器"));
+        }
+
+        [Test]
         public void CalculateImpulse_向上观察产生更大的垂直冲量()
         {
             Vector3 horizontal = CarryThrowMath.CalculateImpulse(Vector3.forward, 4.5f, 1f);

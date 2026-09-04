@@ -49,7 +49,9 @@ namespace FunGame.Networking
 
         public static bool IsSupportedTool(ToolKind tool)
         {
-            return tool == ToolKind.ImpactWrench || tool == ToolKind.SealantGun;
+            return tool == ToolKind.ImpactWrench
+                   || tool == ToolKind.SealantGun
+                   || tool == ToolKind.CircuitBridger;
         }
 
         [Rpc(SendTo.Server)]
