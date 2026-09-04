@@ -2171,6 +2171,7 @@ GameObject:
   - component: {fileID: 152909059}
   - component: {fileID: 152909058}
   - component: {fileID: 152909057}
+  - component: {fileID: 152909061}
   m_Layer: 0
   m_Name: Cooling Pump Inspection Panel
   m_TagString: Untagged
@@ -2283,6 +2284,203 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 152909055}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &152909061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 152909055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-pump-inspection
+  targetName: "\u51B7\u5374\u6CF5\u68C0\u67E5\u9762\u677F"
+  action: 5
+--- !u!1 &164170474
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 164170482}
+  - component: {fileID: 164170481}
+  - component: {fileID: 164170480}
+  - component: {fileID: 164170479}
+  - component: {fileID: 164170478}
+  - component: {fileID: 164170477}
+  - component: {fileID: 164170476}
+  - component: {fileID: 164170475}
+  m_Layer: 0
+  m_Name: M4 Network Session
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &164170475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1864acbf630b73349991736dbe2e9c29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkManager: {fileID: 164170481}
+  itemPrefab: {fileID: 1330589619478843867, guid: 88c3d4eed010399418d8751a04f512e0, type: 3}
+  spawnPosition: {x: -4.8, y: 0.75, z: -4.5}
+--- !u!114 &164170476
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1cd1908f73258e41a126ded18676bb9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkManager: {fileID: 164170481}
+  incidentPrefab: {fileID: 7398534656608792101, guid: 99423a361ea67b5408defda7d200da53, type: 3}
+--- !u!114 &164170477
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 510d7e1d7118402dafea7698192545ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkManager: {fileID: 164170481}
+  communicationPrefab: {fileID: 2140733065566300413, guid: bb924621e94a8d24ebc519f2819c43ef, type: 3}
+--- !u!114 &164170478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed1b35440ad76344dbeb0f4310ebcb6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkManager: {fileID: 164170481}
+  transport: {fileID: 164170480}
+--- !u!114 &164170479
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44a7dc27ac3c861479407a11bf17d0e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkManager: {fileID: 164170481}
+  transport: {fileID: 164170480}
+  panelTitle: "M4-1 \u591A\u4EBA\u4E09\u8231\u9A8C\u8BC1"
+  escapeStopsSession: 0
+--- !u!114 &164170480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6960e84d07fb87f47956e7a81d71c4e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ProtocolType: 0
+  m_UseWebSockets: 0
+  m_UseEncryption: 0
+  m_MaxPacketQueueSize: 128
+  m_MaxPayloadSize: 6144
+  m_HeartbeatTimeoutMS: 500
+  m_ConnectTimeoutMS: 1000
+  m_MaxConnectAttempts: 60
+  m_DisconnectTimeoutMS: 30000
+  ConnectionData:
+    Address: 127.0.0.1
+    Port: 7777
+    ServerListenAddress: 
+  DebugSimulator:
+    PacketDelayMS: 0
+    PacketJitterMS: 0
+    PacketDropRate: 0
+--- !u!114 &164170481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593a2fe42fa9d37498c96f9a383b6521, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  NetworkManagerExpanded: 0
+  NetworkConfig:
+    ProtocolVersion: 0
+    NetworkTransport: {fileID: 164170480}
+    PlayerPrefab: {fileID: 3353694957967715025, guid: b464e4f3972630a45931e93e7ac00827, type: 3}
+    Prefabs:
+      NetworkPrefabsLists:
+      - {fileID: 11400000, guid: 1b8d38c0ada85ed49a727c4e2b7abdbb, type: 2}
+    TickRate: 30
+    ClientConnectionBufferTimeout: 10
+    ConnectionApproval: 1
+    ConnectionData: 
+    EnableTimeResync: 0
+    TimeResyncInterval: 30
+    EnsureNetworkVariableLengthSafety: 0
+    EnableSceneManagement: 0
+    ForceSamePrefabs: 1
+    RecycleNetworkIds: 1
+    NetworkIdRecycleDelay: 120
+    RpcHashSize: 0
+    LoadSceneTimeOut: 120
+    SpawnTimeout: 10
+    EnableNetworkLogs: 1
+    NetworkTopology: 0
+    UseCMBService: 0
+    AutoSpawnPlayerPrefabClientSide: 1
+    NetworkProfilingMetrics: 1
+    OldPrefabList: []
+  RunInBackground: 1
+  LogLevel: 1
+--- !u!4 &164170482
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164170474}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &183258979
 GameObject:
   m_ObjectHideFlags: 0
@@ -4473,6 +4671,7 @@ GameObject:
   - component: {fileID: 304847763}
   - component: {fileID: 304847762}
   - component: {fileID: 304847761}
+  - component: {fileID: 304847765}
   m_Layer: 0
   m_Name: Impact Wrench Rack
   m_TagString: Untagged
@@ -4583,6 +4782,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 304847759}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &304847765
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 304847759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a94821b04ac9b43428d52bff59f38f47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-wrench-rack
+  offeredTool: 1
 --- !u!1 &325354772
 GameObject:
   m_ObjectHideFlags: 0
@@ -8492,157 +8705,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 544444156}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &564298637
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 564298643}
-  - component: {fileID: 564298642}
-  - component: {fileID: 564298641}
-  - component: {fileID: 564298640}
-  - component: {fileID: 564298639}
-  - component: {fileID: 564298638}
-  m_Layer: 0
-  m_Name: M4 Network Session
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &564298638
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 510d7e1d7118402dafea7698192545ac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  networkManager: {fileID: 564298642}
-  communicationPrefab: {fileID: 2140733065566300413, guid: bb924621e94a8d24ebc519f2819c43ef, type: 3}
---- !u!114 &564298639
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed1b35440ad76344dbeb0f4310ebcb6d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  networkManager: {fileID: 564298642}
-  transport: {fileID: 564298641}
---- !u!114 &564298640
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 44a7dc27ac3c861479407a11bf17d0e2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  networkManager: {fileID: 564298642}
-  transport: {fileID: 564298641}
-  panelTitle: "M4-1 \u591A\u4EBA\u4E09\u8231\u9A8C\u8BC1"
-  escapeStopsSession: 0
---- !u!114 &564298641
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6960e84d07fb87f47956e7a81d71c4e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_ProtocolType: 0
-  m_UseWebSockets: 0
-  m_UseEncryption: 0
-  m_MaxPacketQueueSize: 128
-  m_MaxPayloadSize: 6144
-  m_HeartbeatTimeoutMS: 500
-  m_ConnectTimeoutMS: 1000
-  m_MaxConnectAttempts: 60
-  m_DisconnectTimeoutMS: 30000
-  ConnectionData:
-    Address: 127.0.0.1
-    Port: 7777
-    ServerListenAddress: 
-  DebugSimulator:
-    PacketDelayMS: 0
-    PacketJitterMS: 0
-    PacketDropRate: 0
---- !u!114 &564298642
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 593a2fe42fa9d37498c96f9a383b6521, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  NetworkManagerExpanded: 0
-  NetworkConfig:
-    ProtocolVersion: 0
-    NetworkTransport: {fileID: 564298641}
-    PlayerPrefab: {fileID: 3353694957967715025, guid: b464e4f3972630a45931e93e7ac00827, type: 3}
-    Prefabs:
-      NetworkPrefabsLists:
-      - {fileID: 11400000, guid: 1b8d38c0ada85ed49a727c4e2b7abdbb, type: 2}
-    TickRate: 30
-    ClientConnectionBufferTimeout: 10
-    ConnectionApproval: 1
-    ConnectionData: 
-    EnableTimeResync: 0
-    TimeResyncInterval: 30
-    EnsureNetworkVariableLengthSafety: 0
-    EnableSceneManagement: 0
-    ForceSamePrefabs: 1
-    RecycleNetworkIds: 1
-    NetworkIdRecycleDelay: 120
-    RpcHashSize: 0
-    LoadSceneTimeOut: 120
-    SpawnTimeout: 10
-    EnableNetworkLogs: 1
-    NetworkTopology: 0
-    UseCMBService: 0
-    AutoSpawnPlayerPrefabClientSide: 1
-    NetworkProfilingMetrics: 1
-    OldPrefabList: []
-  RunInBackground: 1
-  LogLevel: 1
---- !u!4 &564298643
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 564298637}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &573460382
 GameObject:
   m_ObjectHideFlags: 0
@@ -8742,6 +8804,7 @@ GameObject:
   - component: {fileID: 576016507}
   - component: {fileID: 576016506}
   - component: {fileID: 576016505}
+  - component: {fileID: 576016509}
   m_Layer: 0
   m_Name: Cooling Control Circuit Interlock
   m_TagString: Untagged
@@ -8856,6 +8919,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 576016503}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &576016509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576016503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-circuit
+  targetName: "\u51B7\u5374\u63A7\u5236\u8054\u9501"
+  action: 6
 --- !u!1 &582738276
 GameObject:
   m_ObjectHideFlags: 0
@@ -10163,6 +10241,7 @@ GameObject:
   - component: {fileID: 713189877}
   - component: {fileID: 713189876}
   - component: {fileID: 713189875}
+  - component: {fileID: 713189879}
   m_Layer: 0
   m_Name: Sealant Leak Demo
   m_TagString: Untagged
@@ -10277,6 +10356,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 713189873}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &713189879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 713189873}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-leak
+  targetName: "\u51B7\u5374\u7BA1\u7EBF\u6CC4\u6F0F"
+  action: 0
 --- !u!1 &719768091
 GameObject:
   m_ObjectHideFlags: 0
@@ -10591,6 +10685,7 @@ GameObject:
   - component: {fileID: 731337938}
   - component: {fileID: 731337937}
   - component: {fileID: 731337936}
+  - component: {fileID: 731337940}
   m_Layer: 0
   m_Name: Circuit Bridger Rack
   m_TagString: Untagged
@@ -10701,6 +10796,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 731337934}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &731337940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731337934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a94821b04ac9b43428d52bff59f38f47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-bridger-rack
+  offeredTool: 3
 --- !u!1 &734158921
 GameObject:
   m_ObjectHideFlags: 0
@@ -11441,6 +11550,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 856995531}
+  - component: {fileID: 856995533}
+  - component: {fileID: 856995532}
   m_Layer: 0
   m_Name: Replacement Pipe Install Anchor
   m_TagString: Untagged
@@ -11463,6 +11574,42 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1386528692}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &856995532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856995530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-pipe-socket
+  targetName: "\u66FF\u6362\u7BA1\u5B89\u88C5\u63A5\u53E3"
+  action: 2
+--- !u!65 &856995533
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856995530}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &862202220
 GameObject:
   m_ObjectHideFlags: 0
@@ -18441,6 +18588,7 @@ GameObject:
   - component: {fileID: 1386528695}
   - component: {fileID: 1386528694}
   - component: {fileID: 1386528693}
+  - component: {fileID: 1386528698}
   m_Layer: 0
   m_Name: Mechanical Fastener Demo
   m_TagString: Untagged
@@ -18572,6 +18720,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1386528691}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1386528698
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386528691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-fastener
+  targetName: "\u673A\u68B0\u8FDE\u63A5\u4EF6"
+  action: 1
 --- !u!1 &1392663585
 GameObject:
   m_ObjectHideFlags: 0
@@ -25142,6 +25305,7 @@ GameObject:
   - component: {fileID: 1715464755}
   - component: {fileID: 1715464754}
   - component: {fileID: 1715464753}
+  - component: {fileID: 1715464757}
   m_Layer: 0
   m_Name: Diagnostic Pressure Gauge
   m_TagString: Untagged
@@ -25254,6 +25418,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1715464751}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1715464757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1715464751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-pressure
+  targetName: "\u538B\u529B\u8868"
+  action: 4
 --- !u!1 &1720620429
 GameObject:
   m_ObjectHideFlags: 0
@@ -27679,6 +27858,7 @@ GameObject:
   - component: {fileID: 1815015124}
   - component: {fileID: 1815015123}
   - component: {fileID: 1815015122}
+  - component: {fileID: 1815015126}
   m_Layer: 0
   m_Name: Sealant Gun Rack
   m_TagString: Untagged
@@ -27789,6 +27969,20 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1815015120}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1815015126
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1815015120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a94821b04ac9b43428d52bff59f38f47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-sealant-rack
+  offeredTool: 2
 --- !u!1 &1818258229
 GameObject:
   m_ObjectHideFlags: 0
@@ -29349,7 +29543,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1929317336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31608,6 +31802,7 @@ GameObject:
   - component: {fileID: 2077267213}
   - component: {fileID: 2077267212}
   - component: {fileID: 2077267211}
+  - component: {fileID: 2077267215}
   m_Layer: 0
   m_Name: Interactive Control Console
   m_TagString: Untagged
@@ -31722,6 +31917,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2077267209}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2077267215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2077267209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75d8bf0adb23fea4987c53032bc89dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetId: m4-console
+  targetName: "\u51B7\u5374\u63A7\u5236\u53F0"
+  action: 3
 --- !u!1 &2086791294
 GameObject:
   m_ObjectHideFlags: 0
@@ -32442,4 +32652,4 @@ SceneRoots:
   - {fileID: 1375077262}
   - {fileID: 1149466298}
   - {fileID: 632544444}
-  - {fileID: 564298643}
+  - {fileID: 164170482}

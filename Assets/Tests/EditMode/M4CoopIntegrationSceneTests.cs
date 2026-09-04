@@ -4,6 +4,7 @@ using FunGame.Demo;
 using FunGame.Networking;
 using FunGame.Player;
 using FunGame.UI;
+using FunGame.Tools;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEditor.SceneManagement;
@@ -29,6 +30,10 @@ namespace FunGame.Tests.EditMode
                     .SelectMany(item => item.GetComponentsInChildren<NetworkSessionController>(true)).SingleOrDefault();
                 NetworkCommunicationSpawner communicationSpawner = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkCommunicationSpawner>(true)).SingleOrDefault();
+                NetworkIncidentSpawner incidentSpawner = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkIncidentSpawner>(true)).SingleOrDefault();
+                NetworkSharedItemSpawner itemSpawner = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkSharedItemSpawner>(true)).SingleOrDefault();
                 GameMenuController menu = roots
                     .SelectMany(item => item.GetComponentsInChildren<GameMenuController>(true)).SingleOrDefault();
 
@@ -37,6 +42,8 @@ namespace FunGame.Tests.EditMode
                 Assert.That(communicationSpawner, Is.Not.Null);
                 Assert.That(communicationSpawner.CommunicationPrefab, Is.Not.Null);
                 Assert.That(communicationSpawner.CommunicationPrefab.GetComponent<NetworkChatController>(), Is.Not.Null);
+                Assert.That(incidentSpawner, Is.Not.Null);
+                Assert.That(itemSpawner, Is.Not.Null);
                 Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<NetworkChatController>(true)), Is.Empty,
                     "关闭 NGO 场景管理时，聊天不能作为未注册的场景内 NetworkObject 存在。 ");
                 Assert.That(menu, Is.Not.Null);
@@ -48,6 +55,16 @@ namespace FunGame.Tests.EditMode
                     "场景不能同时保留本地玩家和由 NetworkManager 生成的联网玩家。 ");
                 Assert.That(FindTransform(roots, "Chapter 2 - Power Relay Compartment"), Is.Not.Null);
                 Assert.That(FindTransform(roots, "Chapter 3 - Storm Core Chamber"), Is.Not.Null);
+                NetworkIncidentStation[] stations = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkIncidentStation>(true)).ToArray();
+                Assert.That(stations.Length, Is.EqualTo(7));
+                Assert.That(stations.Select(item => item.Action).Distinct().Count(), Is.EqualTo(7));
+                NetworkToolRackInteractable[] racks = roots
+                    .SelectMany(item => item.GetComponentsInChildren<NetworkToolRackInteractable>(true)).ToArray();
+                Assert.That(racks.Length, Is.EqualTo(3));
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerToolbelt>(), Is.Not.Null);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<PlayerToolbelt>(), Is.Not.Null);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<ToolController>(), Is.Not.Null);
             }
             finally
             {

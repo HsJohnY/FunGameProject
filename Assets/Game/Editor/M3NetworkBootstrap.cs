@@ -198,13 +198,21 @@ namespace FunGame.Editor
             sealantVisual.transform.localScale = new Vector3(0.18f, 0.18f, 0.5f);
             Object.DestroyImmediate(sealantVisual.GetComponent<Collider>());
 
+            GameObject bridgerVisual = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bridgerVisual.name = "Circuit Bridger Visual";
+            bridgerVisual.transform.SetParent(toolVisualAnchor.transform, false);
+            bridgerVisual.transform.localScale = new Vector3(0.18f, 0.14f, 0.58f);
+            Object.DestroyImmediate(bridgerVisual.GetComponent<Collider>());
+
             FirstPersonController firstPersonController = player.AddComponent<FirstPersonController>();
             firstPersonController.enabled = false;
             var playerToolbelt = player.AddComponent<PlayerToolbelt>();
-            playerToolbelt.ConfigureVisuals(wrenchVisual, sealantVisual);
+            playerToolbelt.ConfigureVisuals(wrenchVisual, sealantVisual, bridgerVisual);
             player.AddComponent<NetworkPlayerToolbelt>();
             var contextInteractor = player.AddComponent<ContextInteractor>();
             contextInteractor.enabled = false;
+            var toolController = player.AddComponent<ToolController>();
+            toolController.enabled = false;
             player.AddComponent<NetworkPlayerCarryController>();
             player.AddComponent<NetworkPlayerIncidentAgent>();
             var promptOverlay = player.AddComponent<ContextPromptOverlay>();
@@ -219,9 +227,10 @@ namespace FunGame.Editor
             renderers.arraySize = 1;
             renderers.GetArrayElementAtIndex(0).objectReferenceValue = bodyRenderer;
             SerializedProperty ownerBehaviours = serializedPlayer.FindProperty("ownerOnlyBehaviours");
-            ownerBehaviours.arraySize = 2;
+            ownerBehaviours.arraySize = 3;
             ownerBehaviours.GetArrayElementAtIndex(0).objectReferenceValue = contextInteractor;
             ownerBehaviours.GetArrayElementAtIndex(1).objectReferenceValue = promptOverlay;
+            ownerBehaviours.GetArrayElementAtIndex(2).objectReferenceValue = toolController;
             serializedPlayer.ApplyModifiedPropertiesWithoutUndo();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);

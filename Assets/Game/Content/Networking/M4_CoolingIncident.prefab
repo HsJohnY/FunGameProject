@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2140733065566300413
+--- !u!1 &7398534656608792101
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,23 +8,24 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 6425497465575174406}
-  - component: {fileID: 184498732285230322}
-  - component: {fileID: 1255546881701320150}
+  - component: {fileID: 8938812550019916573}
+  - component: {fileID: 292856881073806633}
+  - component: {fileID: 766373287829654387}
+  - component: {fileID: 7279530971335563461}
   m_Layer: 0
-  m_Name: M4_NetworkCommunication
+  m_Name: M4_CoolingIncident
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &6425497465575174406
+--- !u!4 &8938812550019916573
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140733065566300413}
+  m_GameObject: {fileID: 7398534656608792101}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -33,13 +34,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &184498732285230322
+--- !u!114 &292856881073806633
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140733065566300413}
+  m_GameObject: {fileID: 7398534656608792101}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
@@ -58,16 +59,33 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &1255546881701320150
+--- !u!114 &766373287829654387
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2140733065566300413}
+  m_GameObject: {fileID: 7398534656608792101}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c89ebef3ac29e4f4a870ed8259f2f30f, type: 3}
+  m_Script: {fileID: 11500000, guid: aa064871c011baa47967f47fe5c09b88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  startingTemperature: 65
+  failureTemperature: 100
+  temperatureRisePerSecond: 0.07
+  diagnosticChecksEnabled: 1
+--- !u!114 &7279530971335563461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7398534656608792101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83b84992bc6d9ca429fb3b5ff1d94972, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  incident: {fileID: 766373287829654387}

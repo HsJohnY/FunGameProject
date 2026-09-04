@@ -1,4 +1,5 @@
 using System.Collections;
+using FunGame.Incident;
 using FunGame.Networking;
 using FunGame.UI;
 using NUnit.Framework;
@@ -12,7 +13,7 @@ namespace FunGame.Tests.PlayMode
     public sealed class M4CommunicationSpawnPlayModeTests
     {
         [UnityTest]
-        public IEnumerator 启动M4主机后从注册预制体生成唯一聊天对象()
+        public IEnumerator 启动M4主机后生成已注册的通信与维修对象()
         {
             AsyncOperation load = SceneManager.LoadSceneAsync("M4_CoopThreeChapterDemo", LoadSceneMode.Additive);
             while (load != null && !load.isDone)
@@ -33,15 +34,26 @@ namespace FunGame.Tests.PlayMode
 
             float deadline = Time.realtimeSinceStartup + 3f;
             NetworkChatController chat = null;
-            while (chat == null && Time.realtimeSinceStartup < deadline)
+            NetworkCoolingIncidentController incident = null;
+            NetworkCarryableItem replacementPipe = null;
+            while ((chat == null || incident == null || replacementPipe == null)
+                   && Time.realtimeSinceStartup < deadline)
             {
                 chat = Object.FindFirstObjectByType<NetworkChatController>();
+                incident = Object.FindFirstObjectByType<NetworkCoolingIncidentController>();
+                replacementPipe = Object.FindFirstObjectByType<NetworkCarryableItem>();
                 yield return null;
             }
 
             Assert.That(chat, Is.Not.Null, "主机启动后应生成已注册的唯一通信预制体。 ");
             Assert.That(chat.IsSpawned, Is.True);
             Assert.That(Object.FindObjectsByType<NetworkChatController>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
+            Assert.That(incident, Is.Not.Null, "主机启动后应生成服务器权威冷却事故。 ");
+            Assert.That(incident.IsSpawned, Is.True);
+            Assert.That(incident.DiagnosticChecksEnabled, Is.True);
+            Assert.That(incident.Phase, Is.EqualTo(CoolingIncidentPhase.AssessSymptoms));
+            Assert.That(replacementPipe, Is.Not.Null, "主机启动后应生成共享替换管件。 ");
+            Assert.That(replacementPipe.IsSpawned, Is.True);
 
             manager.Shutdown();
             yield return null;

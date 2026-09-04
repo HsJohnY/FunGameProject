@@ -14,11 +14,15 @@ namespace FunGame.Networking
 
         private NetworkObject _spawnedItem;
 
-        public void Configure(NetworkManager manager, GameObject prefab)
+        public void Configure(NetworkManager manager, GameObject prefab, Vector3? configuredSpawnPosition = null)
         {
             Unsubscribe();
             networkManager = manager;
             itemPrefab = prefab;
+            if (configuredSpawnPosition.HasValue)
+            {
+                spawnPosition = configuredSpawnPosition.Value;
+            }
             Subscribe();
         }
 

@@ -8,6 +8,9 @@ namespace FunGame.Networking
         SealLeak = 0,
         OperateFastener = 1,
         InstallPipe = 2,
-        OperatePump = 3
+        OperatePump = 3,
+        InspectPressure = 4,
+        InspectPump = 5,
+        BridgeCircuit = 6
     }
 }
