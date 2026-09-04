@@ -268,6 +268,7 @@ namespace FunGame.Networking
                 }
 
                 statusText = "主机已启动，等待客户端";
+                Debug.Log($"[NetworkSession] role=host event=started listen={NetworkEndpointRules.AnyIpv4Address}:{hostPort}");
                 return true;
             }
 
@@ -295,6 +296,7 @@ namespace FunGame.Networking
             {
                 connectionDeadline = Time.realtimeSinceStartup + ConnectionRecoveryTimeoutSeconds;
                 statusText = "正在连接主机…（可随时停止）";
+                Debug.Log($"[NetworkSession] role=client event=connecting target={addressText}:{portText}");
                 return true;
             }
 
@@ -422,6 +424,7 @@ namespace FunGame.Networking
             statusText = networkManager.IsHost
                 ? $"玩家 {clientId} 已连接"
                 : "已连接到主机";
+            Debug.Log($"[NetworkSession] role={(networkManager.IsHost ? "host" : "client")} event=connected clientId={clientId}");
         }
 
         private void HandleClientDisconnected(ulong clientId)
@@ -434,10 +437,12 @@ namespace FunGame.Networking
                         ? "连接失败，请确认房主已开房且地址、端口正确后重试"
                         : "与房主的连接已断开，请重新加入房间";
                 BeginShutdown(statusText);
+                Debug.LogWarning($"[NetworkSession] role=client event=disconnected clientId={clientId} state={sessionState}");
                 return;
             }
 
             statusText = $"玩家 {clientId} 已断开";
+            Debug.Log($"[NetworkSession] role=host event=peer-disconnected clientId={clientId}");
         }
 
         private void HandleTransportFailure()
@@ -447,6 +452,7 @@ namespace FunGame.Networking
                 ? "主机启动失败：端口可能已被占用，请更换端口后重试"
                 : "网络传输失败，请检查地址和端口后重试";
             BeginShutdown(statusText);
+            Debug.LogError($"[NetworkSession] event=transport-failure message={statusText}");
         }
 
         private void HandleClientStopped(bool wasServer)
