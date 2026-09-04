@@ -25,6 +25,7 @@ namespace FunGame.Editor
         [MenuItem("FunGame/Combat/生成维修防卫集成场景")]
         public static void ConfigureCurrent()
         {
+            ModularContentBuilder.RequireLegacyWorkspace();
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SourceScenePath) == null)
             {
                 throw new FileNotFoundException("缺少 M1 冷却舱源场景。", SourceScenePath);

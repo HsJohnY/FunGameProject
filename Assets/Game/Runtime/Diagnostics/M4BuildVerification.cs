@@ -36,8 +36,10 @@ namespace FunGame.Diagnostics
             Application.logMessageReceived += OnLog;
             Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
             yield return new WaitForSecondsRealtime(4f);
+            yield return WaitForModules();
             GameMenuController menu = FindFirstObjectByType<GameMenuController>();
-            Require(SceneManager.sceneCountInBuildSettings == 1, "Only the canonical solo map is packaged");
+            Require(SceneManager.sceneCountInBuildSettings == 4, "Canonical gameplay and three additive environments are packaged");
+            Require(FindFirstObjectByType<SharedMapModeController>().IsReady, "Environment modules loaded before menu entry");
             Require(menu != null && menu.CanStartSinglePlayer, "Single-player button must be available in the built menu");
             yield return Capture("01-mode-menu.png");
             menu.OpenNetworkLobby();
@@ -85,6 +87,7 @@ namespace FunGame.Diagnostics
             menu = FindFirstObjectByType<GameMenuController>();
             menu.StartSinglePlayerMode();
             yield return new WaitForSecondsRealtime(0.8f);
+            yield return WaitForModules();
             Require(SceneManager.GetActiveScene().name == GameMenuController.SinglePlayerScene, "Single-player scene loaded");
             Require(FindFirstObjectByType<SinglePlayerDemoController>()?.enabled == true, "Original solo campaign active");
             Require(FindFirstObjectByType<SharedMapModeController>().Mode == ExpeditionMode.Solo, "Same scene selected solo logic");
@@ -114,10 +117,20 @@ namespace FunGame.Diagnostics
             yield return Capture("10-relay-rack-clearance.png");
             FindFirstObjectByType<GameMenuController>().ReturnToModeSelection();
             yield return new WaitForSecondsRealtime(0.5f);
+            yield return WaitForModules();
             Require(SceneManager.GetActiveScene().name == GameMenuController.CooperativeScene, "Return to mode menu");
             Require(FindFirstObjectByType<GameMenuController>().IsMenuOpen, "Mode menu open after return");
             Debug.Log(_failed ? "[M4BuildCheck] FAIL" : "[M4BuildCheck] PASS: host guidance, three models, solo entry, settings, return menu");
             Application.Quit(_failed ? 1 : 0);
+        }
+
+        private IEnumerator WaitForModules()
+        {
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while (FindFirstObjectByType<SharedMapModeController>()?.IsReady != true && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Require(FindFirstObjectByType<SharedMapModeController>()?.IsReady == true, "Modules became ready");
+            Require(SceneManager.sceneCount == 4, "Mode changes leave exactly one copy of each environment");
         }
 
         private IEnumerator Capture(string file)

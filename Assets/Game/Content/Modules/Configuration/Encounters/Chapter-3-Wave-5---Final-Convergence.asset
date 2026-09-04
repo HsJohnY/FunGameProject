@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8b8fd06cbc3d4747bc88f84382f5b12, type: 3}
+  m_Name: Chapter-3-Wave-5---Final-Convergence
+  m_EditorClassIdentifier: 
+  briefing: "\u6DF7\u5408\u603B\u653B"
+  deployments:
+  - enemyId: wave5-bulwark-left
+    delaySeconds: 8
+  - enemyId: wave5-strider-center
+    delaySeconds: 4
+  - enemyId: wave5-strider-left
+    delaySeconds: 4
+  - enemyId: wave5-pulser-right
+    delaySeconds: 8
+  - enemyId: wave5-skitter-left
+    delaySeconds: 4
+  - enemyId: wave5-skitter-right
+    delaySeconds: 8

@@ -2,6 +2,8 @@ using FunGame.Incident;
 using FunGame.Tools;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Serialization;
+using FunGame.Content;
 
 namespace FunGame.Networking
 {
@@ -11,10 +13,17 @@ namespace FunGame.Networking
     [RequireComponent(typeof(NetworkObject))]
     public sealed class NetworkCoolingIncidentController : NetworkBehaviour
     {
-        [SerializeField] private float startingTemperature = 65f;
-        [SerializeField] private float failureTemperature = 100f;
-        [SerializeField] private float temperatureRisePerSecond = 0.07f;
-        [SerializeField] private bool diagnosticChecksEnabled;
+        [SerializeField] private CoolingIncidentDefinition definition;
+        public CoolingIncidentDefinition Definition => definition;
+        public void ConfigureDefinition(CoolingIncidentDefinition value) => definition = value;
+        [SerializeField, HideInInspector, FormerlySerializedAs("startingTemperature")] private float legacyStartingTemperature = 65f;
+        private float startingTemperature { get => definition != null ? definition.StartingTemperature : legacyStartingTemperature; set => legacyStartingTemperature = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("failureTemperature")] private float legacyFailureTemperature = 100f;
+        private float failureTemperature { get => definition != null ? definition.FailureTemperature : legacyFailureTemperature; set => legacyFailureTemperature = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("temperatureRisePerSecond")] private float legacyTemperatureRisePerSecond = 0.07f;
+        private float temperatureRisePerSecond { get => definition != null ? definition.TemperatureRisePerSecond : legacyTemperatureRisePerSecond; set => legacyTemperatureRisePerSecond = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("diagnosticChecksEnabled")] private bool legacyDiagnosticChecksEnabled = false;
+        private bool diagnosticChecksEnabled { get => definition != null ? definition.DiagnosticChecksEnabled : legacyDiagnosticChecksEnabled; set => legacyDiagnosticChecksEnabled = value; }
 
         private readonly NetworkVariable<CoolingIncidentPhase> phase = new NetworkVariable<CoolingIncidentPhase>();
         private readonly NetworkVariable<float> sealProgress = new NetworkVariable<float>();

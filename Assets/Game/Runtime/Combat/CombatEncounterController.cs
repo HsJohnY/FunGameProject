@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using FunGame.Content;
 
 namespace FunGame.Combat
 {
@@ -14,7 +15,10 @@ namespace FunGame.Combat
         [SerializeField] private InterferenceEnemy enemy;
         [SerializeField] private List<InterferenceEnemy> additionalEnemies = new List<InterferenceEnemy>();
         [SerializeField] private string briefing;
-        public string Briefing => briefing;
+        [SerializeField] private EncounterDefinition definition;
+        public EncounterDefinition Definition => definition;
+        public void ConfigureDefinition(EncounterDefinition value) => definition = value;
+        public string Briefing => definition != null ? definition.Briefing : briefing;
         public int PendingEnemyCount => Enemies.Count(e => !e.IsDefeated && !e.IsDeployed);
         public float NextDeploymentSeconds => Enemies.Where(e => !e.IsDefeated && !e.IsDeployed).Select(e => e.DeploymentRemaining).DefaultIfEmpty(0f).Min();
         public void ConfigureBriefing(string value) => briefing = value;

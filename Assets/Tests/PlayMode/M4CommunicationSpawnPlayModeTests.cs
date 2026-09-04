@@ -26,6 +26,7 @@ namespace FunGame.Tests.PlayMode
             }
 
             Scene scene = SceneManager.GetSceneByName(GameMenuController.CooperativeScene);
+            yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Assert.That(scene.IsValid(), Is.True);
             GameMenuController menu = Object.FindFirstObjectByType<GameMenuController>();
             menu?.EnterGameplayForAutomation();

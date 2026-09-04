@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
+using FunGame.Content;
 
 namespace FunGame.Incident
 {
@@ -11,10 +13,17 @@ namespace FunGame.Incident
     {
         private CoolingIncidentRules _rules;
         private readonly List<IIncidentResettable> _resettableObjects = new List<IIncidentResettable>();
-        [SerializeField, Min(0f)] private float startingTemperature = 65f;
-        [SerializeField, Min(1f)] private float failureTemperature = 100f;
-        [SerializeField, Min(0f)] private float temperatureRisePerSecond = 0.07f;
-        [SerializeField] private bool diagnosticChecksEnabled;
+        [SerializeField] private CoolingIncidentDefinition definition;
+        public CoolingIncidentDefinition Definition => definition;
+        public void ConfigureDefinition(CoolingIncidentDefinition value) => definition = value;
+        [SerializeField, HideInInspector, FormerlySerializedAs("startingTemperature")] private float legacyStartingTemperature = 65f;
+        private float startingTemperature { get => definition != null ? definition.StartingTemperature : legacyStartingTemperature; set => legacyStartingTemperature = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("failureTemperature")] private float legacyFailureTemperature = 100f;
+        private float failureTemperature { get => definition != null ? definition.FailureTemperature : legacyFailureTemperature; set => legacyFailureTemperature = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("temperatureRisePerSecond")] private float legacyTemperatureRisePerSecond = 0.07f;
+        private float temperatureRisePerSecond { get => definition != null ? definition.TemperatureRisePerSecond : legacyTemperatureRisePerSecond; set => legacyTemperatureRisePerSecond = value; }
+        [SerializeField, HideInInspector, FormerlySerializedAs("diagnosticChecksEnabled")] private bool legacyDiagnosticChecksEnabled = false;
+        private bool diagnosticChecksEnabled { get => definition != null ? definition.DiagnosticChecksEnabled : legacyDiagnosticChecksEnabled; set => legacyDiagnosticChecksEnabled = value; }
         private float _temperature;
         private float _elapsedSeconds;
         private float _phaseElapsedSeconds;

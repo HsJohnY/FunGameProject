@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fee8b4e26769e914f82c3e0803faf1f7, type: 3}
+  m_Name: wave5-pulser-right
+  m_EditorClassIdentifier: 
+  maxHealth: 3
+  moveSpeed: 0.95
+  attackRange: 3.1
+  attackIntervalSeconds: 2.52
+  attackWindupSeconds: 0.8
+  interferenceDamage: 6
+  wrenchDamage: 2
+  knockbackDistance: 0.8
+  sealantSpeedMultiplier: 0.35
+  sealantSlowSeconds: 2.25
+  sealantPulseIntervalSeconds: 0.15
+  sealantPushDistance: 0.18
+  sealantDamage: 1
+  sealantSplashRadius: 1.65
+  bridgerStunSeconds: 1.4
+  bridgerOverloadDamage: 1
+  defeatedVisualSeconds: 0.75
+  behavior: 2
+  requiresCircuitDisruption: 0

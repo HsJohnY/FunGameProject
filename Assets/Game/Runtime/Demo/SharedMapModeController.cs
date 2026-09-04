@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Collections;
 using FunGame.Combat;
 using FunGame.Interaction;
 using FunGame.Player;
@@ -24,6 +25,7 @@ namespace FunGame.Demo
         [SerializeField] private ContextInteractionProxy pumpProxy;
         [SerializeField] private MonoBehaviour soloPumpTarget;
         [SerializeField] private MonoBehaviour networkPumpTarget;
+        public bool IsReady { get; private set; }
         public ExpeditionMode Mode { get; private set; }
         public GameObject MapRoot => mapRoot;
         public FirstPersonController SoloPlayer => soloPlayer;
@@ -41,7 +43,17 @@ namespace FunGame.Demo
         {
             Mode = NextMode;
             NextMode = ExpeditionMode.Cooperative;
+            StartCoroutine(InitializeModules());
+        }
+
+        private IEnumerator InitializeModules()
+        {
+            var environment = GetComponent<ExpeditionEnvironmentLoader>();
+            if (environment != null) yield return environment.Load();
+            var context = GetComponent<ExpeditionContext>();
+            if (context != null) context.Register();
             bool solo = Mode == ExpeditionMode.Solo;
+            environment?.SetVisibility(!solo, !solo);
             foreach (Behaviour behaviour in soloBehaviours) if (behaviour != null) behaviour.enabled = solo;
             foreach (Behaviour behaviour in networkBehaviours) if (behaviour != null) behaviour.enabled = !solo;
             soloPlayer.gameObject.SetActive(solo);
@@ -66,6 +78,7 @@ namespace FunGame.Demo
             if (!solo)
                 foreach (InterferenceEnemy enemy in mapRoot.GetComponentsInChildren<InterferenceEnemy>(true)) enemy.SetEncounterActive(false);
             networkRoot.SetActive(!solo);
+            IsReady = true;
         }
     }
 }

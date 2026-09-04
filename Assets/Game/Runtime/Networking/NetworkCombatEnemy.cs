@@ -2,6 +2,8 @@ using FunGame.Tools;
 using FunGame.Combat;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Collections;
+using FunGame.Demo;
 using UnityEngine;
 
 namespace FunGame.Networking
@@ -17,7 +19,7 @@ namespace FunGame.Networking
         private readonly NetworkVariable<NetworkEnemyKind> kind = new NetworkVariable<NetworkEnemyKind>();
         private readonly NetworkVariable<double> slowedUntil = new NetworkVariable<double>();
         private readonly NetworkVariable<double> stunnedUntil = new NetworkVariable<double>();
-        private readonly NetworkVariable<int> templateIndex = new NetworkVariable<int>(-1);
+        private readonly NetworkVariable<FixedString128Bytes> templateId = new NetworkVariable<FixedString128Bytes>();
         private readonly NetworkVariable<bool> telegraphing = new NetworkVariable<bool>();
         private readonly NetworkVariable<double> deploymentAt = new NetworkVariable<double>();
         private InterferenceEnemy _template;
@@ -40,8 +42,8 @@ namespace FunGame.Networking
         public bool IsDeployed => IsSpawned && NetworkManager.ServerTime.Time >= deploymentAt.Value;
         public float DeploymentRemaining => IsSpawned ? Mathf.Max(0f, (float)(deploymentAt.Value - NetworkManager.ServerTime.Time)) : 0f;
 
-        public static InterferenceEnemy[] SceneTemplates() => FindObjectsByType<InterferenceEnemy>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-            .OrderBy(e => e.TargetId, System.StringComparer.Ordinal).ToArray();
+        public static InterferenceEnemy[] SceneTemplates() => ExpeditionContext.Current != null
+            ? ExpeditionContext.Current.Enemies.ToArray() : System.Array.Empty<InterferenceEnemy>();
 
         public void InitializeFromMapServer(NetworkCampaignController campaign, InterferenceEnemy source)
         {
@@ -52,7 +54,7 @@ namespace FunGame.Networking
             InitializeServer(campaign, source.DefenseTarget.transform.position, source.MaxHealth,
                 source.MoveSpeed, source.RequiresCircuitDisruption, enemyKind);
             deploymentAt.Value = NetworkManager.ServerTime.Time + source.DeploymentDelay;
-            templateIndex.Value = System.Array.IndexOf(SceneTemplates(), source);
+            templateId.Value = new FixedString128Bytes(source.TargetId);
         }
 
         public void InitializeServer(NetworkCampaignController campaign, Vector3 target, int configuredHealth,
@@ -73,8 +75,8 @@ namespace FunGame.Networking
             health.OnValueChanged += Refresh;
             shielded.OnValueChanged += RefreshShield;
             kind.OnValueChanged += RefreshKind;
-            templateIndex.OnValueChanged += RefreshTemplate;
-            RefreshTemplate(-1, templateIndex.Value);
+            templateId.OnValueChanged += RefreshTemplate;
+            RefreshTemplate(default, templateId.Value);
             Refresh(0, health.Value);
         }
 
@@ -83,7 +85,7 @@ namespace FunGame.Networking
             health.OnValueChanged -= Refresh;
             shielded.OnValueChanged -= RefreshShield;
             kind.OnValueChanged -= RefreshKind;
-            templateIndex.OnValueChanged -= RefreshTemplate;
+            templateId.OnValueChanged -= RefreshTemplate;
         }
 
         private void Update()
@@ -102,7 +104,7 @@ namespace FunGame.Networking
             delta.y = 0f;
             if (delta.magnitude > (kind.Value == NetworkEnemyKind.Ranged ? 4.5f : 1.4f))
             {
-                MoveWithCollision(delta.normalized * (_speed * (IsSlowed ? 0.35f : 1f) * Time.deltaTime));
+                MoveWithCollision(delta.normalized * (_speed * (IsSlowed ? (_template != null ? _template.SealantSpeedMultiplier : 0.35f) : 1f) * Time.deltaTime));
                 transform.forward = delta.normalized;
                 return;
             }
@@ -127,7 +129,7 @@ namespace FunGame.Networking
             bool ready = _reachedWaypoint && _template.IsAtCombatPosition(transform.position);
             if (!ready && delta.sqrMagnitude > 0.0001f)
             {
-                MoveWithCollision(delta.normalized * Mathf.Min(delta.magnitude, _speed * (IsSlowed ? 0.35f : 1f) * Time.deltaTime));
+                MoveWithCollision(delta.normalized * Mathf.Min(delta.magnitude, _speed * (IsSlowed ? (_template != null ? _template.SealantSpeedMultiplier : 0.35f) : 1f) * Time.deltaTime));
                 transform.forward = delta.normalized;
             }
             InterferenceEnemyAction action = _attackRules.Advance(Time.deltaTime, ready);
@@ -136,12 +138,12 @@ namespace FunGame.Networking
                 _campaign?.ApplyCoreDamageServer(_template.InterferenceDamage);
         }
 
-        private void RefreshTemplate(int previous, int current)
+        private void RefreshTemplate(FixedString128Bytes previous, FixedString128Bytes current)
         {
-            if (current < 0) return;
-            InterferenceEnemy[] templates = SceneTemplates();
-            if (current >= templates.Length) return;
-            _template = templates[current];
+            if (current.IsEmpty) return;
+            if (_template != null && _template.TargetId == current.ToString()) return;
+            if (ExpeditionContext.Current == null) throw new System.InvalidOperationException("Expedition content is not ready.");
+            _template = ExpeditionContext.Current.ResolveEnemy(current.ToString());
             _attackRules = new InterferenceEnemyRules(_template.MaxHealth, _template.AttackInterval, _template.AttackWindup);
             _target = _template.DefenseTarget.transform.position;
             foreach (Transform child in transform) child.gameObject.SetActive(false);
@@ -199,14 +201,14 @@ namespace FunGame.Networking
             if (!IsServer || health.Value <= 0 || !IsDeployed || !NetworkPlayerToolbelt.IsSupportedTool(tool)) return;
             if (tool == ToolKind.CircuitBridger)
             {
-                stunnedUntil.Value = NetworkManager.ServerTime.Time + 1.4;
-                _nextAttack = Time.time + 1.4f;
+                stunnedUntil.Value = NetworkManager.ServerTime.Time + (_template != null ? _template.BridgerStunSeconds : 1.4f);
+                _nextAttack = Time.time + (_template != null ? _template.BridgerStunSeconds : 1.4f);
             }
             if (tool == ToolKind.SealantGun)
             {
                 ApplySealantPulse(source);
                 foreach (NetworkCombatEnemy nearby in FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None))
-                    if (nearby != this && nearby.IsSpawned && Vector3.Distance(transform.position, nearby.transform.position) <= 1.65f)
+                    if (nearby != this && nearby.IsSpawned && Vector3.Distance(transform.position, nearby.transform.position) <= (_template != null ? _template.SealantSplashRadius : 1.65f))
                         nearby.ApplySealantPulse(source);
                 return;
             }
@@ -214,7 +216,7 @@ namespace FunGame.Networking
             {
                 return;
             }
-            int damage = tool == ToolKind.ImpactWrench ? (_template != null ? _template.WrenchDamage : 2) : 1;
+            int damage = tool == ToolKind.ImpactWrench ? (_template != null ? _template.WrenchDamage : 2) : (_template != null ? _template.BridgerDamage : 1);
             health.Value = Mathf.Max(0, health.Value - damage);
             if (tool == ToolKind.ImpactWrench)
             {
@@ -244,13 +246,13 @@ namespace FunGame.Networking
         private void ApplySealantPulse(Vector3 source)
         {
             if (!IsServer || health.Value <= 0 || !IsDeployed || Time.time < _nextSealantPulse) return;
-            _nextSealantPulse = Time.time + 0.15f;
-            slowedUntil.Value = NetworkManager.ServerTime.Time + 2.25;
+            _nextSealantPulse = Time.time + (_template != null ? _template.SealantPulseInterval : 0.15f);
+            slowedUntil.Value = NetworkManager.ServerTime.Time + (_template != null ? _template.SealantSlowSeconds : 2.25f);
             Vector3 away = transform.position - source;
             away.y = 0f;
-            MoveWithCollision(away.normalized * 0.18f);
+            MoveWithCollision(away.normalized * (_template != null ? _template.SealantPushDistance : 0.18f));
             if (IsShielded) return;
-            health.Value = Mathf.Max(0, health.Value - 1);
+            health.Value = Mathf.Max(0, health.Value - (_template != null ? _template.SealantDamage : 1));
             if (health.Value == 0)
             {
                 _campaign?.NotifyEnemyDefeatedServer();
