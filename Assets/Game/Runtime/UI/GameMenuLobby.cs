@@ -1,6 +1,3 @@
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using FunGame.Networking;
 using UnityEngine;
 
@@ -18,12 +15,10 @@ namespace FunGame.UI
         private NetworkSessionController _session;
         private string _roomAddress = NetworkEndpointRules.DefaultAddress;
         private string _roomPort = NetworkEndpointRules.DefaultPort.ToString();
-        private string _localAddresses;
         private bool _enterWhenConnected;
         private bool _hadConnectedSession;
         private GUIStyle _roomInputStyle;
         private GUIStyle _roomBodyStyle;
-        private int _localAddressIndex;
         private LobbySetupMode _lobbySetupMode;
 
         public bool IsNetworkLobbyOpen => _menuOpen && _page == MenuPage.Lobby;
@@ -38,7 +33,6 @@ namespace FunGame.UI
                 _roomAddress = _session.Address;
                 _roomPort = _session.Port;
             }
-            if (_localAddresses == null) _localAddresses = FindLocalAddresses();
             if (!HasConnectedSession) _lobbySetupMode = LobbySetupMode.ChooseAction;
             OpenMenu(MenuPage.Lobby);
         }
@@ -83,10 +77,10 @@ namespace FunGame.UI
             {
                 _enterWhenConnected = false;
                 TryBindSpawnedPlayer();
-                // 房主先停留在房间信息页，以便复制自动检测到的局域网地址给好友。
-                // 加入方连接成功后直接进入游戏，仍可用 F1 再次打开房间页。
-                if (_session.IsHost) OpenMenu(MenuPage.Lobby);
-                else CloseMenu();
+                // 无论创建还是加入，连接成功后直接进入游戏。
+                // 房主地址由玩家从实际使用的局域网或虚拟局域网软件中发送给好友，
+                // 避免程序枚举到 Docker、WSL、代理等不可达的虚拟网卡并造成误导。
+                CloseMenu();
             }
             else if (_enterWhenConnected && _session != null && _session.IsEndpointEditable)
                 _enterWhenConnected = false;
@@ -157,7 +151,6 @@ namespace FunGame.UI
                 bool idle = _session != null && _session.IsEndpointEditable;
                 bool connected = HasConnectedSession;
                 string state = _session == null ? "联机服务尚未就绪，请返回主菜单重试。" : _session.StatusText;
-                string[] addresses = (_localAddresses ?? "未检测到局域网地址").Split('\n');
 
                 GUI.Box(new Rect(42f, 158f, 996f, 390f), GUIContent.none, _contentStyle);
                 if (connected)
@@ -166,12 +159,8 @@ namespace FunGame.UI
                         _session.IsHost ? "房间创建成功" : "已加入好友房间", _sectionStyle);
                     if (_session.IsHost)
                     {
-                        GUI.Label(new Rect(70f, 238f, 430f, 28f), "将下面的 IP 与端口发送给好友", _subtitleStyle);
-                        _localAddressIndex = GUI.SelectionGrid(new Rect(70f, 278f, 430f, addresses.Length * 42f),
-                            Mathf.Clamp(_localAddressIndex, 0, addresses.Length - 1), addresses, 1, _choiceStyle);
-                        GUI.Label(new Rect(560f, 278f, 400f, 36f), $"端口：{_session.Port}", _valueStyle);
-                        if (GUI.Button(new Rect(560f, 334f, 250f, 44f), "复制所选 IP", _secondaryButtonStyle))
-                            GUIUtility.systemCopyBuffer = addresses[_localAddressIndex];
+                        GUI.Label(new Rect(70f, 238f, 890f, 60f),
+                            $"房间端口：{_session.Port}\n请从正在使用的虚拟局域网软件中复制房主地址。", _roomBodyStyle);
                         state = $"房间已开启 · 已连接 {_session.ConnectedPlayerCount} 人";
                     }
                     else state = $"已连接房主 {_session.Address}:{_session.Port}";
@@ -208,7 +197,7 @@ namespace FunGame.UI
                     else
                     {
                         GUI.Label(new Rect(70f, 248f, 430f, 70f),
-                            "无需填写本机 IP。创建后会自动显示可发送给好友的地址。", _roomBodyStyle);
+                            "无需填写本机 IP。创建成功后会直接进入游戏。", _roomBodyStyle);
                     }
 
                     GUI.Label(new Rect(560f, 238f, 400f, 24f), "房间端口", _subtitleStyle);
@@ -229,18 +218,5 @@ namespace FunGame.UI
             finally { GUI.matrix = previousMatrix; GUI.enabled = previousEnabled; }
         }
 
-        private static string FindLocalAddresses()
-        {
-            try
-            {
-                var addresses = NetworkInterface.GetAllNetworkInterfaces()
-                    .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                    .SelectMany(n => n.GetIPProperties().UnicastAddresses)
-                    .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
-                    .Select(a => a.Address.ToString()).Distinct().Take(3).ToArray();
-                return addresses.Length == 0 ? "未检测到局域网地址" : string.Join("\n", addresses);
-            }
-            catch (NetworkInformationException) { return "无法读取本机地址"; }
-        }
     }
 }
