@@ -28,7 +28,7 @@ namespace FunGame.Networking
             GUI.Label(new Rect(34, 24, width - 36, 24), "维修队  /  协作远征", _title);
             GUI.Label(new Rect(34, 51, width - 36, 27), _campaign.CurrentObjective, _body);
             string status = _campaign.Chapter == NetworkCampaignChapter.CoolingRepair && _incident != null
-                ? $"冷却温度 {_incident.Temperature:0.0}°C" : $"核心完整度 {_campaign.CoreIntegrity}%";
+                ? $"冷却温度 {_incident.Temperature:0.0}°C" : $"核心完整度 {_campaign.CoreIntegrity}";
             GUI.Label(new Rect(34, 83, width - 36, 20), status + "   ·   F1 会话   F2 诊断   F3 聊天   Esc 菜单", _hint);
         }
 

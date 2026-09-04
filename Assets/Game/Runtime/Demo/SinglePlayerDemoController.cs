@@ -52,6 +52,7 @@ namespace FunGame.Demo
         public bool IsAwaitingCalibration => Rules.IsAwaitingCalibration;
         public bool IsCurrentChapterFailed => _relayChapterFailed || _stormChapterFailed;
         public CombatEncounterController RelayDefenseEncounter => relayDefense;
+        public System.Collections.Generic.IReadOnlyList<CombatEncounterController> StormEncounters => stormWaves;
         public CombatEncounterController CurrentStormEncounter => GetCurrentStormWave();
         public DemoCalibrationConsole CurrentCampaignConsole =>
             Chapter == SinglePlayerDemoChapter.RelaySurge

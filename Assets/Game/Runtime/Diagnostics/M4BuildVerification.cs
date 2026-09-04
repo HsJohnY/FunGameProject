@@ -4,6 +4,8 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using FunGame.Demo;
+using FunGame.Combat;
+using FunGame.Incident;
 using FunGame.Networking;
 using FunGame.Tools;
 using FunGame.UI;
@@ -55,6 +57,17 @@ namespace FunGame.Diagnostics
             player.GetComponent<NetworkPlayerToolbelt>().RequestToggleTool(ToolKind.CircuitBridger);
             yield return new WaitForSecondsRealtime(0.3f);
             yield return Capture("04-coop-bridger.png");
+            var incident = FindFirstObjectByType<NetworkCoolingIncidentController>();
+            incident.TryExecuteServer(NetworkIncidentAction.InspectPressure, ToolKind.None);
+            incident.TryExecuteServer(NetworkIncidentAction.InspectPump, ToolKind.None);
+            for (int i = 0; i < 3; i++) incident.TryExecuteServer(NetworkIncidentAction.BridgeCircuit, ToolKind.CircuitBridger);
+            for (int i = 0; i < 4; i++) incident.TryExecuteServer(NetworkIncidentAction.SealLeak, ToolKind.SealantGun);
+            yield return null;
+            NetworkCombatEnemy[] networkEnemies = FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None);
+            Require(networkEnemies.Length == 7 && networkEnemies.All(e => e.Template != null), "Network cooling encounter uses map templates");
+            LookAtCombat(player.gameObject, networkEnemies.Select(e => e.Template.AttackPosition).ToArray());
+            yield return new WaitForSecondsRealtime(1.2f);
+            yield return Capture("07-coop-combat.png");
             manager.Shutdown();
             yield return new WaitForSecondsRealtime(0.3f);
             menu.ReturnToModeSelection();
@@ -69,6 +82,13 @@ namespace FunGame.Diagnostics
             yield return Capture("05-solo-guidance.png");
             FindFirstObjectByType<GameMenuController>().OpenSettingsForAutomation();
             yield return Capture("06-solo-settings.png");
+            FindFirstObjectByType<GameMenuController>().EnterGameplayForAutomation();
+            var encounter = FindFirstObjectByType<CoolingCombatIntegrationController>().Encounter;
+            encounter.BeginEncounter();
+            LookAtCombat(FindFirstObjectByType<FunGame.Player.FirstPersonController>().gameObject,
+                encounter.Enemies.Select(e => e.AttackPosition).ToArray());
+            yield return new WaitForSecondsRealtime(1.2f);
+            yield return Capture("08-solo-combat.png");
             FindFirstObjectByType<GameMenuController>().ReturnToModeSelection();
             yield return new WaitForSecondsRealtime(0.5f);
             Require(SceneManager.GetActiveScene().name == GameMenuController.CooperativeScene, "Return to mode menu");
@@ -83,6 +103,18 @@ namespace FunGame.Diagnostics
             Texture2D image = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(_output, file), image.EncodeToPNG());
             Destroy(image);
+        }
+
+        private static void LookAtCombat(GameObject player, Vector3[] positions)
+        {
+            Vector3 center = positions.Aggregate(Vector3.zero, (sum, p) => sum + p) / positions.Length;
+            CharacterController body = player.GetComponent<CharacterController>();
+            body.enabled = false;
+            player.transform.position = new Vector3(center.x, 0.95f, center.z - 4.5f);
+            Camera view = player.GetComponentInChildren<Camera>();
+            view.transform.rotation = Quaternion.LookRotation(center - view.transform.position);
+            body.enabled = true;
+            Physics.SyncTransforms();
         }
 
         private void Require(bool condition, string message)

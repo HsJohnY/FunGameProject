@@ -34,15 +34,15 @@ namespace FunGame.Networking
             if (_campaign.Chapter == NetworkCampaignChapter.CoolingRepair)
                 Instruction = DemoGuidanceRules.ResolveCooling(_incident.RunState, _incident.Phase,
                     _incident.HasInspectedPressure, _incident.HasInspectedPump, tool,
-                    _carry != null && _carry.HasHeldItem, false);
+                    _carry != null && _carry.HasHeldItem, _campaign.EnemiesRemaining > 0);
             else if (_campaign.Chapter == NetworkCampaignChapter.RelaySurge)
-                Instruction = DemoGuidanceRules.ResolveRelay(false,
+                Instruction = DemoGuidanceRules.ResolveRelay(_campaign.IsCurrentChapterFailed,
                     Enumerable.Range(0, 5).Count(_campaign.CanOperateRelay), _campaign.EnemiesRemaining, tool);
             else
-                Instruction = DemoGuidanceRules.ResolveStorm(false, _campaign.CanConfirmStormWave,
+                Instruction = DemoGuidanceRules.ResolveStorm(_campaign.IsCurrentChapterFailed, _campaign.CanConfirmStormWave,
                     _campaign.EnemiesRemaining, tool, _campaign.Chapter == NetworkCampaignChapter.Completed);
 
-            if (_campaign.Chapter != NetworkCampaignChapter.CoolingRepair && _campaign.EnemiesRemaining > 0)
+            if (_campaign.EnemiesRemaining > 0)
             {
                 bool shield = FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Any(e => e.IsShielded);
                 if (Instruction.PrimaryTarget == DemoGuidanceTargetKind.Enemy ||
@@ -71,7 +71,7 @@ namespace FunGame.Networking
                     .Where(s => !s.IsCalibrationConsole && _campaign.CanOperateRelay(s.StationIndex)).Select(s => s.transform));
             if (kind == DemoGuidanceTargetKind.CampaignConsole)
                 return Nearest(FindObjectsByType<NetworkCampaignStation>(FindObjectsSortMode.None)
-                    .Where(s => s.IsCalibrationConsole).Select(s => s.transform));
+                    .Where(s => s.IsCalibrationConsole && s.StationIndex == (_campaign.Chapter == NetworkCampaignChapter.RelaySurge ? 1 : 0)).Select(s => s.transform));
             if (kind == DemoGuidanceTargetKind.SecretPlate)
                 return FindFirstObjectByType<DemoEasterEgg325Interactable>()?.transform;
             if (kind == DemoGuidanceTargetKind.ReplacementPipe)

@@ -88,7 +88,7 @@ namespace FunGame.Tests.EditMode
                 NetworkCampaignStation[] campaignStations = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkCampaignStation>(true)).ToArray();
                 Assert.That(campaignStations.Count(item => !item.IsCalibrationConsole), Is.EqualTo(5));
-                Assert.That(campaignStations.Count(item => item.IsCalibrationConsole), Is.EqualTo(1));
+                Assert.That(campaignStations.Count(item => item.IsCalibrationConsole), Is.EqualTo(2));
             }
             finally
             {

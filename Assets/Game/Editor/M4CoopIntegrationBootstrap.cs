@@ -20,8 +20,8 @@ using UnityEngine.SceneManagement;
 namespace FunGame.Editor
 {
     /// <summary>
-    /// M4-1 只整合三舱空间、网络会话与联网玩家。
-    /// 单人事故和战斗逻辑会冻结到 M4-2/M4-3，避免客户端产生未经同步的本地状态。
+    /// 从唯一的三章地图生成联网入口，保留相同的场景布置和遭遇数据。
+    /// 本地状态机冻结，联网适配器读取地图配置并由服务器推进。
     /// </summary>
     public static class M4CoopIntegrationBootstrap
     {
@@ -294,6 +294,9 @@ namespace FunGame.Editor
             GameObject calibration = FindRequired("Storm Core Calibration Console");
             if (calibration.GetComponent<Collider>() == null) calibration.AddComponent<BoxCollider>();
             calibration.AddComponent<NetworkCampaignStation>().Configure(0, true);
+            GameObject recovery = FindRequired("Power Compartment Recovery Console");
+            if (recovery.GetComponent<Collider>() == null) recovery.AddComponent<BoxCollider>();
+            recovery.AddComponent<NetworkCampaignStation>().Configure(1, true);
 
             // 原单人物品只保留建模来源；联网版本由服务器生成，避免出现两个可见管件。
             FindRequired("Replacement Pipe").SetActive(false);

@@ -134,6 +134,8 @@ namespace FunGame.Editor
                     false);
             }
 
+            for (int index = 0; index < enemies.Length; index++)
+                enemies[index].ConfigureIdentity($"cooling-enemy-{index}", index == 0 ? "护盾精英" : index == 1 ? "侧袭干扰体" : "虫群干扰体");
             encounter.Configure(defenseTarget, enemies, false);
             var integration = root.gameObject.AddComponent<CoolingCombatIntegrationController>();
             integration.Configure(incident, encounter, defenseTarget, 2.5f);

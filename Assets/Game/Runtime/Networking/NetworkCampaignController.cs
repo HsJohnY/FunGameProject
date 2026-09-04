@@ -1,4 +1,6 @@
 using FunGame.Incident;
+using FunGame.Combat;
+using FunGame.Demo;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -10,7 +12,6 @@ namespace FunGame.Networking
     {
         private const int RelayCount = 5;
         private const int RelaySteps = 3;
-        private const int StormWaves = 3;
         [SerializeField] private GameObject enemyPrefab;
         private readonly NetworkVariable<NetworkCampaignChapter> chapter = new NetworkVariable<NetworkCampaignChapter>();
         private readonly NetworkVariable<int> relayTotalProgress = new NetworkVariable<int>();
@@ -19,22 +20,30 @@ namespace FunGame.Networking
         private readonly NetworkVariable<int> enemiesRemaining = new NetworkVariable<int>();
         private readonly NetworkVariable<int> coreIntegrity = new NetworkVariable<int>(100);
         private readonly NetworkVariable<bool> awaitingCalibration = new NetworkVariable<bool>();
+        private readonly NetworkVariable<int> coolingRunsCompleted = new NetworkVariable<int>();
+        private readonly NetworkVariable<bool> chapterFailed = new NetworkVariable<bool>();
         private NetworkCoolingIncidentController _incident;
         private bool _chapterSpawned;
+        private SinglePlayerDemoController _map;
+        private CoolingCombatIntegrationController _coolingCombat;
 
         public NetworkCampaignChapter Chapter => chapter.Value;
         public int RelayTotalProgress => relayTotalProgress.Value;
         public int CurrentStormWave => stormWave.Value;
         public int EnemiesRemaining => enemiesRemaining.Value;
         public int CoreIntegrity => coreIntegrity.Value;
-        public bool CanConfirmStormWave => chapter.Value == NetworkCampaignChapter.StormDefense && awaitingCalibration.Value;
-        public string CurrentObjective => chapter.Value switch
+        public int StormWaveCount => _map != null ? _map.StormEncounters.Count : 5;
+        public int CoolingRunsCompleted => coolingRunsCompleted.Value;
+        public int RequiredCoolingRuns => _map != null ? _map.RequiredCoolingRunCount : 2;
+        public bool IsCurrentChapterFailed => chapterFailed.Value;
+        public bool CanConfirmStormWave => !chapterFailed.Value && chapter.Value == NetworkCampaignChapter.StormDefense && awaitingCalibration.Value;
+        public string CurrentObjective => chapterFailed.Value ? "设备离线：前往本舱恢复终端重启当前章节" : chapter.Value switch
         {
-            NetworkCampaignChapter.CoolingRepair => "第一章：协作恢复冷却系统",
+            NetworkCampaignChapter.CoolingRepair => $"第一章：稳定冷却支路 {CoolingRunsCompleted + 1}/{RequiredCoolingRuns}",
             NetworkCampaignChapter.RelaySurge => $"第二章：继电器 {relayTotalProgress.Value}/{RelayCount * RelaySteps} · 敌人 {enemiesRemaining.Value}",
             NetworkCampaignChapter.StormDefense => awaitingCalibration.Value
-                ? $"第三章：第 {stormWave.Value + 1}/{StormWaves} 波已清除，前往校准终端"
-                : $"第三章：防卫第 {stormWave.Value + 1}/{StormWaves} 波 · 敌人 {enemiesRemaining.Value} · 核心 {coreIntegrity.Value}%",
+                ? $"第三章：第 {stormWave.Value + 1}/{StormWaveCount} 波已清除，前往校准终端"
+                : $"第三章：防卫第 {stormWave.Value + 1}/{StormWaveCount} 波 · 敌人 {enemiesRemaining.Value} · 核心 {coreIntegrity.Value}",
             _ => "远征切片完成：冷却、配电与风暴核心全部在线"
         };
 
@@ -42,6 +51,8 @@ namespace FunGame.Networking
 
         public override void OnNetworkSpawn()
         {
+            _map = FindFirstObjectByType<SinglePlayerDemoController>(FindObjectsInactive.Include);
+            _coolingCombat = FindFirstObjectByType<CoolingCombatIntegrationController>(FindObjectsInactive.Include);
             chapter.OnValueChanged += (_, _) => RefreshDoors();
             if (IsServer)
             {
@@ -57,15 +68,33 @@ namespace FunGame.Networking
         {
             if (!IsServer) return;
             _incident ??= FindFirstObjectByType<NetworkCoolingIncidentController>();
-            if (chapter.Value == NetworkCampaignChapter.CoolingRepair && _incident != null &&
-                _incident.RunState == CoolingIncidentRunState.Succeeded)
+            if (chapter.Value != NetworkCampaignChapter.CoolingRepair || _incident == null) return;
+            if (_incident.RunState == CoolingIncidentRunState.Active && _incident.Phase >= CoolingIncidentPhase.LoosenConnection && !_chapterSpawned)
             {
-                chapter.Value = NetworkCampaignChapter.RelaySurge;
-                SpawnEncounter(false, 7);
+                _chapterSpawned = true;
+                SpawnEncounter(_coolingCombat.Encounter);
+            }
+            if (_incident.RunState == CoolingIncidentRunState.Failed || _incident.Phase == CoolingIncidentPhase.AssessSymptoms)
+            {
+                if (_chapterSpawned) ClearEnemies();
+                _chapterSpawned = false;
+            }
+            if (_incident.RunState == CoolingIncidentRunState.Succeeded)
+            {
+                ClearEnemies();
+                coolingRunsCompleted.Value++;
+                _chapterSpawned = false;
+                if (CoolingRunsCompleted < RequiredCoolingRuns) _incident.BeginNextBranchServer();
+                else
+                {
+                    chapter.Value = NetworkCampaignChapter.RelaySurge;
+                    SpawnEncounter(_map.RelayDefenseEncounter);
+                }
             }
         }
 
         public bool CanOperateRelay(int index) => chapter.Value == NetworkCampaignChapter.RelaySurge &&
+                                                   !chapterFailed.Value &&
                                                    index >= 0 && index < relayProgress.Count && relayProgress[index] < RelaySteps;
 
         public void TryOperateRelayServer(int index)
@@ -87,23 +116,51 @@ namespace FunGame.Networking
 
         public void ApplyCoreDamageServer(int amount)
         {
-            if (!IsServer || chapter.Value == NetworkCampaignChapter.Completed) return;
+            if (!IsServer || chapter.Value == NetworkCampaignChapter.Completed || chapterFailed.Value) return;
             coreIntegrity.Value = Mathf.Max(0, coreIntegrity.Value - Mathf.Max(0, amount));
-            if (coreIntegrity.Value == 0) ResetCurrentCombatServer();
+            if (chapter.Value == NetworkCampaignChapter.CoolingRepair)
+            {
+                _incident?.ApplyTemperatureSpikeServer(coreIntegrity.Value == 0 ? 100f : 2.5f);
+                return;
+            }
+            if (coreIntegrity.Value == 0)
+            {
+                chapterFailed.Value = true;
+                ClearEnemies();
+            }
+        }
+
+        public bool CanUseRecoveryConsole(int index) => index == (chapter.Value == NetworkCampaignChapter.RelaySurge ? 1 : 0) &&
+            (chapter.Value == NetworkCampaignChapter.RelaySurge || chapter.Value == NetworkCampaignChapter.StormDefense) &&
+            (chapterFailed.Value || CanConfirmStormWave);
+
+        public void UseRecoveryConsoleServer(int index)
+        {
+            if (!IsServer || !CanUseRecoveryConsole(index)) return;
+            if (!chapterFailed.Value) { ConfirmStormWaveServer(); return; }
+            chapterFailed.Value = false;
+            awaitingCalibration.Value = false;
+            if (chapter.Value == NetworkCampaignChapter.RelaySurge)
+            {
+                relayTotalProgress.Value = 0;
+                for (int i = 0; i < relayProgress.Count; i++) relayProgress[i] = 0;
+            }
+            else stormWave.Value = 0;
+            ResetCurrentCombatServer();
         }
 
         public void ConfirmStormWaveServer()
         {
             if (!IsServer || !CanConfirmStormWave) return;
             awaitingCalibration.Value = false;
-            if (stormWave.Value + 1 >= StormWaves)
+            if (stormWave.Value + 1 >= StormWaveCount)
             {
                 chapter.Value = NetworkCampaignChapter.Completed;
                 return;
             }
             stormWave.Value++;
             coreIntegrity.Value = 100;
-            SpawnEncounter(true, 7 + stormWave.Value * 2);
+            SpawnEncounter(_map.StormEncounters[stormWave.Value]);
         }
 
         private void TryFinishRelayChapter()
@@ -112,36 +169,34 @@ namespace FunGame.Networking
             chapter.Value = NetworkCampaignChapter.StormDefense;
             stormWave.Value = 0;
             coreIntegrity.Value = 100;
-            SpawnEncounter(true, 7);
+            SpawnEncounter(_map.StormEncounters[0]);
         }
 
         private void ResetCurrentCombatServer()
         {
-            foreach (NetworkCombatEnemy enemy in FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None))
-                if (enemy.IsSpawned) enemy.NetworkObject.Despawn(true);
-            coreIntegrity.Value = 100;
-            SpawnEncounter(chapter.Value == NetworkCampaignChapter.StormDefense,
-                chapter.Value == NetworkCampaignChapter.StormDefense ? 7 + stormWave.Value * 2 : 7);
+            ClearEnemies();
+            SpawnEncounter(chapter.Value == NetworkCampaignChapter.StormDefense
+                ? _map.StormEncounters[stormWave.Value] : _map.RelayDefenseEncounter);
         }
 
-        private void SpawnEncounter(bool storm, int count)
+        private void ClearEnemies()
         {
-            if (enemyPrefab == null) return;
-            Vector3 center = storm ? new Vector3(0f, 1f, 45f) : new Vector3(0f, 1f, 25f);
-            Vector3 target = storm ? new Vector3(0f, 1f, 43f) : new Vector3(0f, 1f, 23f);
-            enemiesRemaining.Value = count;
-            for (int index = 0; index < count; index++)
+            foreach (NetworkCombatEnemy enemy in FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None))
+                if (enemy.IsSpawned) enemy.NetworkObject.Despawn(true);
+            enemiesRemaining.Value = 0;
+        }
+
+        private void SpawnEncounter(CombatEncounterController encounter)
+        {
+            if (enemyPrefab == null || encounter == null) return;
+            coreIntegrity.Value = encounter.DefenseTarget.MaxIntegrity;
+            enemiesRemaining.Value = encounter.Enemies.Count;
+            foreach (InterferenceEnemy source in encounter.Enemies)
             {
-                // 前五只组成可被喷枪覆盖的虫群，另有侧袭体与护盾精英。
-                Vector3 position = center + new Vector3((index % 3 - 1) * 0.85f, 0f, 3f + index / 3 * 1.1f);
-                GameObject instance = Instantiate(enemyPrefab, position, Quaternion.identity);
+                GameObject instance = Instantiate(enemyPrefab, source.transform.position, source.transform.rotation);
                 NetworkObject networkObject = instance.GetComponent<NetworkObject>();
                 networkObject.Spawn();
-                NetworkEnemyKind kind = index < 5 ? NetworkEnemyKind.Swarm : index == 5 ? NetworkEnemyKind.Flanker
-                    : index == 6 ? NetworkEnemyKind.ShieldElite : NetworkEnemyKind.Ranged;
-                instance.GetComponent<NetworkCombatEnemy>().InitializeServer(this, target,
-                    kind == NetworkEnemyKind.Swarm ? 2 : kind == NetworkEnemyKind.ShieldElite ? 6 : 4,
-                    kind == NetworkEnemyKind.Flanker ? 1.1f : 0.75f, kind == NetworkEnemyKind.ShieldElite, kind);
+                instance.GetComponent<NetworkCombatEnemy>().InitializeFromMapServer(this, source);
             }
         }
 

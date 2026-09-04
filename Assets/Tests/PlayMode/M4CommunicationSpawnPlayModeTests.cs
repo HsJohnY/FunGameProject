@@ -89,23 +89,31 @@ namespace FunGame.Tests.PlayMode
             Assert.That(interactor.ExecuteCurrentInteraction(), Is.True);
             yield return null;
             Assert.That(incident.HasInspectedPump, Is.True);
-            CompleteCoolingIncident(incident);
-            yield return null;
+            yield return CompleteCoolingIncident(incident);
+            Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.CoolingRepair));
+            Assert.That(campaign.CoolingRunsCompleted, Is.EqualTo(1));
+            yield return CompleteCoolingIncident(incident);
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.RelaySurge));
-            Assert.That(Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Count(e => e.Kind == NetworkEnemyKind.Swarm), Is.EqualTo(5));
-            NetworkCombatEnemy elite = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Single(e => e.IsShielded);
-            int eliteHealth = elite.Health;
-            elite.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
-            Assert.That(elite.Health, Is.EqualTo(eliteHealth));
-            elite.ApplyToolServer(ToolKind.CircuitBridger, Vector3.zero);
-            Assert.That(elite.IsShielded, Is.False);
-            Assert.That(elite.IsStunned, Is.True);
-            NetworkCombatEnemy[] swarm = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None)
-                .Where(e => e.Kind == NetworkEnemyKind.Swarm).ToArray();
-            int[] before = swarm.Select(e => e.Health).ToArray();
-            swarm[0].ApplyToolServer(ToolKind.SealantGun, Vector3.zero);
-            Assert.That(swarm.Where((e, i) => e.Health < before[i]).Count(), Is.GreaterThan(1), "喷枪必须影响范围内多个敌人");
-            Assert.That(swarm[0].IsSlowed, Is.True);
+            var source = Object.FindFirstObjectByType<SinglePlayerDemoController>(FindObjectsInactive.Include);
+            Assert.That(campaign.EnemiesRemaining, Is.EqualTo(source.RelayDefenseEncounter.Enemies.Count));
+            Assert.That(campaign.StormWaveCount, Is.EqualTo(source.StormEncounters.Count));
+            foreach (NetworkCombatEnemy enemy in Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None))
+            {
+                Assert.That(enemy.Template, Is.Not.Null);
+                Assert.That(enemy.Health, Is.EqualTo(enemy.Template.MaxHealth));
+                Assert.That(Vector3.Distance(enemy.transform.position, enemy.Template.transform.position), Is.LessThan(0.5f));
+            }
+
+            campaign.ApplyCoreDamageServer(10000);
+            Assert.That(campaign.IsCurrentChapterFailed, Is.True);
+            NetworkCampaignStation recovery = Object.FindObjectsByType<NetworkCampaignStation>(FindObjectsSortMode.None)
+                .Single(s => s.IsCalibrationConsole && s.StationIndex == 1);
+            AimAt(localPlayer.gameObject, recovery.transform.position, Vector3.back);
+            interactor.RefreshTarget();
+            Assert.That(interactor.ExecuteCurrentInteraction(), Is.True);
+            yield return null;
+            Assert.That(campaign.IsCurrentChapterFailed, Is.False);
+            Assert.That(campaign.EnemiesRemaining, Is.EqualTo(source.RelayDefenseEncounter.Enemies.Count));
 
             for (int relay = 0; relay < 5; relay++)
             for (int step = 0; step < 3; step++)
@@ -114,7 +122,7 @@ namespace FunGame.Tests.PlayMode
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.StormDefense));
 
-            for (int wave = 0; wave < 3; wave++)
+            for (int wave = 0; wave < campaign.StormWaveCount; wave++)
             {
                 DefeatAllEnemies();
                 yield return null;
@@ -129,7 +137,7 @@ namespace FunGame.Tests.PlayMode
             yield return SceneManager.UnloadSceneAsync(scene);
         }
 
-        private static void CompleteCoolingIncident(NetworkCoolingIncidentController incident)
+        private static IEnumerator CompleteCoolingIncident(NetworkCoolingIncidentController incident)
         {
             if (!incident.HasInspectedPressure) Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPressure, ToolKind.None), Is.True);
             if (!incident.HasInspectedPump) Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPump, ToolKind.None), Is.True);
@@ -137,11 +145,29 @@ namespace FunGame.Tests.PlayMode
                 Assert.That(incident.TryExecuteServer(NetworkIncidentAction.BridgeCircuit, ToolKind.CircuitBridger), Is.True);
             for (int index = 0; index < 4; index++)
                 Assert.That(incident.TryExecuteServer(NetworkIncidentAction.SealLeak, ToolKind.SealantGun), Is.True);
+            yield return null;
+            NetworkCombatEnemy[] spawned = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None);
+            Assert.That(spawned.Count(e => e.Kind == NetworkEnemyKind.Swarm), Is.EqualTo(5));
+            NetworkCombatEnemy elite = spawned.Single(e => e.IsShielded);
+            int eliteHealth = elite.Health;
+            elite.ApplyToolServer(ToolKind.ImpactWrench, elite.transform.position + Vector3.back);
+            Assert.That(elite.Health, Is.EqualTo(eliteHealth));
+            elite.ApplyToolServer(ToolKind.CircuitBridger, elite.transform.position + Vector3.back);
+            Assert.That(elite.IsShielded, Is.False);
+            Assert.That(elite.IsStunned, Is.True);
+            NetworkCombatEnemy[] swarm = spawned.Where(e => e.Kind == NetworkEnemyKind.Swarm).ToArray();
+            NetworkCombatEnemy primary = swarm.OrderByDescending(e => swarm.Count(other => Vector3.Distance(e.transform.position, other.transform.position) <= 1.65f)).First();
+            var campaign = Object.FindFirstObjectByType<NetworkCampaignController>();
+            int before = campaign.EnemiesRemaining;
+            primary.ApplyToolServer(ToolKind.SealantGun, primary.transform.position + Vector3.back);
+            Assert.That(before - campaign.EnemiesRemaining, Is.GreaterThan(1), "Spray must clear nearby swarm members");
+            DefeatAllEnemies();
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.OperateFastener, ToolKind.ImpactWrench), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InstallPipe, ToolKind.None, true), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.OperateFastener, ToolKind.ImpactWrench), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPressure, ToolKind.None), Is.True);
             Assert.That(incident.TryExecuteServer(NetworkIncidentAction.OperatePump, ToolKind.None), Is.True);
+            yield return null;
         }
 
         private static void DefeatAllEnemies()
@@ -150,7 +176,7 @@ namespace FunGame.Tests.PlayMode
             foreach (NetworkCombatEnemy enemy in enemies)
             {
                 if (enemy.IsShielded) enemy.ApplyToolServer(ToolKind.CircuitBridger, Vector3.zero);
-                for (int hit = 0; hit < 4 && enemy != null && enemy.Health > 0; hit++)
+                for (int hit = 0; hit < 8 && enemy != null && enemy.Health > 0; hit++)
                     enemy.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
             }
         }

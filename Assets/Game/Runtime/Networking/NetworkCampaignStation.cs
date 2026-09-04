@@ -39,8 +39,9 @@ namespace FunGame.Networking
         public InteractionOption GetInteractionOption(ContextInteractor actor)
         {
             NetworkCampaignController campaign = FindFirstObjectByType<NetworkCampaignController>();
-            bool available = calibrationConsole && campaign != null && campaign.CanConfirmStormWave;
-            return new InteractionOption("m4-storm-console", "风暴核心校准终端", "写入波次校准",
+            bool available = calibrationConsole && campaign != null && campaign.CanUseRecoveryConsole(stationIndex);
+            return new InteractionOption(stationIndex == 1 ? "m4-relay-recovery" : "m4-storm-console", stationIndex == 1 ? "配电舱恢复终端" : "风暴核心校准终端",
+                campaign != null && campaign.IsCurrentChapterFailed ? "重启当前章节" : "写入波次校准",
                 InteractionPriority.Device, available,
                 available ? string.Empty : "清除当前波次后才能写入校准");
         }
@@ -48,7 +49,7 @@ namespace FunGame.Networking
         public bool ExecuteInteraction(ContextInteractor actor)
         {
             NetworkPlayerCampaignAgent agent = actor.GetComponent<NetworkPlayerCampaignAgent>();
-            return calibrationConsole && agent != null && agent.RequestCalibration();
+            return calibrationConsole && agent != null && agent.RequestCalibration(stationIndex);
         }
     }
 }

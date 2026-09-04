@@ -18,10 +18,10 @@ namespace FunGame.Networking
             return true;
         }
 
-        public bool RequestCalibration()
+        public bool RequestCalibration(int index = 0)
         {
             if (!IsSpawned || !IsOwner) return false;
-            CalibrationRpc();
+            CalibrationRpc(index);
             return true;
         }
 
@@ -43,11 +43,11 @@ namespace FunGame.Networking
         }
 
         [Rpc(SendTo.Server)]
-        private void CalibrationRpc()
+        private void CalibrationRpc(int index)
         {
-            NetworkCampaignStation station = FindNearestStation(0, true);
+            NetworkCampaignStation station = FindNearestStation(index, true);
             if (station == null || Vector3.Distance(transform.position, station.transform.position) > MaximumDistance) return;
-            FindFirstObjectByType<NetworkCampaignController>()?.ConfirmStormWaveServer();
+            FindFirstObjectByType<NetworkCampaignController>()?.UseRecoveryConsoleServer(index);
         }
 
         [Rpc(SendTo.Server)]
@@ -67,7 +67,7 @@ namespace FunGame.Networking
             float distance = float.MaxValue;
             foreach (NetworkCampaignStation station in FindObjectsByType<NetworkCampaignStation>(FindObjectsSortMode.None))
             {
-                if (station.IsCalibrationConsole != console || (!console && station.StationIndex != index)) continue;
+                if (station.IsCalibrationConsole != console || station.StationIndex != index) continue;
                 float candidate = Vector3.SqrMagnitude(station.transform.position);
                 if (candidate < distance) { best = station; distance = candidate; }
             }

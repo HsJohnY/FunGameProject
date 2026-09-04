@@ -193,6 +193,18 @@ namespace FunGame.Networking
 
         private CoolingIncidentRules Rules => _rules ??= new CoolingIncidentRules(diagnosticChecksEnabled);
 
+        public void BeginNextBranchServer()
+        {
+            if (IsServer && runState.Value == CoolingIncidentRunState.Succeeded) ResetIncidentServer();
+        }
+
+        public void ApplyTemperatureSpikeServer(float amount)
+        {
+            if (!IsServer || runState.Value != CoolingIncidentRunState.Active) return;
+            temperature.Value += Mathf.Max(0f, amount);
+            if (temperature.Value >= failureTemperature) runState.Value = CoolingIncidentRunState.Failed;
+        }
+
         private void ResetIncidentServer()
         {
             if (IsSpawned)

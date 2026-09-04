@@ -46,6 +46,9 @@ namespace FunGame.Combat
         [SerializeField, HideInInspector] private Vector3 spawnPosition;
         [SerializeField, HideInInspector] private Vector3 baseScale;
         [SerializeField, HideInInspector] private bool hasSpawnPose;
+        [SerializeField] private bool hasCombatPosition;
+        [SerializeField] private Vector3 attackLocalPoint;
+        [SerializeField] private Vector3 approachLocalPoint;
         private float _hitFlashRemaining;
         private float _defeatedVisualRemaining;
         private float _slowedUntil;
@@ -71,6 +74,43 @@ namespace FunGame.Combat
         public bool IsEncounterActive => _encounterActive;
         public InterferenceEnemyBehavior Behavior => behavior;
         public DefendableSystemTarget DefenseTarget => defenseTarget;
+        public string TargetId => targetId;
+        public string DisplayName => targetName;
+        public float MoveSpeed => moveSpeed;
+        public float AttackInterval => attackIntervalSeconds;
+        public float AttackWindup => attackWindupSeconds;
+        public int InterferenceDamage => interferenceDamage;
+        public int WrenchDamage => wrenchDamage;
+        public float KnockbackDistance => knockbackDistance;
+        public bool RequiresCircuitDisruption => requiresCircuitDisruption;
+        public Vector3 AuthoredScale => baseScale;
+        public bool HasCombatPosition => hasCombatPosition;
+        public Vector3 AttackPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(attackLocalPoint) : defenseTarget.transform.position;
+        public Vector3 ApproachPosition => hasCombatPosition ? defenseTarget.transform.TransformPoint(approachLocalPoint) : AttackPosition;
+
+        public void ConfigureCombatPosition(Vector3 spawn, Vector3 attack, Vector3 approach)
+        {
+            transform.position = spawn;
+            spawnPosition = spawn;
+            attackLocalPoint = defenseTarget.transform.InverseTransformPoint(attack);
+            approachLocalPoint = defenseTarget.transform.InverseTransformPoint(approach);
+            hasCombatPosition = true;
+        }
+
+        public Vector3 GetApproachDestination(Vector3 position, ref bool reachedWaypoint)
+        {
+            Vector3 toWaypoint = ApproachPosition - position;
+            toWaypoint.y = 0f;
+            if (toWaypoint.sqrMagnitude <= 0.09f) reachedWaypoint = true;
+            return reachedWaypoint ? AttackPosition : ApproachPosition;
+        }
+
+        public bool IsAtCombatPosition(Vector3 position)
+        {
+            Vector3 delta = AttackPosition - position;
+            delta.y = 0f;
+            return delta.sqrMagnitude <= 0.0625f;
+        }
 
         public void ConfigureIdentity(string id, string displayName)
         {
@@ -91,6 +131,8 @@ namespace FunGame.Combat
             EnsurePhysicsBody();
             _renderer = GetComponent<Renderer>();
             _propertyBlock = new MaterialPropertyBlock();
+            // 场景生成时父舱室可能在 Configure 后平移，以加载完成的世界坐标为准。
+            hasSpawnPose = false;
             CaptureSpawnPoseIfNeeded();
             _flankSide = transform.position.x < (defenseTarget != null ? defenseTarget.transform.position.x : 0f) ? -1f : 1f;
             CreateRules();
@@ -116,13 +158,15 @@ namespace FunGame.Combat
             Vector3 toDestination = destination - transform.position;
             toDestination.y = 0f;
             float distance = toDestination.magnitude;
-            bool targetInRange = distance <= attackRange;
+            bool targetInRange = hasCombatPosition
+                ? _reachedFlankWaypoint && IsAtCombatPosition(transform.position)
+                : distance <= attackRange && (behavior != InterferenceEnemyBehavior.FlankingAttach || _reachedFlankWaypoint);
 
             if (!targetInRange && distance > 0.001f)
             {
                 Vector3 direction = toDestination / distance;
                 float speedMultiplier = IsSlowed ? sealantSpeedMultiplier : 1f;
-                MoveWithCollision(direction * (moveSpeed * speedMultiplier * Time.deltaTime), true);
+                MoveWithCollision(direction * Mathf.Min(distance, moveSpeed * speedMultiplier * Time.deltaTime), true);
                 transform.forward = direction;
             }
 
@@ -376,6 +420,9 @@ namespace FunGame.Combat
 
         private Vector3 GetDestination()
         {
+            if (hasCombatPosition)
+                return GetApproachDestination(transform.position, ref _reachedFlankWaypoint);
+
             if (behavior == InterferenceEnemyBehavior.Direct || behavior == InterferenceEnemyBehavior.RangedPulse)
             {
                 return defenseTarget.transform.position;

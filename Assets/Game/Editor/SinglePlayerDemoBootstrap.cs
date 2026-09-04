@@ -207,6 +207,11 @@ namespace FunGame.Editor
             relayCompartment.position = RelayCompartmentOffset;
             stormChamber.position = StormChamberOffset;
 
+            CombatLayoutAuthoring.Configure(chapterOneCombat.Encounter, Vector3.zero);
+            CombatLayoutAuthoring.Configure(relayDefense, RelayCompartmentOffset);
+            foreach (CombatEncounterController wave in stormWaves)
+                CombatLayoutAuthoring.Configure(wave, StormChamberOffset);
+
             var campaign = root.gameObject.AddComponent<SinglePlayerDemoController>();
             campaign.Configure(
                 incident,
