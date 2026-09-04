@@ -237,6 +237,7 @@ namespace FunGame.Editor
             AddToolRack("Circuit Bridger Rack", "m4-bridger-rack", ToolKind.CircuitBridger);
             AddToolRack("Relay Bridger Station", "m4-relay-bridger", ToolKind.CircuitBridger);
             AddToolRack("Relay Wrench Station", "m4-relay-wrench", ToolKind.ImpactWrench);
+            AddToolRack("Relay Sealant Station", "m4-relay-sealant", ToolKind.SealantGun);
             AddToolRack("Storm Wrench Station", "m4-storm-wrench", ToolKind.ImpactWrench);
             AddToolRack("Storm Bridger Station", "m4-storm-bridger", ToolKind.CircuitBridger);
             AddToolRack("Storm Sealant Station", "m4-storm-sealant", ToolKind.SealantGun);

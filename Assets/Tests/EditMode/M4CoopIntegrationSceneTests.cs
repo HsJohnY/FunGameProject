@@ -80,7 +80,7 @@ namespace FunGame.Tests.EditMode
                 Assert.That(stations.Select(item => item.Action).Distinct().Count(), Is.EqualTo(7));
                 NetworkToolRackInteractable[] racks = roots
                     .SelectMany(item => item.GetComponentsInChildren<NetworkToolRackInteractable>(true)).ToArray();
-                Assert.That(racks.Length, Is.EqualTo(8));
+                Assert.That(racks.Length, Is.EqualTo(9));
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<PlayerToolbelt>(), Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<ToolController>(), Is.Not.Null);

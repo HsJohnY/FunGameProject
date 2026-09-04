@@ -76,6 +76,9 @@ namespace FunGame.Editor
                 relayCompartment, "Relay Wrench Station", new Vector3(2.8f, 1f, -7.6f),
                 ToolKind.ImpactWrench, warningMaterial, darkMaterial);
             CreateCompartmentToolRack(
+                relayCompartment, "Relay Sealant Station", new Vector3(5.65f, 1f, -3f),
+                ToolKind.SealantGun, stormMaterial, warningMaterial);
+            CreateCompartmentToolRack(
                 stormChamber, "Storm Wrench Station", new Vector3(5.65f, 1f, -6.4f),
                 ToolKind.ImpactWrench, warningMaterial, stormMaterial);
             CreateCompartmentToolRack(

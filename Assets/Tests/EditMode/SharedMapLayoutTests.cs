@@ -37,9 +37,27 @@ namespace FunGame.Tests.EditMode
                 Assert.That(campaign.StormEncounters.Last().Enemies.Select(e => e.DeploymentDelay).Distinct().Count(), Is.EqualTo(2));
                 Assert.That(campaign.StormEncounters.SelectMany(w => w.Enemies).Where(e => e.RequiresCircuitDisruption)
                     .All(e => e.DeploymentDelay == 8f), Is.True);
-                var stormRoom = mode.MapRoot.GetComponentsInChildren<Transform>(true).Single(t => t.name == "Chapter 3 - Storm Core Chamber");
-                Assert.That(stormRoom.GetComponentsInChildren<FunGame.Tools.ToolRackInteractable>(true)
-                    .Select(r => r.OfferedTool).Distinct().Count(), Is.EqualTo(3));
+                var chapterRacks = new[]
+                {
+                    new[] { "Impact Wrench Rack", "Sealant Gun Rack", "Circuit Bridger Rack" },
+                    new[] { "Relay Wrench Station", "Relay Sealant Station", "Relay Bridger Station" },
+                    new[] { "Storm Wrench Station", "Storm Sealant Station", "Storm Bridger Station" }
+                };
+                var racks = mode.MapRoot.GetComponentsInChildren<FunGame.Tools.ToolRackInteractable>(true);
+                Assert.That(racks.Length, Is.EqualTo(9));
+                for (int chapter = 0; chapter < chapterRacks.Length; chapter++)
+                {
+                    var localRacks = chapterRacks[chapter].Select(name => racks.Single(r => r.name == name)).ToArray();
+                    Assert.That(localRacks.Select(r => r.OfferedTool), Is.EquivalentTo(new[]
+                    {
+                        FunGame.Tools.ToolKind.ImpactWrench,
+                        FunGame.Tools.ToolKind.SealantGun,
+                        FunGame.Tools.ToolKind.CircuitBridger
+                    }), $"Chapter {chapter + 1} must provide every tool exactly once.");
+                    Assert.That(localRacks.All(r => r.transform.position.z >= chapter * 20f - 10f &&
+                        r.transform.position.z < chapter * 20f + 10f), Is.True,
+                        $"Chapter {chapter + 1} racks must be inside their own room.");
+                }
             }
             finally { EditorSceneManager.CloseScene(scene, true); }
         }
@@ -55,7 +73,7 @@ namespace FunGame.Tests.EditMode
                 transforms.Single(t => t.name == "Chapter 2 - Power Relay Compartment").gameObject.SetActive(true);
                 Physics.SyncTransforms();
                 var relays = transforms.Where(t => t.GetComponent<DemoRelayTarget>() != null).Select(t => t.GetComponent<Collider>()).ToArray();
-                foreach (string name in new[] { "Relay Bridger Station", "Relay Wrench Station" })
+                foreach (string name in new[] { "Relay Bridger Station", "Relay Wrench Station", "Relay Sealant Station" })
                 {
                     Bounds rack = transforms.Single(t => t.name == name).GetComponent<Collider>().bounds;
                     foreach (Collider relay in relays)
