@@ -132,6 +132,8 @@ namespace FunGame.Networking
 
         private void OnGUI()
         {
+            if (!escapeStopsSession && FunGame.UI.GameMenuController.IsAnyMenuOpen) return;
+            if (!escapeStopsSession && !panelVisible) return;
             if (!panelVisible)
             {
                 GUILayout.BeginArea(new Rect(20f, 20f, 300f, 58f), GUI.skin.box);
@@ -141,7 +143,7 @@ namespace FunGame.Networking
             }
 
             const float width = 420f;
-            GUILayout.BeginArea(new Rect(20f, 20f, width, 300f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(20f, escapeStopsSession ? 20f : 126f, width, 300f), GUI.skin.box);
             GUILayout.Label($"{panelTitle}（F1 隐藏）");
             GUILayout.Space(8f);
 

@@ -1,5 +1,8 @@
 using System.IO;
 using FunGame.Networking;
+using FunGame.Combat;
+using FunGame.Demo;
+using FunGame.UI;
 using FunGame.Player;
 using FunGame.Interaction;
 using FunGame.Tools;
@@ -204,6 +207,13 @@ namespace FunGame.Editor
             bridgerVisual.transform.localScale = new Vector3(0.18f, 0.14f, 0.58f);
             Object.DestroyImmediate(bridgerVisual.GetComponent<Collider>());
 
+            const string materials = "Assets/Game/Content/Graybox/";
+            CoolingBayArtBuilder.EnhanceFirstPersonTools(
+                UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(materials + "M1_Machinery.mat"),
+                UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(materials + "M1_Warning.mat"),
+                UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(materials + "M1_Trim.mat"),
+                UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(materials + "M1_Circuit.mat"), player.transform);
+
             FirstPersonController firstPersonController = player.AddComponent<FirstPersonController>();
             firstPersonController.enabled = false;
             var playerToolbelt = player.AddComponent<PlayerToolbelt>();
@@ -218,6 +228,16 @@ namespace FunGame.Editor
             player.AddComponent<NetworkPlayerCampaignAgent>();
             var promptOverlay = player.AddComponent<ContextPromptOverlay>();
             promptOverlay.enabled = false;
+            var cameraFeedback = player.AddComponent<CombatCameraFeedback>();
+            cameraFeedback.Configure(viewCamera.transform);
+            var toolFeedback = player.AddComponent<WrenchFeedbackPresenter>();
+            toolFeedback.Configure(wrenchVisual.transform, sealantVisual.transform, bridgerVisual.transform,
+                cameraFeedback, null);
+            var beltOverlay = player.AddComponent<ToolbeltStatusOverlay>();
+            beltOverlay.ConfigureNetworkMode();
+            var guidanceSource = player.AddComponent<NetworkObjectiveGuidance>();
+            var guidance = player.AddComponent<DemoObjectiveGuidancePresenter>();
+            guidance.ConfigureNetwork(guidanceSource, contextInteractor);
             NetworkPlayerController networkPlayer = player.AddComponent<NetworkPlayerController>();
 
             var serializedPlayer = new SerializedObject(networkPlayer);
@@ -228,10 +248,14 @@ namespace FunGame.Editor
             renderers.arraySize = 1;
             renderers.GetArrayElementAtIndex(0).objectReferenceValue = bodyRenderer;
             SerializedProperty ownerBehaviours = serializedPlayer.FindProperty("ownerOnlyBehaviours");
-            ownerBehaviours.arraySize = 3;
+            ownerBehaviours.arraySize = 7;
             ownerBehaviours.GetArrayElementAtIndex(0).objectReferenceValue = contextInteractor;
             ownerBehaviours.GetArrayElementAtIndex(1).objectReferenceValue = promptOverlay;
             ownerBehaviours.GetArrayElementAtIndex(2).objectReferenceValue = toolController;
+            ownerBehaviours.GetArrayElementAtIndex(3).objectReferenceValue = cameraFeedback;
+            ownerBehaviours.GetArrayElementAtIndex(4).objectReferenceValue = toolFeedback;
+            ownerBehaviours.GetArrayElementAtIndex(5).objectReferenceValue = beltOverlay;
+            ownerBehaviours.GetArrayElementAtIndex(6).objectReferenceValue = guidance;
             serializedPlayer.ApplyModifiedPropertiesWithoutUndo();
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(player, PlayerPrefabPath);

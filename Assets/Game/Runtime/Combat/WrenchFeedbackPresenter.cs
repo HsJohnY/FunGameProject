@@ -170,7 +170,7 @@ namespace FunGame.Combat
                 return;
             }
 
-            bool hitEnemy = feedback.Target is InterferenceEnemy;
+            bool hitEnemy = feedback.Target is InterferenceEnemy || feedback.Target is FunGame.Networking.NetworkCombatEnemy;
             if (hitEnemy)
             {
                 cameraFeedback?.Play();

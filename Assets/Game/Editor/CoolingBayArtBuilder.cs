@@ -32,11 +32,11 @@ namespace FunGame.Editor
             Material machineryMaterial,
             Material warningMaterial,
             Material trimMaterial,
-            Material circuitMaterial = null)
+            Material circuitMaterial = null, Transform playerRoot = null)
         {
             // 兼容旧战斗场景生成器；未传入紫色电路材质时沿用警示材质。
             circuitMaterial ??= warningMaterial;
-            GameObject wrenchPlaceholder = FindSceneObject("Impact Wrench Visual");
+            GameObject wrenchPlaceholder = FindToolObject("Impact Wrench Visual", playerRoot);
             if (wrenchPlaceholder != null)
             {
                 Transform root = PrepareToolModel(wrenchPlaceholder, "Impact Wrench Model");
@@ -69,7 +69,7 @@ namespace FunGame.Editor
                     machineryMaterial, Quaternion.identity);
             }
 
-            GameObject sealantPlaceholder = FindSceneObject("Sealant Gun Visual");
+            GameObject sealantPlaceholder = FindToolObject("Sealant Gun Visual", playerRoot);
             if (sealantPlaceholder != null)
             {
                 Transform root = PrepareToolModel(sealantPlaceholder, "Sealant Sprayer Model");
@@ -105,7 +105,7 @@ namespace FunGame.Editor
                     trimMaterial, Quaternion.identity);
             }
 
-            GameObject bridgerPlaceholder = FindSceneObject("Circuit Bridger Visual");
+            GameObject bridgerPlaceholder = FindToolObject("Circuit Bridger Visual", playerRoot);
             if (bridgerPlaceholder != null)
             {
                 Transform root = PrepareToolModel(bridgerPlaceholder, "Circuit Bridger Model");
@@ -146,6 +146,14 @@ namespace FunGame.Editor
                     new Vector3(0f, 0.1f, 0.15f), new Vector3(0.13f, 0.025f, 0.11f),
                     circuitMaterial, Quaternion.Euler(-12f, 0f, 0f));
             }
+        }
+
+        private static GameObject FindToolObject(string name, Transform playerRoot)
+        {
+            if (playerRoot == null) return FindSceneObject(name);
+            foreach (Transform part in playerRoot.GetComponentsInChildren<Transform>(true))
+                if (part.name == name) return part.gameObject;
+            return null;
         }
 
         private static Transform PrepareToolModel(GameObject placeholder, string modelName)

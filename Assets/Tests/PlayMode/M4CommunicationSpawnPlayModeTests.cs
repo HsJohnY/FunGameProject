@@ -3,6 +3,9 @@ using FunGame.Incident;
 using FunGame.Networking;
 using FunGame.UI;
 using FunGame.Tools;
+using FunGame.Interaction;
+using FunGame.Demo;
+using System.Linq;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEngine;
@@ -61,10 +64,48 @@ namespace FunGame.Tests.PlayMode
             Assert.That(campaign.IsSpawned, Is.True);
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.CoolingRepair));
 
+            var localPlayer = manager.LocalClient.PlayerObject;
+            var interactor = localPlayer.GetComponent<ContextInteractor>();
+            var guidance = localPlayer.GetComponent<DemoObjectiveGuidancePresenter>();
+            Assert.That(guidance.enabled, Is.True);
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.That(guidance.CurrentTarget, Is.Not.Null);
+            Assert.That(guidance.CurrentInstruction.PrimaryTarget, Is.EqualTo(DemoGuidanceTargetKind.PressureGauge));
+
+            // 通过实际准星和 E 入口验证：禁用的单人组件不能抢走网络请求。
+            NetworkIncidentStation pressure = Object.FindObjectsByType<NetworkIncidentStation>(FindObjectsSortMode.None)
+                .Single(s => s.Action == NetworkIncidentAction.InspectPressure);
+            AimAt(localPlayer.gameObject, pressure.transform.position, Vector3.right);
+            interactor.RefreshTarget();
+            Assert.That(interactor.CurrentOption?.TargetId, Is.EqualTo("m4-pressure"));
+            Assert.That(interactor.ExecuteCurrentInteraction(), Is.True);
+            yield return null;
+            Assert.That(incident.HasInspectedPressure, Is.True);
+            var pump = GameObject.Find("Modular Cooling Pump");
+            Assert.That(pump.GetComponent<ContextInteractionProxy>().enabled, Is.True);
+            AimAt(localPlayer.gameObject, new Vector3(0f, 1.05f, 5.8f), Vector3.back);
+            interactor.RefreshTarget();
+            Assert.That(interactor.CurrentOption?.TargetId, Is.EqualTo("m4-pump-inspection"));
+            Assert.That(interactor.ExecuteCurrentInteraction(), Is.True);
+            yield return null;
+            Assert.That(incident.HasInspectedPump, Is.True);
             CompleteCoolingIncident(incident);
             yield return null;
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.RelaySurge));
-            Assert.That(campaign.EnemiesRemaining, Is.EqualTo(4));
+            Assert.That(Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Count(e => e.Kind == NetworkEnemyKind.Swarm), Is.EqualTo(5));
+            NetworkCombatEnemy elite = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None).Single(e => e.IsShielded);
+            int eliteHealth = elite.Health;
+            elite.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
+            Assert.That(elite.Health, Is.EqualTo(eliteHealth));
+            elite.ApplyToolServer(ToolKind.CircuitBridger, Vector3.zero);
+            Assert.That(elite.IsShielded, Is.False);
+            Assert.That(elite.IsStunned, Is.True);
+            NetworkCombatEnemy[] swarm = Object.FindObjectsByType<NetworkCombatEnemy>(FindObjectsSortMode.None)
+                .Where(e => e.Kind == NetworkEnemyKind.Swarm).ToArray();
+            int[] before = swarm.Select(e => e.Health).ToArray();
+            swarm[0].ApplyToolServer(ToolKind.SealantGun, Vector3.zero);
+            Assert.That(swarm.Where((e, i) => e.Health < before[i]).Count(), Is.GreaterThan(1), "喷枪必须影响范围内多个敌人");
+            Assert.That(swarm[0].IsSlowed, Is.True);
 
             for (int relay = 0; relay < 5; relay++)
             for (int step = 0; step < 3; step++)
@@ -90,8 +131,8 @@ namespace FunGame.Tests.PlayMode
 
         private static void CompleteCoolingIncident(NetworkCoolingIncidentController incident)
         {
-            Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPressure, ToolKind.None), Is.True);
-            Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPump, ToolKind.None), Is.True);
+            if (!incident.HasInspectedPressure) Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPressure, ToolKind.None), Is.True);
+            if (!incident.HasInspectedPump) Assert.That(incident.TryExecuteServer(NetworkIncidentAction.InspectPump, ToolKind.None), Is.True);
             for (int index = 0; index < 3; index++)
                 Assert.That(incident.TryExecuteServer(NetworkIncidentAction.BridgeCircuit, ToolKind.CircuitBridger), Is.True);
             for (int index = 0; index < 4; index++)
@@ -112,6 +153,17 @@ namespace FunGame.Tests.PlayMode
                 for (int hit = 0; hit < 4 && enemy != null && enemy.Health > 0; hit++)
                     enemy.ApplyToolServer(ToolKind.ImpactWrench, Vector3.zero);
             }
+        }
+
+        private static void AimAt(GameObject player, Vector3 target, Vector3 outward)
+        {
+            var controller = player.GetComponent<CharacterController>();
+            controller.enabled = false;
+            player.transform.position = target + outward * 2f - Vector3.up * 0.65f;
+            Camera camera = player.GetComponentInChildren<Camera>(true);
+            camera.transform.rotation = Quaternion.LookRotation(target - camera.transform.position);
+            controller.enabled = true;
+            Physics.SyncTransforms();
         }
     }
 }

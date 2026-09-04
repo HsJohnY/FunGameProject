@@ -52,7 +52,24 @@ namespace FunGame.Editor
             RemoveLocalPlayer(scene);
             FreezeUnsynchronizedGameplay(scene);
             ConfigureNetworkRepairStations();
+            var pumpProxy = FindRequired("Modular Cooling Pump").GetComponent<ContextInteractionProxy>();
+            pumpProxy.Configure(FindRequired("Cooling Pump Inspection Panel").GetComponent<NetworkIncidentStation>());
+            pumpProxy.enabled = true;
+            // 铭牌只记录本地发现，不控制任务；保留原来的彩蛋交互。
+            foreach (DemoEasterEgg325Interactable plate in
+                     UnityEngine.Object.FindObjectsByType<DemoEasterEgg325Interactable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                plate.Configure(null);
+                plate.enabled = true;
+            }
+            foreach (FunGame.Diagnostics.DevelopmentCheckpoint checkpoint in
+                     UnityEngine.Object.FindObjectsByType<FunGame.Diagnostics.DevelopmentCheckpoint>(FindObjectsSortMode.None))
+                checkpoint.Configure("m4-coop-three-chapter-demo", "--m4-coop-smoke");
             ConfigureMenuForNetworkSession();
+            var menuCamera = new GameObject("M4 Menu Camera");
+            menuCamera.transform.SetPositionAndRotation(new Vector3(-2f, 1.65f, -4f), Quaternion.Euler(0f, 15f, 0f));
+            menuCamera.AddComponent<Camera>();
+            menuCamera.AddComponent<NetworkMenuCamera>();
             CreateNetworkSession();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -61,7 +78,11 @@ namespace FunGame.Editor
                 throw new IOException($"无法保存 M4 多人三舱场景：{ScenePath}");
             }
 
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            EditorBuildSettings.scenes = new[]
+            {
+                new EditorBuildSettingsScene(ScenePath, true),
+                new EditorBuildSettingsScene(SinglePlayerDemoBootstrap.ScenePath, true)
+            };
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[M4] 多人三章完整整合场景已生成。 ");
@@ -70,11 +91,13 @@ namespace FunGame.Editor
         [MenuItem("FunGame/M4/构建 Windows 开发版本")]
         public static void BuildWindowsDevelopment()
         {
+            // 两种模式都从已合并的生成器重建，避免场景快照仍保留旧工具模型。
+            SinglePlayerDemoBootstrap.ConfigureCurrent();
             ConfigureCurrent();
             Directory.CreateDirectory(BuildFolder);
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { ScenePath },
+                scenes = new[] { ScenePath, SinglePlayerDemoBootstrap.ScenePath },
                 locationPathName = BuildPath,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.Development | BuildOptions.AllowDebugging
@@ -114,6 +137,11 @@ namespace FunGame.Editor
                     {
                         // 原单人敌人仅作为联网敌人的布置参考，运行时不能重复显示或碰撞。
                         dormantEnemy.SetEncounterActive(false);
+                    }
+                    if (behaviour is DemoChapterPresentation presentation)
+                    {
+                        presentation.ConfigureNetworkMode();
+                        continue;
                     }
                     if (ShouldFreeze(behaviour))
                     {
@@ -161,7 +189,7 @@ namespace FunGame.Editor
             networkManager.NetworkConfig.PlayerPrefab = playerPrefab;
 
             sessionObject.AddComponent<NetworkSessionController>()
-                .Configure(networkManager, transport, "M4-1 多人三舱验证", false);
+                .Configure(networkManager, transport, "维修队 · 协作会话", false);
             sessionObject.AddComponent<NetworkDiagnosticsOverlay>().Configure(networkManager, transport);
             sessionObject.AddComponent<NetworkCommunicationSpawner>()
                 .Configure(networkManager, communicationPrefab);
@@ -181,9 +209,22 @@ namespace FunGame.Editor
             transformSync.AuthorityMode = Unity.Netcode.Components.NetworkTransform.AuthorityModes.Server;
             transformSync.Interpolate = true;
             enemy.AddComponent<NetworkCombatEnemy>();
+            CreateEnemyPart(enemy.transform, "Shield Armor", new Vector3(0f, 0.12f, 0f), new Vector3(1.35f, 0.65f, 1.35f));
+            CreateEnemyPart(enemy.transform, "Flank Wing Left", new Vector3(-0.65f, 0f, 0f), new Vector3(0.85f, 0.18f, 0.4f));
+            CreateEnemyPart(enemy.transform, "Flank Wing Right", new Vector3(0.65f, 0f, 0f), new Vector3(0.85f, 0.18f, 0.4f));
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(enemy, EnemyPrefabPath);
             UnityEngine.Object.DestroyImmediate(enemy);
             return prefab;
+        }
+
+        private static void CreateEnemyPart(Transform parent, string name, Vector3 position, Vector3 scale)
+        {
+            GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            part.name = name;
+            part.transform.SetParent(parent, false);
+            part.transform.localPosition = position;
+            part.transform.localScale = scale;
+            UnityEngine.Object.DestroyImmediate(part.GetComponent<Collider>());
         }
 
         private static GameObject CreateOrUpdateCampaignPrefab(GameObject enemyPrefab)
@@ -203,7 +244,7 @@ namespace FunGame.Editor
             incidentObject.AddComponent<NetworkObject>();
             var incident = incidentObject.AddComponent<NetworkCoolingIncidentController>();
             incident.ConfigureExtendedIncident(true);
-            incidentObject.AddComponent<NetworkIncidentOverlay>().Configure(incident);
+
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(incidentObject, IncidentPrefabPath);
             UnityEngine.Object.DestroyImmediate(incidentObject);
             return prefab;

@@ -61,7 +61,7 @@ namespace FunGame.Networking
                 _incident.RunState == CoolingIncidentRunState.Succeeded)
             {
                 chapter.Value = NetworkCampaignChapter.RelaySurge;
-                SpawnEncounter(false, 4);
+                SpawnEncounter(false, 7);
             }
         }
 
@@ -103,7 +103,7 @@ namespace FunGame.Networking
             }
             stormWave.Value++;
             coreIntegrity.Value = 100;
-            SpawnEncounter(true, 3 + stormWave.Value * 2);
+            SpawnEncounter(true, 7 + stormWave.Value * 2);
         }
 
         private void TryFinishRelayChapter()
@@ -112,7 +112,7 @@ namespace FunGame.Networking
             chapter.Value = NetworkCampaignChapter.StormDefense;
             stormWave.Value = 0;
             coreIntegrity.Value = 100;
-            SpawnEncounter(true, 3);
+            SpawnEncounter(true, 7);
         }
 
         private void ResetCurrentCombatServer()
@@ -121,7 +121,7 @@ namespace FunGame.Networking
                 if (enemy.IsSpawned) enemy.NetworkObject.Despawn(true);
             coreIntegrity.Value = 100;
             SpawnEncounter(chapter.Value == NetworkCampaignChapter.StormDefense,
-                chapter.Value == NetworkCampaignChapter.StormDefense ? 3 + stormWave.Value * 2 : 4);
+                chapter.Value == NetworkCampaignChapter.StormDefense ? 7 + stormWave.Value * 2 : 7);
         }
 
         private void SpawnEncounter(bool storm, int count)
@@ -132,13 +132,16 @@ namespace FunGame.Networking
             enemiesRemaining.Value = count;
             for (int index = 0; index < count; index++)
             {
-                float side = index % 2 == 0 ? -1f : 1f;
-                Vector3 position = center + new Vector3(side * (2.2f + index * 0.35f), 0f, 3f + index * 0.8f);
+                // 前五只组成可被喷枪覆盖的虫群，另有侧袭体与护盾精英。
+                Vector3 position = center + new Vector3((index % 3 - 1) * 0.85f, 0f, 3f + index / 3 * 1.1f);
                 GameObject instance = Instantiate(enemyPrefab, position, Quaternion.identity);
                 NetworkObject networkObject = instance.GetComponent<NetworkObject>();
                 networkObject.Spawn();
-                instance.GetComponent<NetworkCombatEnemy>().InitializeServer(this, target, 3 + (index % 3), 0.75f,
-                    storm && index == count - 1);
+                NetworkEnemyKind kind = index < 5 ? NetworkEnemyKind.Swarm : index == 5 ? NetworkEnemyKind.Flanker
+                    : index == 6 ? NetworkEnemyKind.ShieldElite : NetworkEnemyKind.Ranged;
+                instance.GetComponent<NetworkCombatEnemy>().InitializeServer(this, target,
+                    kind == NetworkEnemyKind.Swarm ? 2 : kind == NetworkEnemyKind.ShieldElite ? 6 : 4,
+                    kind == NetworkEnemyKind.Flanker ? 1.1f : 0.75f, kind == NetworkEnemyKind.ShieldElite, kind);
             }
         }
 

@@ -9,6 +9,7 @@ namespace FunGame.Networking
     public sealed class NetworkPlayerCampaignAgent : NetworkBehaviour
     {
         private const float MaximumDistance = 4.5f;
+        private float _nextCombatAction;
 
         public bool RequestRelay(int index)
         {
@@ -54,7 +55,10 @@ namespace FunGame.Networking
         {
             if (!reference.TryGet(out NetworkObject target) || !target.TryGetComponent(out NetworkCombatEnemy enemy) ||
                 Vector3.Distance(transform.position, enemy.transform.position) > MaximumDistance) return;
-            enemy.ApplyToolServer(GetComponent<NetworkPlayerToolbelt>().EquippedTool, transform.position);
+            ToolKind tool = GetComponent<NetworkPlayerToolbelt>().EquippedTool;
+            if (!NetworkPlayerToolbelt.IsSupportedTool(tool) || Time.time < _nextCombatAction) return;
+            _nextCombatAction = Time.time + (tool == ToolKind.ImpactWrench ? 0.38f : tool == ToolKind.CircuitBridger ? 0.8f : 0.15f);
+            enemy.ApplyToolServer(tool, transform.position);
         }
 
         private static NetworkCampaignStation FindNearestStation(int index, bool console)

@@ -30,12 +30,12 @@ namespace FunGame.Networking
 
         private void OnGUI()
         {
-            if (!_visible || networkManager == null)
+            if (!_visible || networkManager == null || FunGame.UI.GameMenuController.IsAnyMenuOpen)
             {
                 return;
             }
 
-            GUILayout.BeginArea(new Rect(Screen.width - 330f, Screen.height - 180f, 310f, 160f), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(Screen.width - 330f, 130f, 310f, 160f), GUI.skin.box);
             GUILayout.Label("M3-6 网络诊断（F2 关闭）");
             GUILayout.Label($"模式：{GetModeLabel()}");
             GUILayout.Label($"本地客户端：{networkManager.LocalClientId}");

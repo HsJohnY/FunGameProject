@@ -15,6 +15,13 @@ namespace FunGame.Demo
         [SerializeField] private GameObject stormChamber;
         [SerializeField] private GameObject relayAccessDoor;
         [SerializeField] private GameObject stormAccessDoor;
+        [SerializeField] private bool networkMode;
+        private FunGame.Networking.NetworkCampaignController _networkCampaign;
+        public void ConfigureNetworkMode() { networkMode = true; enabled = true; }
+        private SinglePlayerDemoChapter VisibleChapter => networkMode
+            ? _networkCampaign != null ? (SinglePlayerDemoChapter)(int)_networkCampaign.Chapter : SinglePlayerDemoChapter.CoolingEmergency
+            : campaign.Chapter;
+        private bool IsCompleted => VisibleChapter == SinglePlayerDemoChapter.Completed;
         private MaterialPropertyBlock _propertyBlock;
         private Vector3[] _baseScales;
         private SinglePlayerDemoChapter _visibleChapter = (SinglePlayerDemoChapter)(-1);
@@ -49,14 +56,16 @@ namespace FunGame.Demo
 
         private void Update()
         {
-            if (campaign == null)
+            if (networkMode && _networkCampaign == null)
+                _networkCampaign = FindFirstObjectByType<FunGame.Networking.NetworkCampaignController>();
+            if (!networkMode && campaign == null)
             {
                 return;
             }
 
             RefreshChapterVisibility(false);
 
-            float speed = campaign.Chapter == SinglePlayerDemoChapter.StormCalibration ? 95f : 32f;
+            float speed = VisibleChapter == SinglePlayerDemoChapter.StormCalibration ? 95f : 32f;
             if (movingParts != null)
             {
                 foreach (Transform part in movingParts)
@@ -65,8 +74,8 @@ namespace FunGame.Demo
                 }
             }
 
-            Color signalColor = GetChapterColor(campaign.Chapter);
-            float pulse = 0.82f + Mathf.Sin(Time.unscaledTime * (campaign.IsCompleted ? 2f : 5f)) * 0.18f;
+            Color signalColor = GetChapterColor(VisibleChapter);
+            float pulse = 0.82f + Mathf.Sin(Time.unscaledTime * (IsCompleted ? 2f : 5f)) * 0.18f;
             if (signalRenderers != null)
             {
                 foreach (Renderer signal in signalRenderers)
@@ -84,7 +93,7 @@ namespace FunGame.Demo
                 {
                     if (workLight == null) continue;
                     workLight.color = Color.Lerp(workLight.color, signalColor, Time.deltaTime * 1.8f);
-                    workLight.intensity = Mathf.Lerp(workLight.intensity, campaign.IsCompleted ? 4f : 5.5f, Time.deltaTime * 2f);
+                    workLight.intensity = Mathf.Lerp(workLight.intensity, IsCompleted ? 4f : 5.5f, Time.deltaTime * 2f);
                 }
             }
 
@@ -102,16 +111,16 @@ namespace FunGame.Demo
 
         public void RefreshChapterVisibility(bool force)
         {
-            if (campaign == null || (!force && _visibleChapter == campaign.Chapter))
+            if ((!networkMode && campaign == null) || (!force && _visibleChapter == VisibleChapter))
             {
                 return;
             }
 
-            _visibleChapter = campaign.Chapter;
-            bool relayUnlocked = campaign.Chapter >= SinglePlayerDemoChapter.RelaySurge;
-            bool stormUnlocked = campaign.Chapter >= SinglePlayerDemoChapter.StormCalibration;
-            if (relayCompartment != null) relayCompartment.SetActive(relayUnlocked);
-            if (stormChamber != null) stormChamber.SetActive(stormUnlocked);
+            _visibleChapter = VisibleChapter;
+            bool relayUnlocked = VisibleChapter >= SinglePlayerDemoChapter.RelaySurge;
+            bool stormUnlocked = VisibleChapter >= SinglePlayerDemoChapter.StormCalibration;
+            if (relayCompartment != null) relayCompartment.SetActive(networkMode || relayUnlocked);
+            if (stormChamber != null) stormChamber.SetActive(networkMode || stormUnlocked);
             if (relayAccessDoor != null) relayAccessDoor.SetActive(!relayUnlocked);
             if (stormAccessDoor != null) stormAccessDoor.SetActive(relayUnlocked && !stormUnlocked);
         }

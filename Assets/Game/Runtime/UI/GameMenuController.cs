@@ -15,6 +15,8 @@ namespace FunGame.UI
     public sealed class GameMenuController : MonoBehaviour
     {
         private const string OpenAsMainKey = "FunGame.Menu.OpenAsMain";
+        public const string SinglePlayerScene = "SinglePlayer_ThreeChapterDemo";
+        public const string CooperativeScene = "M4_CoopThreeChapterDemo";
         private static readonly Color Cyan = new Color(0.2f, 0.92f, 0.88f);
         private static readonly Color Amber = new Color(1f, 0.56f, 0.18f);
         private static readonly Color MutedText = new Color(0.52f, 0.68f, 0.74f);
@@ -36,6 +38,7 @@ namespace FunGame.UI
         private MenuPage _page;
         private MenuPage _settingsReturnPage;
         private bool _menuOpen;
+        private bool _changingScene;
         private Vector2 _settingsScroll;
         private Vector2Int[] _resolutionOptions;
         private GUIStyle _titleStyle;
@@ -65,6 +68,15 @@ namespace FunGame.UI
         public static bool IsAnyMenuOpen { get; private set; }
         public bool IsMenuOpen => _menuOpen;
         public bool UsesNetworkSessionFlow => networkSessionFlow;
+        public bool CanStartSinglePlayer => networkSessionFlow && Application.CanStreamedLevelBeLoaded(SinglePlayerScene);
+
+        public void StartSinglePlayerMode()
+        {
+            if (!CanStartSinglePlayer) return;
+            StartCoroutine(ChangeScene(SinglePlayerScene, false));
+        }
+
+        public void ReturnToModeSelection() => ReloadAs(MenuPage.Main);
 
         public void Configure(FirstPersonController configuredPlayer)
         {
@@ -154,7 +166,7 @@ namespace FunGame.UI
                 }
             }
 
-            if (_menuOpen && Time.timeScale != 0f)
+            if (_menuOpen && !networkSessionFlow && Time.timeScale != 0f)
             {
                 Time.timeScale = 0f;
             }
@@ -244,7 +256,11 @@ namespace FunGame.UI
             float buttonY = right.y;
             if (_page == MenuPage.Main)
             {
-                string startTitle = networkSessionFlow ? "进入联机终端" : "开始维修任务";
+                if (CanStartSinglePlayer && DrawTechButton(right, ref buttonY, "单人模式", "SOLO · THREE CHAPTER EXPEDITION", Amber))
+                {
+                    StartSinglePlayerMode();
+                }
+                string startTitle = networkSessionFlow ? "联机协作" : "开始维修任务";
                 string startSubtitle = networkSessionFlow ? "HOST OR JOIN SESSION" : "INITIALIZE EXPEDITION";
                 if (DrawTechButton(right, ref buttonY, startTitle, startSubtitle, Amber))
                 {
@@ -498,7 +514,7 @@ namespace FunGame.UI
             _page = page;
             _menuOpen = true;
             IsAnyMenuOpen = true;
-            Time.timeScale = 0f;
+            Time.timeScale = networkSessionFlow ? 1f : 0f;
             SetGameplayEnabled(false);
         }
 
@@ -553,9 +569,29 @@ namespace FunGame.UI
 
         private void ReloadAs(MenuPage page)
         {
-            PlayerPrefs.SetInt(OpenAsMainKey, page == MenuPage.Main ? 1 : 0);
+            string scene = page == MenuPage.Main && Application.CanStreamedLevelBeLoaded(CooperativeScene)
+                ? CooperativeScene : SceneManager.GetActiveScene().name;
+            StartCoroutine(ChangeScene(scene, page == MenuPage.Main));
+        }
+
+        private System.Collections.IEnumerator ChangeScene(string scene, bool openMenu)
+        {
+            if (_changingScene) yield break;
+            _changingScene = true;
             Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            var manager = Unity.Netcode.NetworkManager.Singleton;
+            if (manager != null)
+            {
+                manager.Shutdown();
+                yield return null;
+                float deadline = Time.realtimeSinceStartup + 5f;
+                while (manager != null && manager.IsListening && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (manager != null) Destroy(manager.gameObject);
+                yield return null;
+            }
+            PlayerPrefs.SetInt(OpenAsMainKey, openMenu ? 1 : 0);
+            SceneManager.LoadScene(scene);
         }
 
         private Vector2Int[] BuildResolutionOptions()

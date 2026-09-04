@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FunGame.Combat;
+using FunGame.Networking;
 using FunGame.Incident;
 using FunGame.Interaction;
 using FunGame.Tools;
@@ -17,6 +18,7 @@ namespace FunGame.Demo
         [SerializeField] private CoolingIncidentController incident;
         [SerializeField] private ContextInteractor interactor;
         [SerializeField] private CoolingCombatIntegrationController coolingCombat;
+        [SerializeField] private NetworkObjectiveGuidance networkSource;
         private readonly Dictionary<DemoGuidanceTargetKind, Transform> _fixedTargets =
             new Dictionary<DemoGuidanceTargetKind, Transform>();
         private DemoRelayTarget[] _relays;
@@ -49,6 +51,12 @@ namespace FunGame.Demo
             incident = configuredIncident;
             interactor = configuredInteractor;
             coolingCombat = configuredCoolingCombat;
+        }
+
+        public void ConfigureNetwork(NetworkObjectiveGuidance source, ContextInteractor actor)
+        {
+            networkSource = source;
+            interactor = actor;
         }
 
         private void Start()
@@ -118,6 +126,14 @@ namespace FunGame.Demo
 
         private void RefreshGuidance()
         {
+            if (networkSource != null)
+            {
+                networkSource.Refresh();
+                CurrentInstruction = networkSource.Instruction;
+                CurrentTarget = networkSource.PrimaryTarget;
+                SecondaryTarget = networkSource.SecondaryTarget;
+                return;
+            }
             if (campaign == null || incident == null)
             {
                 return;
@@ -295,13 +311,13 @@ namespace FunGame.Demo
 
         private void OnGUI()
         {
-            if (campaign == null || GameMenuController.IsAnyMenuOpen)
+            if ((networkSource != null ? !networkSource.IsReady : campaign == null) || GameMenuController.IsAnyMenuOpen)
             {
                 return;
             }
 
             EnsureStyles();
-            float panelWidth = Mathf.Min(610f, Screen.width - 32f);
+            float panelWidth = Mathf.Min(610f, networkSource != null ? Screen.width * 0.58f : Screen.width - 32f);
             var panelRect = new Rect(16f, Screen.height - 160f, panelWidth, 144f);
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
             GUI.Label(new Rect(panelRect.x + 18f, panelRect.y + 12f, panelWidth - 36f, 25f), "任务导航", _headerStyle);
@@ -383,6 +399,7 @@ namespace FunGame.Demo
 
         private string GetProgressStatus(bool includeRecoveryHint)
         {
+            if (networkSource != null) return networkSource.ProgressText;
             string status;
             switch (CurrentInstruction.PrimaryTarget)
             {

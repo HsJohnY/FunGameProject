@@ -138,7 +138,7 @@ namespace FunGame.Interaction
             InteractionOption? bestOption = null;
             foreach (MonoBehaviour component in _componentBuffer)
             {
-                if (!(component is IContextInteractable interactable))
+                if (!component.isActiveAndEnabled || !(component is IContextInteractable interactable))
                 {
                     continue;
                 }

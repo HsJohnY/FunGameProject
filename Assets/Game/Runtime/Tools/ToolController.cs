@@ -74,7 +74,7 @@ namespace FunGame.Tools
             hit.collider.GetComponentsInParent(true, _componentBuffer);
             foreach (MonoBehaviour component in _componentBuffer)
             {
-                if (component is IToolTarget target)
+                if (component.isActiveAndEnabled && component is IToolTarget target)
                 {
                     _currentTarget = target;
                     CurrentOption = target.GetToolAction(_toolbelt);

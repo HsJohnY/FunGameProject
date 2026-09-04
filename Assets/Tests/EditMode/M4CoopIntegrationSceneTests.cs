@@ -8,6 +8,8 @@ using FunGame.Tools;
 using NUnit.Framework;
 using Unity.Netcode;
 using UnityEditor.SceneManagement;
+using UnityEditor;
+using FunGame.Interaction;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -56,6 +58,18 @@ namespace FunGame.Tests.EditMode
                 Assert.That(session.EscapeStopsSession, Is.False, "M4 的 Esc 应由暂停菜单处理，不能同时断开会话。 ");
                 Assert.That(manager.NetworkConfig.PlayerPrefab, Is.Not.Null);
                 Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkPlayerController>(), Is.Not.Null);
+                Transform[] playerParts = manager.NetworkConfig.PlayerPrefab.GetComponentsInChildren<Transform>(true);
+                Assert.That(playerParts.Any(t => t.name == "Wrench Motor Drum"), Is.True);
+                Assert.That(playerParts.Any(t => t.name == "Sealant Pressure Gauge"), Is.True);
+                Assert.That(playerParts.Any(t => t.name == "Bridger Probe Tip Right"), Is.True);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<NetworkObjectiveGuidance>(), Is.Not.Null);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<DemoObjectiveGuidancePresenter>(), Is.Not.Null);
+                Assert.That(manager.NetworkConfig.PlayerPrefab.GetComponent<ToolbeltStatusOverlay>(), Is.Not.Null);
+                Assert.That(EditorBuildSettings.scenes.Any(s => s.enabled && s.path.EndsWith("SinglePlayer_ThreeChapterDemo.unity")), Is.True);
+                ContextInteractionProxy proxy = FindTransform(roots, "Modular Cooling Pump").GetComponent<ContextInteractionProxy>();
+                Assert.That(proxy.enabled, Is.True);
+                var proxyData = new SerializedObject(proxy);
+                Assert.That(proxyData.FindProperty("targetBehaviour").objectReferenceValue, Is.TypeOf<NetworkIncidentStation>());
                 Assert.That(roots.SelectMany(item => item.GetComponentsInChildren<FirstPersonController>(true)), Is.Empty,
                     "场景不能同时保留本地玩家和由 NetworkManager 生成的联网玩家。 ");
                 Assert.That(FindTransform(roots, "Chapter 2 - Power Relay Compartment"), Is.Not.Null);

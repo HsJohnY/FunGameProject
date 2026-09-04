@@ -10,6 +10,11 @@ namespace FunGame.UI
     [RequireComponent(typeof(PlayerToolbelt), typeof(ContextInteractor))]
     public sealed class ToolbeltStatusOverlay : MonoBehaviour
     {
+        [SerializeField] private bool networkMode;
+        [SerializeField] private bool rightAligned;
+        public void ConfigureGuidanceLayout() => rightAligned = true;
+        private FunGame.Networking.NetworkPlayerCarryController _networkCarry;
+        public void ConfigureNetworkMode() => networkMode = true;
         private PlayerToolbelt _toolbelt;
         private ContextInteractor _interactor;
         private GUIStyle _titleStyle;
@@ -20,6 +25,7 @@ namespace FunGame.UI
         {
             _toolbelt = GetComponent<PlayerToolbelt>();
             _interactor = GetComponent<ContextInteractor>();
+            _networkCarry = GetComponent<FunGame.Networking.NetworkPlayerCarryController>();
         }
 
         private void OnGUI()
@@ -30,12 +36,14 @@ namespace FunGame.UI
             }
 
             EnsureStyles();
-            float panelWidth = Mathf.Min(390f, Screen.width - 24f);
-            var panel = new Rect(12f, Screen.height - 174f, panelWidth, 162f);
+            bool alignRight = networkMode || rightAligned;
+            float panelWidth = Mathf.Min(390f, alignRight ? Screen.width * 0.38f : Screen.width - 24f);
+            var panel = new Rect(alignRight ? Screen.width - panelWidth - 16f : 12f, Screen.height - 174f, panelWidth, 162f);
             GUI.Box(panel, GUIContent.none);
             GUI.Label(new Rect(panel.x + 12f, panel.y + 8f, panel.width - 24f, 24f), "工具腰带（工具架换取）", _titleStyle);
 
-            string heldItem = _interactor.HeldItem != null ? _interactor.HeldItem.DisplayName : "空";
+            string heldItem = networkMode ? (_networkCarry != null && _networkCarry.HasHeldItem ? "共享替换管件" : "空")
+                : _interactor.HeldItem != null ? _interactor.HeldItem.DisplayName : "空";
             GUI.Label(new Rect(panel.x + 12f, panel.y + 34f, panel.width - 24f, 24f),
                 $"主工具：{_toolbelt.EquippedTool.GetDisplayName()}    手持物：[Q] {heldItem}", _activeStyle);
 

@@ -217,6 +217,7 @@ namespace FunGame.Editor
                 stormCalibrationConsole);
             root.gameObject.AddComponent<SinglePlayerDemoOverlay>().Configure(campaign);
             var guidance = root.gameObject.AddComponent<DemoObjectiveGuidancePresenter>();
+            UnityEngine.Object.FindFirstObjectByType<FunGame.UI.ToolbeltStatusOverlay>()?.ConfigureGuidanceLayout();
             guidance.Configure(
                 campaign,
                 incident,
