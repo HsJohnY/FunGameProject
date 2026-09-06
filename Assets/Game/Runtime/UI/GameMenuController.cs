@@ -167,6 +167,7 @@ namespace FunGame.UI
 
         private void OnDestroy()
         {
+            CancelHostPreparation();
             if (IsAnyMenuOpen)
             {
                 Time.timeScale = 1f;
@@ -592,6 +593,7 @@ namespace FunGame.UI
         private System.Collections.IEnumerator ChangeScene(string scene, bool openMenu)
         {
             if (_changingScene) yield break;
+            CancelHostPreparation();
             _changingScene = true;
             Time.timeScale = 1f;
             var manager = Unity.Netcode.NetworkManager.Singleton;

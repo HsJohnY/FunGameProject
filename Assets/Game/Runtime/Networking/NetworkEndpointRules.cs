@@ -10,6 +10,19 @@ namespace FunGame.Networking
     {
         public const ushort DefaultPort = 7777;
         public const string DefaultAddress = "127.0.0.1";
+        public const string AnyIpv4Address = "0.0.0.0";
+
+        public static bool TryNormalizePort(string portText, out ushort port, out string error)
+        {
+            if (!ushort.TryParse(portText?.Trim(), out port) || port == 0)
+            {
+                error = "端口必须是 1–65535 的整数";
+                return false;
+            }
+
+            error = string.Empty;
+            return true;
+        }
 
         public static bool TryNormalize(string addressText, string portText, out string address, out ushort port, out string error)
         {
@@ -30,14 +43,7 @@ namespace FunGame.Networking
             }
 
             address = parsedAddress.ToString();
-            if (!ushort.TryParse(portText?.Trim(), out port) || port == 0)
-            {
-                error = "端口必须是 1–65535 的整数";
-                return false;
-            }
-
-            error = string.Empty;
-            return true;
+            return TryNormalizePort(portText, out port, out error);
         }
     }
 }
