@@ -13,7 +13,7 @@ namespace FunGame.Tests.EditMode
     public sealed class SharedMapLayoutTests
     {
         [Test]
-        public void RepairPartsAreAttachedAndBothPipesUseTheSharedVisual()
+        public void RepairPartsAreAttachedAndPipesUseOfficialEquipmentVisuals()
         {
             const string entities = "Assets/Game/Content/Modules/Entities/";
             var fastener = AssetDatabase.LoadAssetAtPath<GameObject>(entities + "Mechanical-Fastener-Demo.prefab");
@@ -23,13 +23,24 @@ namespace FunGame.Tests.EditMode
                 if (bolt.name.StartsWith("Flange Bolt"))
                     Assert.That(new Vector2(bolt.localPosition.x, bolt.localPosition.y).magnitude + bolt.localScale.x * 0.5f,
                         Is.LessThan(radius), "Fastener must sit on the flange face.");
+            var relayVisual = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Content/Modules/Art/Equipment/StormRelay.prefab");
+            Assert.That(relayVisual, Is.Not.Null);
             for (int i = 1; i <= 5; i++)
             {
-                var relay = AssetDatabase.LoadAssetAtPath<GameObject>(entities + $"Storm-Relay-{i}.prefab");
-                Transform crown = relay.transform.Find("Relay Crown");
-                Assert.That(crown.localPosition.y - crown.localScale.y * 0.5f, Is.LessThanOrEqualTo(0.5f));
+                string relayPath = entities + $"Storm-Relay-{i}.prefab";
+                GameObject relay = PrefabUtility.LoadPrefabContents(relayPath);
+                try
+                {
+                    Assert.That(relay.GetComponentsInChildren<Transform>(true).Any(t =>
+                        PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) == relayVisual), Is.True,
+                        relayPath + " must use the official relay visual.");
+                }
+                finally { PrefabUtility.UnloadPrefabContents(relay); }
             }
-            var visual = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Content/Modules/Art/Replacement-Pipe-Visual.prefab");
+            var visual = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Content/Modules/Art/Equipment/ReplacementPipe.prefab");
+            Assert.That(visual, Is.Not.Null);
             foreach (string path in new[] { entities + "Replacement-Pipe.prefab", "Assets/Game/Content/Networking/M4_ReplacementPipe.prefab" })
             {
                 GameObject pipe = PrefabUtility.LoadPrefabContents(path);
@@ -37,7 +48,7 @@ namespace FunGame.Tests.EditMode
                 {
                     Assert.That(pipe.GetComponentsInChildren<Transform>().Any(t =>
                         PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) == visual), Is.True);
-                    Assert.That(pipe.GetComponentsInChildren<MeshRenderer>().Count(r => r.enabled), Is.EqualTo(3));
+                    Assert.That(pipe.GetComponentsInChildren<MeshRenderer>().Any(r => r.enabled), Is.True);
                 }
                 finally { PrefabUtility.UnloadPrefabContents(pipe); }
             }
