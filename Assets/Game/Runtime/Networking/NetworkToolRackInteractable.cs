@@ -12,6 +12,8 @@ namespace FunGame.Networking
         [SerializeField] private string targetId = "network-tool-rack";
         [SerializeField] private ToolKind offeredTool = ToolKind.ImpactWrench;
         public ToolKind OfferedTool => offeredTool;
+        [SerializeField, Range(0, 2)] private int unlockChapter;
+        public bool IsUnlocked(NetworkCampaignChapter chapter) => (int)chapter >= unlockChapter;
 
         public void Configure(string id, ToolKind tool)
         {

@@ -125,6 +125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: storm-bridger-station
   offeredTool: 3
+  unlockChapter: 2
 --- !u!114 &7674954906973804463
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,6 +140,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetId: m4-storm-bridger
   offeredTool: 3
+  unlockChapter: 2
 --- !u!1001 &5212724028694172824
 PrefabInstance:
   m_ObjectHideFlags: 0

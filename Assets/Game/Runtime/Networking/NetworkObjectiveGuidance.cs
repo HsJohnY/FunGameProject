@@ -84,7 +84,7 @@ namespace FunGame.Networking
                 : kind == DemoGuidanceTargetKind.CircuitBridgerRack ? ToolKind.CircuitBridger : ToolKind.None;
             if (desired != ToolKind.None)
                 return Nearest(FindObjectsByType<NetworkToolRackInteractable>(FindObjectsSortMode.None)
-                    .Where(r => r.OfferedTool == desired).Select(r => r.transform));
+                    .Where(r => r.OfferedTool == desired && r.IsUnlocked(_campaign.Chapter)).Select(r => r.transform));
             return kind switch
             {
                 DemoGuidanceTargetKind.PressureGauge => Station(NetworkIncidentAction.InspectPressure),

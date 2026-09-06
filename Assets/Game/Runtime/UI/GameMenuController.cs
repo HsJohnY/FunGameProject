@@ -532,6 +532,7 @@ namespace FunGame.UI
 
         private void SetGameplayEnabled(bool enabled)
         {
+            enabled = enabled && !FunGame.Networking.NetworkChatController.IsChatOpen;
             if (player != null)
             {
                 player.SetGameplayInputEnabled(enabled);

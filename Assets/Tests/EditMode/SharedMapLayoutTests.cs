@@ -13,6 +13,48 @@ namespace FunGame.Tests.EditMode
     public sealed class SharedMapLayoutTests
     {
         [Test]
+        public void RepairPartsAreAttachedAndPipesUseOfficialEquipmentVisuals()
+        {
+            const string entities = "Assets/Game/Content/Modules/Entities/";
+            var fastener = AssetDatabase.LoadAssetAtPath<GameObject>(entities + "Mechanical-Fastener-Demo.prefab");
+            Transform model = fastener.transform.Find("Mechanical Joint Model");
+            float radius = model.Find("Mechanical Joint Flange").localScale.x * 0.5f;
+            foreach (Transform bolt in model)
+                if (bolt.name.StartsWith("Flange Bolt"))
+                    Assert.That(new Vector2(bolt.localPosition.x, bolt.localPosition.y).magnitude + bolt.localScale.x * 0.5f,
+                        Is.LessThan(radius), "Fastener must sit on the flange face.");
+            var relayVisual = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Content/Modules/Art/Equipment/StormRelay.prefab");
+            Assert.That(relayVisual, Is.Not.Null);
+            for (int i = 1; i <= 5; i++)
+            {
+                string relayPath = entities + $"Storm-Relay-{i}.prefab";
+                GameObject relay = PrefabUtility.LoadPrefabContents(relayPath);
+                try
+                {
+                    Assert.That(relay.GetComponentsInChildren<Transform>(true).Any(t =>
+                        PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) == relayVisual), Is.True,
+                        relayPath + " must use the official relay visual.");
+                }
+                finally { PrefabUtility.UnloadPrefabContents(relay); }
+            }
+            var visual = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Game/Content/Modules/Art/Equipment/ReplacementPipe.prefab");
+            Assert.That(visual, Is.Not.Null);
+            foreach (string path in new[] { entities + "Replacement-Pipe.prefab", "Assets/Game/Content/Networking/M4_ReplacementPipe.prefab" })
+            {
+                GameObject pipe = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    Assert.That(pipe.GetComponentsInChildren<Transform>().Any(t =>
+                        PrefabUtility.GetCorrespondingObjectFromSource(t.gameObject) == visual), Is.True);
+                    Assert.That(pipe.GetComponentsInChildren<MeshRenderer>().Any(r => r.enabled), Is.True);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(pipe); }
+            }
+        }
+
+        [Test]
         public void BothModesLoadOnlyTheCanonicalSoloMap()
         {
             Assert.That(GameMenuController.CooperativeScene, Is.EqualTo(GameMenuController.SinglePlayerScene));
@@ -54,6 +96,16 @@ namespace FunGame.Tests.EditMode
                         FunGame.Tools.ToolKind.SealantGun,
                         FunGame.Tools.ToolKind.CircuitBridger
                     }), $"Chapter {chapter + 1} must provide every tool exactly once.");
+                    foreach (var rack in localRacks)
+                    {
+                        var networkRack = rack.GetComponent<FunGame.Networking.NetworkToolRackInteractable>();
+                        Assert.That(networkRack, Is.Not.Null);
+                        for (int current = 0; current < 3; current++)
+                        {
+                            Assert.That(rack.IsUnlocked(current), Is.EqualTo(current >= chapter));
+                            Assert.That(networkRack.IsUnlocked((FunGame.Networking.NetworkCampaignChapter)current), Is.EqualTo(current >= chapter));
+                        }
+                    }
                     Assert.That(localRacks.All(r => r.transform.position.z >= chapter * 20f - 10f &&
                         r.transform.position.z < chapter * 20f + 10f), Is.True,
                         $"Chapter {chapter + 1} racks must be inside their own room.");

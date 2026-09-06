@@ -58,6 +58,26 @@ namespace FunGame.Diagnostics
                 && Cursor.lockState == CursorLockMode.None, "Lobby releases owner cursor and blocks gameplay input");
             yield return Capture("11-connected-room.png");
             menu.EnterGameplayForAutomation();
+            var chat = FindFirstObjectByType<NetworkChatController>();
+            chat.SetPanelVisible(true);
+            for (int i = 0; i < 22; i++) chat.SendMessage($"维修记录 {i + 1}：检查冷却管件，等待队友一起处理配电舱继电器。");
+            yield return Capture("12-coop-chat-history.png");
+            Require(chat.MessageCount == 22, "Full session chat history retained");
+            chat.SetPanelVisible(false);
+            Vector3 originalPosition = player.transform.position;
+            Camera ownerCamera = player.GetComponentInChildren<Camera>();
+            Quaternion originalView = ownerCamera.transform.rotation;
+            var pipe = FindFirstObjectByType<NetworkCarryableItem>();
+            PoseCamera(player.gameObject, pipe.transform.position + new Vector3(0.7f, -0.2f, -2.1f), pipe.transform.position);
+            yield return Capture("13-network-pipe.png");
+            var fastener = FindObjectsByType<NetworkIncidentStation>(FindObjectsSortMode.None)
+                .Single(s => s.Action == NetworkIncidentAction.OperateFastener);
+            PoseCamera(player.gameObject, fastener.transform.position + new Vector3(0.5f, -0.4f, -2f), fastener.transform.position);
+            yield return Capture("14-fastener.png");
+            player.transform.position = originalPosition;
+            ownerCamera.transform.rotation = originalView;
+            player.GetComponent<CharacterController>().enabled = true;
+            player.GetComponent<FunGame.Player.FirstPersonController>().enabled = true;
             player.GetComponent<NetworkPlayerToolbelt>().RequestToggleTool(ToolKind.ImpactWrench);
             yield return new WaitForSecondsRealtime(0.5f);
             var guidance = player.GetComponent<DemoObjectiveGuidancePresenter>();

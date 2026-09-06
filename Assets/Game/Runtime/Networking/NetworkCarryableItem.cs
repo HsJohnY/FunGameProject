@@ -25,6 +25,7 @@ namespace FunGame.Networking
         private Collider _interactionCollider;
         private Vector3 _worldScale;
         private Vector3 _spawnPosition;
+        private Quaternion _spawnRotation;
 
         public string TargetId => targetId;
         public bool IsHeld => holder.Value.TryGet(out _, NetworkManager);
@@ -41,6 +42,7 @@ namespace FunGame.Networking
             if (IsServer)
             {
                 _spawnPosition = transform.position;
+                _spawnRotation = transform.rotation;
             }
 
             holder.OnValueChanged += HandleHolderChanged;
@@ -164,7 +166,7 @@ namespace FunGame.Networking
             {
                 NetworkObject.TryRemoveParent(true);
             }
-            transform.SetPositionAndRotation(_spawnPosition, Quaternion.identity);
+            transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
             transform.localScale = _worldScale;
             _interactionCollider.enabled = true;
             _body.isKinematic = false;

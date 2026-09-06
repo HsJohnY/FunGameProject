@@ -58,7 +58,7 @@ namespace FunGame.Networking
                 return;
             }
 
-            GameObject instance = Instantiate(itemPrefab, spawnPosition, Quaternion.identity);
+            GameObject instance = Instantiate(itemPrefab, spawnPosition, itemPrefab.transform.rotation);
             _spawnedItem = instance.GetComponent<NetworkObject>();
             _spawnedItem.Spawn(true);
         }

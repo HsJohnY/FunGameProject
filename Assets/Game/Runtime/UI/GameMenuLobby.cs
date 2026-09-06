@@ -20,12 +20,14 @@ namespace FunGame.UI
         private GUIStyle _roomInputStyle;
         private GUIStyle _roomBodyStyle;
         private LobbySetupMode _lobbySetupMode;
+        private string _nickname;
 
         public bool IsNetworkLobbyOpen => _menuOpen && _page == MenuPage.Lobby;
         private bool HasConnectedSession => _session != null && _session.HasLocalPlayer;
 
         public void OpenNetworkLobby()
         {
+            _nickname = NetworkPlayerController.LocalNickname;
             if (!networkSessionFlow) return;
             if (_session == null) _session = Object.FindFirstObjectByType<NetworkSessionController>();
             if (_session != null)
@@ -40,6 +42,9 @@ namespace FunGame.UI
         public bool StartRoom(bool host, string address, string port)
         {
             if (!IsNetworkLobbyOpen || _session == null) return false;
+            string nickname = NetworkPlayerController.NormalizeNickname(_nickname);
+            if (nickname.Length == 0) return false;
+            NetworkPlayerController.LocalNickname = nickname;
             _roomPort = port;
             if (!host) _roomAddress = address;
 
@@ -96,6 +101,7 @@ namespace FunGame.UI
         {
             Event input = Event.current;
             if (input.type != EventType.KeyDown || _changingScene) return;
+            if (NetworkChatController.IsChatOpen || NetworkChatController.ConsumedCloseKey) return;
             if (input.keyCode == KeyCode.F1 && networkSessionFlow)
             {
                 input.Use();
@@ -193,30 +199,37 @@ namespace FunGame.UI
                     bool creating = _lobbySetupMode == LobbySetupMode.CreateRoom;
                     GUI.Label(new Rect(70f, 184f, 940f, 36f), creating ? "创建房间" : "加入房间", _sectionStyle);
                     GUI.enabled = idle && !IsPreparingHost;
+                    GUI.Label(new Rect(70f, 226f, 430f, 24f), "你的昵称（头顶与聊天显示，最多 16 字）", _subtitleStyle);
+                    GUI.SetNextControlName("PlayerNickname");
+                    _nickname = GUI.TextField(new Rect(70f, 258f, 430f, 44f),
+                        _nickname ?? NetworkPlayerController.LocalNickname,
+                        NetworkPlayerController.MaximumNicknameLength, _roomInputStyle);
                     if (!creating)
                     {
-                        GUI.Label(new Rect(70f, 238f, 430f, 24f), "好友发送的房主 IPv4", _subtitleStyle);
+                        GUI.Label(new Rect(70f, 318f, 430f, 24f), "好友发送的房主 IPv4", _subtitleStyle);
                         GUI.SetNextControlName("RoomAddress");
-                        _roomAddress = GUI.TextField(new Rect(70f, 272f, 430f, 48f), _roomAddress, 64, _roomInputStyle);
+                        _roomAddress = GUI.TextField(new Rect(70f, 348f, 430f, 48f), _roomAddress, 64, _roomInputStyle);
                     }
                     else
                     {
-                        GUI.Label(new Rect(70f, 248f, 430f, 70f),
+                        GUI.Label(new Rect(70f, 324f, 430f, 70f),
                             "无需填写本机 IP。联机授权仅在本次游戏运行期间有效，退出后自动清理。", _roomBodyStyle);
                     }
 
-                    GUI.Label(new Rect(560f, 238f, 400f, 24f), "房间端口", _subtitleStyle);
+                    GUI.Label(new Rect(560f, 318f, 400f, 24f), "房间端口", _subtitleStyle);
                     GUI.SetNextControlName("RoomPort");
-                    _roomPort = GUI.TextField(new Rect(560f, 272f, 400f, 48f), _roomPort, 5, _roomInputStyle);
+                    _roomPort = GUI.TextField(new Rect(560f, 348f, 400f, 48f), _roomPort, 5, _roomInputStyle);
                     bool needsConsent = creating && FirewallState == HostFirewallState.NeedsConsent;
-                    GUI.enabled = idle && (!IsPreparingHost || needsConsent);
-                    if (GUI.Button(new Rect(560f, 348f, 400f, 58f), needsConsent ? "授权本次联机并创建" : creating ? "确认创建" : "确认加入", _buttonStyle))
+                    bool validNickname = NetworkPlayerController.NormalizeNickname(_nickname).Length > 0;
+                    if (!validNickname) state = "请先填写昵称，再创建或加入房间。";
+                    GUI.enabled = idle && validNickname && (!IsPreparingHost || needsConsent);
+                    if (GUI.Button(new Rect(560f, 416f, 400f, 58f), needsConsent ? "授权本次联机并创建" : creating ? "确认创建" : "确认加入", _buttonStyle))
                     {
                         if (needsConsent) AuthorizeHostFirewall();
                         else RequestRoomFromMenu(creating, _roomAddress, _roomPort);
                     }
                     GUI.enabled = true;
-                    GUI.Label(new Rect(70f, 422f, 890f, 44f), state, _roomBodyStyle);
+                    GUI.Label(new Rect(70f, 416f, 430f, 58f), state, _roomBodyStyle);
                     GUI.enabled = IsPreparingHost || (_session != null && !idle);
                     if (GUI.Button(new Rect(70f, 486f, 280f, 44f), "取消连接", _secondaryButtonStyle)) DisconnectRoom();
                     GUI.enabled = true;

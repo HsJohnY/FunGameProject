@@ -256,7 +256,8 @@ namespace FunGame.Demo
 
             foreach (ToolRackInteractable rack in _toolRacks)
             {
-                if (rack == null || rack.OfferedTool != tool || !rack.gameObject.activeInHierarchy)
+                if (rack == null || rack.OfferedTool != tool || !rack.gameObject.activeInHierarchy
+                    || !rack.IsUnlocked((int)campaign.Chapter))
                 {
                     continue;
                 }
