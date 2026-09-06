@@ -1,0 +1,72 @@
+[
+  {
+    "name": "ImpactWrench",
+    "triangles": 1368,
+    "vertices": 744,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "SealantGun",
+    "triangles": 1396,
+    "vertices": 744,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "CircuitBridger",
+    "triangles": 1480,
+    "vertices": 784,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "CoolingPump",
+    "triangles": 3136,
+    "vertices": 1704,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "ControlConsole",
+    "triangles": 912,
+    "vertices": 504,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "StormRelay",
+    "triangles": 1168,
+    "vertices": 608,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "ReplacementPipe",
+    "triangles": 1112,
+    "vertices": 600,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "PressureGauge",
+    "triangles": 1168,
+    "vertices": 628,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "ToolDock",
+    "triangles": 484,
+    "vertices": 264,
+    "renderers": 1,
+    "materials": 1
+  },
+  {
+    "name": "InspectionPanel",
+    "triangles": 564,
+    "vertices": 312,
+    "renderers": 1,
+    "materials": 1
+  }
+]
