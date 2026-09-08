@@ -16,6 +16,24 @@ namespace FunGame.Tests.PlayMode
 {
     public sealed class M4CommunicationSpawnPlayModeTests
     {
+        private Scene _scene;
+        private NetworkManager _manager;
+
+        [UnityTearDown]
+        public IEnumerator StopSessionAndUnloadScene()
+        {
+            if (_manager != null)
+            {
+                _manager.Shutdown();
+                yield return null;
+                float deadline = Time.realtimeSinceStartup + 5f;
+                while (_manager.ShutdownInProgress && Time.realtimeSinceStartup < deadline) yield return null;
+                Object.Destroy(_manager.gameObject);
+                yield return null;
+            }
+            if (_scene.IsValid() && _scene.isLoaded) yield return SceneManager.UnloadSceneAsync(_scene);
+        }
+
         [UnityTest]
         public IEnumerator 启动M4主机后生成已注册的通信与维修对象()
         {
@@ -25,13 +43,13 @@ namespace FunGame.Tests.PlayMode
                 yield return null;
             }
 
-            Scene scene = SceneManager.GetSceneByName(GameMenuController.CooperativeScene);
+            Scene scene = _scene = SceneManager.GetSceneByName(GameMenuController.CooperativeScene);
             yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Assert.That(scene.IsValid(), Is.True);
             GameMenuController menu = Object.FindFirstObjectByType<GameMenuController>();
             menu?.EnterGameplayForAutomation();
             NetworkSessionController session = Object.FindFirstObjectByType<NetworkSessionController>();
-            NetworkManager manager = Object.FindFirstObjectByType<NetworkManager>();
+            NetworkManager manager = _manager = Object.FindFirstObjectByType<NetworkManager>();
             Assert.That(session, Is.Not.Null);
             Assert.That(manager, Is.Not.Null);
             Assert.That(session.TrySetEndpointInput("127.0.0.1", "17841"), Is.True);
@@ -141,9 +159,6 @@ namespace FunGame.Tests.PlayMode
             }
             Assert.That(campaign.Chapter, Is.EqualTo(NetworkCampaignChapter.Completed));
 
-            manager.Shutdown();
-            yield return null;
-            yield return SceneManager.UnloadSceneAsync(scene);
         }
 
         private static IEnumerator CompleteCoolingIncident(NetworkCoolingIncidentController incident)

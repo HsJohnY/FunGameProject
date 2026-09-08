@@ -13,6 +13,8 @@ namespace FunGame.Networking
     [RequireComponent(typeof(NetworkObject), typeof(Collider), typeof(Renderer))]
     public sealed class NetworkCombatEnemy : NetworkBehaviour, IToolTarget
     {
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
         private readonly NetworkVariable<int> health = new NetworkVariable<int>();
         private readonly NetworkVariable<int> maxHealth = new NetworkVariable<int>();
         private readonly NetworkVariable<bool> shielded = new NetworkVariable<bool>();
@@ -31,6 +33,11 @@ namespace FunGame.Networking
         private float _speed;
         private float _nextAttack;
         private NetworkCampaignController _campaign;
+        private Renderer _rootRenderer;
+        private Renderer[] _fallbackRenderers;
+        private MeshRenderer[] _modelRenderers;
+        private Collider[] _modelColliders;
+        private MaterialPropertyBlock _visualProperties;
 
         public int Health => health.Value;
         public bool IsShielded => shielded.Value && !IsStunned;
@@ -72,6 +79,7 @@ namespace FunGame.Networking
 
         public override void OnNetworkSpawn()
         {
+            CacheVisualComponents();
             health.OnValueChanged += Refresh;
             shielded.OnValueChanged += RefreshShield;
             kind.OnValueChanged += RefreshKind;
@@ -147,7 +155,7 @@ namespace FunGame.Networking
             _attackRules = new InterferenceEnemyRules(_template.MaxHealth, _template.AttackInterval, _template.AttackWindup);
             _target = _template.DefenseTarget.transform.position;
             foreach (Transform child in transform) child.gameObject.SetActive(false);
-            GetComponent<Renderer>().sharedMaterials = _template.GetComponent<Renderer>().sharedMaterials;
+            _rootRenderer.sharedMaterials = _template.GetComponent<Renderer>().sharedMaterials;
             foreach (Transform child in _template.transform)
             {
                 GameObject part = Instantiate(child.gameObject, transform, false);
@@ -163,6 +171,9 @@ namespace FunGame.Networking
             _link.startWidth = 0.045f;
             _link.endWidth = 0.02f;
             _link.enabled = false;
+            // The authored model is cloned after network spawn (including on late join).
+            // Refresh the cache here so it includes the new hierarchy.
+            CacheVisualComponents();
             RefreshVisual();
         }
 
@@ -275,13 +286,28 @@ namespace FunGame.Networking
             transform.position += displacement.normalized * allowed;
         }
 
+        private void CacheVisualComponents()
+        {
+            _rootRenderer = GetComponent<Renderer>();
+            _fallbackRenderers = GetComponentsInChildren<Renderer>(true);
+            _modelRenderers = GetComponentsInChildren<MeshRenderer>(true);
+            _modelColliders = GetComponentsInChildren<Collider>(true);
+            _visualProperties ??= new MaterialPropertyBlock();
+        }
+
         private void RefreshVisual()
         {
+            if (_visualProperties == null) CacheVisualComponents();
+            _visualProperties.Clear();
             if (_template != null)
             {
                 bool visible = health.Value > 0 && IsDeployed;
-                foreach (MeshRenderer part in GetComponentsInChildren<MeshRenderer>()) part.enabled = visible;
-                foreach (Collider collider in GetComponentsInChildren<Collider>()) collider.enabled = visible;
+                foreach (MeshRenderer part in _modelRenderers)
+                    if (part != null && part.gameObject.activeInHierarchy && part.enabled != visible)
+                        part.enabled = visible;
+                foreach (Collider collider in _modelColliders)
+                    if (collider != null && collider.gameObject.activeInHierarchy && collider.enabled != visible)
+                        collider.enabled = visible;
                 float healthRatio = (float)health.Value / Mathf.Max(1, maxHealth.Value);
                 float pulse = telegraphing.Value ? 1f + Mathf.Sin(Time.unscaledTime * 30f) * 0.12f : 1f;
                 transform.localScale = Vector3.Scale(_template.AuthoredScale,
@@ -292,25 +318,24 @@ namespace FunGame.Networking
                 if (IsSlowed) tint = Color.Lerp(tint, new Color(0.4f, 0.8f, 1f), 0.65f);
                 if (IsStunned) tint = new Color(0.15f, 1f, 0.95f);
                 if (telegraphing.Value) tint = Color.Lerp(tint, new Color(1f, 0.75f, 0.05f), 0.75f);
-                var state = new MaterialPropertyBlock();
-                state.SetColor("_BaseColor", tint);
-                GetComponent<Renderer>().SetPropertyBlock(state);
+                _visualProperties.SetColor(BaseColorId, tint);
+                _rootRenderer.SetPropertyBlock(_visualProperties);
                 return;
             }
             transform.localScale = kind.Value == NetworkEnemyKind.ShieldElite ? new Vector3(1.3f, 1.1f, 1.3f)
                 : kind.Value == NetworkEnemyKind.Flanker ? new Vector3(0.95f, 0.45f, 1.1f)
                 : kind.Value == NetworkEnemyKind.Ranged ? new Vector3(0.7f, 0.9f, 0.7f) : new Vector3(0.45f, 0.4f, 0.55f);
-            var block = new MaterialPropertyBlock();
             Color color = shielded.Value ? new Color(0.2f, 0.45f, 1f)
                 : kind.Value == NetworkEnemyKind.Flanker ? new Color(0.95f, 0.18f, 0.6f)
                 : kind.Value == NetworkEnemyKind.Ranged ? Color.cyan : new Color(0.7f, 0.1f, 0.85f);
-            block.SetColor("_BaseColor", color);
-            block.SetColor("_Color", color);
-            foreach (Renderer part in GetComponentsInChildren<Renderer>(true))
+            _visualProperties.SetColor(BaseColorId, color);
+            _visualProperties.SetColor(ColorId, color);
+            foreach (Renderer part in _fallbackRenderers)
             {
+                if (part == null) continue;
                 part.enabled = health.Value > 0 && (part.gameObject == gameObject ||
                     (part.name == "Shield Armor" ? shielded.Value : kind.Value == NetworkEnemyKind.Flanker));
-                part.SetPropertyBlock(block);
+                part.SetPropertyBlock(_visualProperties);
             }
         }
     }

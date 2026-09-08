@@ -11,12 +11,20 @@ namespace FunGame.Tests.PlayMode
 {
     public sealed class CombatPositionPlayModeTests
     {
+        private Scene _scene;
+
+        [UnityTearDown]
+        public IEnumerator UnloadScene()
+        {
+            if (_scene.IsValid() && _scene.isLoaded) yield return SceneManager.UnloadSceneAsync(_scene);
+        }
+
         [UnityTest]
         public IEnumerator StormWaveProvidesPreparationAndSeparateReinforcements()
         {
             FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             yield return SceneManager.LoadSceneAsync(GameMenuController.SinglePlayerScene, LoadSceneMode.Additive);
-            Scene scene = SceneManager.GetSceneByName(GameMenuController.SinglePlayerScene);
+            Scene scene = _scene = SceneManager.GetSceneByName(GameMenuController.SinglePlayerScene);
             yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Object.FindFirstObjectByType<GameMenuController>().EnterGameplayForAutomation();
             var campaign = Object.FindFirstObjectByType<FunGame.Demo.SinglePlayerDemoController>();
@@ -33,7 +41,6 @@ namespace FunGame.Tests.PlayMode
             Assert.That(wave.Enemies.Count(e => e.GetComponent<Collider>().enabled), Is.EqualTo(3));
             yield return new WaitForSeconds(4.2f);
             Assert.That(wave.PendingEnemyCount, Is.Zero);
-            yield return SceneManager.UnloadSceneAsync(scene);
         }
 
         [UnityTest]
@@ -41,7 +48,7 @@ namespace FunGame.Tests.PlayMode
         {
             FunGame.Demo.SharedMapModeController.NextMode = FunGame.Demo.ExpeditionMode.Solo;
             yield return SceneManager.LoadSceneAsync("SinglePlayer_ThreeChapterDemo", LoadSceneMode.Additive);
-            Scene scene = SceneManager.GetSceneByName("SinglePlayer_ThreeChapterDemo");
+            Scene scene = _scene = SceneManager.GetSceneByName("SinglePlayer_ThreeChapterDemo");
             yield return ModularSceneTestUtility.WaitUntilReady(scene);
             Object.FindFirstObjectByType<GameMenuController>()?.EnterGameplayForAutomation();
             var all = scene.GetRootGameObjects().SelectMany(r => r.GetComponentsInChildren<InterferenceEnemy>(true)).ToArray();
@@ -74,12 +81,18 @@ namespace FunGame.Tests.PlayMode
                 enemy.DefenseTarget.Configure(10000);
                 enemy.ResetEnemy();
                 enemy.enabled = true;
-                yield return new WaitForSeconds(6f);
+                // Use the authored route/speed: the slow cooling enemy cannot cover its
+                // approach in the old fixed six-second window. Still fail if it gets stuck.
+                float routeLength = Vector3.ProjectOnPlane(enemy.ApproachPosition - enemy.transform.position, Vector3.up).magnitude
+                    + Vector3.ProjectOnPlane(enemy.AttackPosition - enemy.ApproachPosition, Vector3.up).magnitude;
+                float deadline = Time.time + routeLength / enemy.MoveSpeed + 2f;
+                while (!enemy.IsAtCombatPosition(enemy.transform.position) && Time.time < deadline)
+                    yield return null;
                 enemy.enabled = false;
-                Assert.That(enemy.IsAtCombatPosition(enemy.transform.position), Is.True, enemy.TargetId + " failed to reach open attack position");
+                Assert.That(enemy.IsAtCombatPosition(enemy.transform.position), Is.True,
+                    $"{enemy.TargetId} failed to reach {enemy.AttackPosition} from current position {enemy.transform.position} at speed {enemy.MoveSpeed}");
                 enemy.SetEncounterActive(false);
             }
-            yield return SceneManager.UnloadSceneAsync(scene);
         }
     }
 }
